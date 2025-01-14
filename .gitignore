@@ -1,6 +1,5 @@
-.vscode/
-.vscode/
-venv/
-envs/
-__pycache__/
+B8_venv/
 *.pyc
+__pycache__/
+.vscode/
+.DS_Store
