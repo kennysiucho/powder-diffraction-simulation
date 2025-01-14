@@ -15,7 +15,7 @@ properties of disordered alloys.
     ```bash
     git clone https://github.com/yourusername/B8_project.git <directory>
     ```
-    Replace <directory> with the desired location of this project on your PC.
+    Replace ```<directory>``` with the desired location of this project on your PC.
 
 3. **Navigate to the project directory**
     ```bash
