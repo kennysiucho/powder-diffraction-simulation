@@ -7,8 +7,8 @@ properties of disordered alloys.
 ## Setup
 1. **Prerequisites**
     Ensure that you have the following installed:
-    - Python 3
-    - Git
+- Python 3
+- Git
 
 2. **Clone the Repository**  
     Open a terminal and clone this repository:
@@ -28,12 +28,12 @@ properties of disordered alloys.
     ```
 
 5. **Activate the virtual environment**
-    - On macOS/Linux:
+- On macOS/Linux:
     ```bash
     source venv/bin/activate
     ```
 
-    - On Windows:
+- On Windows:
     ```
     venv\Scripts\activate
     ```
