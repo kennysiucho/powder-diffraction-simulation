@@ -5,7 +5,7 @@ This project involves simulating X-ray and neutron diffraction spectra to study 
 properties of disordered alloys.
 
 ## Setup
-1. **Prerequisites**
+1. **Prerequisites** 
     Ensure that you have the following installed:
 - Python 3
 - Git
