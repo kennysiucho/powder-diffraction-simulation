@@ -1,4 +1,6 @@
-# TODO: add unit tests for functions in this module.
+"""
+TODO: add unit tests for functions in this module.
+"""
 
 
 def duplicate_elements(original_list: list, num_duplicates: int) -> list:

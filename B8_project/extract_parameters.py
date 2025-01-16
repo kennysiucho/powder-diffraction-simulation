@@ -1,7 +1,6 @@
-# TODO: add unit tests for functions in this module.
-
 """
 pandas is used to extract parameters from .csv files.
+TODO: add unit tests for functions in this module.
 """
 
 import pandas as pd
@@ -22,7 +21,7 @@ def get_lattice_from_csv(
     ----------------------
     The CSV file must contain the following columns:
         - "material" (str): Chemical formula of the crystal (e.g. "NaCl").
-        - "lattice_type" (int): Integer (1 - 9 inclusive) that represents the Bravais lattice type.
+        - "lattice_type" (int): Integer (1 - 4 inclusive) that represents the Bravais lattice type.
             - 1 -> Simple.
             - 2 -> Body centred.
             - 3 -> Face centred.

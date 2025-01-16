@@ -1,4 +1,6 @@
-# TODO: add unit tests for functions in this module.
+"""
+TODO: add unit tests for functions in this module.
+"""
 
 import B8_project.utils as utils
 import B8_project.extract_parameters as extract_parameters
@@ -144,6 +146,10 @@ class UnitCell:
         Returns
         -------
         TODO: add returns
+
+        Todos
+        ----
+        TODO: Implement base centred lattice logic.
         """
         material, lattice_type, lattice_constants = lattice
         atomic_numbers, atomic_masses, atomic_positions = basis
@@ -202,7 +208,7 @@ class UnitCell:
 
         # Base centred lattice
         elif lattice_type == 4:
-            # TODO: Implement base centred lattice logic.
+            # Implement base centred lattice logic here.
 
             raise ValueError(
                 """Base centred lattice logic not implemented yet. Please choose a 

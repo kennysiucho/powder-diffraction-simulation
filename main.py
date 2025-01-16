@@ -1,3 +1,9 @@
+"""
+This module currently extracts the lattice and basis parameters from two CSV files, 
+creates a `UnitCell` instance with these parameters, and prints this `UnitCell` 
+instance.
+"""
+
 from B8_project import extract_parameters
 import B8_project.unit_cell as unit_cell
 
