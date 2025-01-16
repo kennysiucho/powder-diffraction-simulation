@@ -1,5 +1,5 @@
-import extract_parameters
-import unit_cell
+import B8_project.extract_parameters as extract_parameters
+import B8_project.unit_cell as unit_cell
 
 LATTICE_FILE = "Parameters/lattice.csv"
 BASIS_FILE = "Parameters/basis.csv"
