@@ -167,13 +167,13 @@ def validate_parameters(
     # Validate that the length of atomic_numbers, atomic_masses and
     # atomic_positions is the same.
     if not len(atomic_numbers) == len(atomic_masses) == len(atomic_positions):
-        return ValueError(
+        raise ValueError(
             """Length of atomic_numbers, atomic_masses and atomic_positions must be the same"""
         )
 
     # Validate lattice_type
     if lattice_type < 1 or lattice_type > 4:
-        return ValueError(
+        raise ValueError(
             """lattice_type should be an integer between 1 and 4 inclusive"""
         )
 
@@ -181,14 +181,14 @@ def validate_parameters(
 
     # Validate that the lattice constants are non-negative and non-zero.
     if not (a > 0 and b > 0 and c > 0):
-        return ValueError(
+        raise ValueError(
             """Lattice constants should all be non-negative and non-zero."""
         )
 
     # Validate that lattice_type and lattice_constants are compatible for a cubic
     # unit cell
     if (a == b == c) and lattice_type == 4:
-        return ValueError(
+        raise ValueError(
             """Base centred lattice type is not permitted for a cubic lattice"""
         )
 
@@ -196,10 +196,10 @@ def validate_parameters(
     # tetragonal unit cell
     if (a == b and not a == c) or (a == c and not a == b) or (b == c and not a == b):
         if lattice_type == 3:
-            return ValueError(
+            raise ValueError(
                 """Face centred lattice type is not permitted for a tetragonal lattice"""
             )
         elif lattice_type == 4:
-            return ValueError(
+            raise ValueError(
                 """Base centred lattice type is not permitted for a tetragonal unit cell"""
             )

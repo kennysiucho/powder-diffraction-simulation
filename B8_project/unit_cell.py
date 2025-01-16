@@ -17,6 +17,10 @@ class Atom:
         - atomic_mass (float): The atomic mass of the atom, in atomic mass units (AMU).
         - position (tuple[float, float, float]): The position of the atom in the unit
         cell, given in terms of the lattice constants.
+
+    Methods
+    -------
+    TODO: add methods.
     """
 
     def __init__(
@@ -127,7 +131,7 @@ class UnitCell:
         basis: tuple[list[int], list[float], list[tuple[float, float, float]]],
     ):
         """
-        Lattice and basis to unit cell
+        Parameters to unit cell
         ==============================
 
         Returns an instance of `UnitCell` given the parameters of the lattice and the
@@ -141,9 +145,6 @@ class UnitCell:
         -------
         TODO: add returns
         """
-
-        # TODO: fix error handling.
-
         material, lattice_type, lattice_constants = lattice
         atomic_numbers, atomic_masses, atomic_positions = basis
 
