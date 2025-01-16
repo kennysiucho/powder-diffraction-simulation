@@ -23,5 +23,5 @@ print(
 
 lattice = material, lattice_type, lattice_constants
 basis = atomic_numbers, atomic_masses, atomic_positions
-my_cell = unit_cell.UnitCell.lattice_and_basis_to_unit_cell(lattice, basis)
+my_cell = unit_cell.UnitCell.parameters_to_unit_cell(lattice, basis)
 print(f"{my_cell}")
