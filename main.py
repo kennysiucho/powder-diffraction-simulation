@@ -7,12 +7,12 @@ import extract_parameters
 LATTICE_FILE = "Parameters/lattice.csv"
 BASIS_FILE = "Parameters/basis.csv"
 
-material, lattice_type, lattice_constants = (
-    extract_parameters.extract_lattice_parameters_from_csv(LATTICE_FILE)
+material, lattice_type, lattice_constants = extract_parameters.get_lattice_from_csv(
+    LATTICE_FILE
 )
 
-atomic_numbers, atomic_masses, atomic_positions = (
-    extract_parameters.extract_basis_from_csv(BASIS_FILE)
+atomic_numbers, atomic_masses, atomic_positions = extract_parameters.get_basis_from_csv(
+    BASIS_FILE
 )
 
 print(
