@@ -1,4 +1,7 @@
 """
+utils contains utility functions for manipulating tuples and arrays.
+file_reading contains functions for reading and validating data extracted from CSV 
+files.
 TODO: add unit tests for functions in this module.
 """
 
@@ -21,7 +24,8 @@ class Atom:
 
     Methods
     -------
-    TODO: add methods.
+        - shift_position: shifts the `position` of an `Atom` instance by a specified
+        amount.
     """
 
     def __init__(
@@ -47,7 +51,7 @@ class Atom:
         """
         return self.__str__()
 
-    def shift_position(self, shift: tuple[float, float, float]):
+    def shift_position(self, shift: tuple[float, float, float]) -> "Atom":
         """
         Shift position
         ==============
@@ -57,11 +61,12 @@ class Atom:
 
         Parameters
         ----------
-        TODO: add parameters.
+            - shift (tuple[float, float, float]): the amount the the `position`
+            attribute is shifted by.
 
         Returns
         -------
-        TODO: add returns.
+            - (Atom): an `Atom` instance.
         """
         return Atom(self.atomic_number, utils.add_tuples(self.position, shift))
 
@@ -77,9 +82,10 @@ class UnitCell:
     Attributes
     ----------
         - material (str): The chemical formula of the crystal, e.g. "NaCl".
-        - lattice_constants (tuple[float, float, float]): The side lengths of the unit
-        cell, given in Angstroms (Å).
-        - atoms(list[Atom]): A list of the atoms in the unit cell.
+        - lattice_constants (tuple[float, float, float]): The side lengths (a, b, c) of
+        the unit cell in the (x, y, z) directions respectively, given in Angstroms (Å).
+        - atoms(list[Atom]): A list of the atoms in the unit cell. Each atom is
+        represented by an `Atom` instance.
 
     Methods
     -------
@@ -125,18 +131,37 @@ class UnitCell:
     ):
         """
         Parameters to unit cell
-        ==============================
+        =======================
 
         Returns an instance of `UnitCell` given the parameters of the lattice and the
         basis.
 
         Parameters
         ----------
-        TODO: add parameters
+            - lattice (tuple[str, int, tuple[float, float, float]]): a tuple
+            (material, lattice_type, lattice_constants) that represents the lattice.
+                - "material" (str): Chemical formula of the crystal (e.g. "NaCl").
+                - "lattice_type" (int): Integer (1 - 4 inclusive) that represents the
+                Bravais lattice type.
+                    - 1 -> Simple.
+                    - 2 -> Body centred.
+                    - 3 -> Face centred.
+                    - 4 -> Base centred.
+                - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
+                directions respectively in Angstroms (Å).
+            - basis (tuple[list[int], list[tuple[float, float, float]]]): a tuple
+            (atomic_numbers, atomic_positions) that represents the basis.
+                - atomic_numbers (list[int]): The atomic number of each atom in the
+                basis.
+                - atomic_positions (list[tuple[float, float, float]]): The position of
+                each atom in the basis.
 
         Returns
         -------
-        TODO: add returns
+            - (UnitCell): An instance of `UnitCell`, which represents the unit cell of
+            the crystal.
+            - (None): If an error is encountered, the function returns None and raises
+            an error.
 
         Todos
         ----
@@ -210,15 +235,27 @@ class XRayFormFactor:
     X-ray form factor
     ==================
 
-    TODO: add description.
+    A class to represent the X-ray form factor of an atom.
+
+    The X-ray form factor of an atom can be approximated by a sum of four Gaussian
+    functions and a constant term.
+    Each Gaussian has a height and a width, which gives us nine total parameters.
+    An instance of `XRayFormFactor` stores these nine parameters, allowing the form
+    factor to be calculated.
+
+    For more information, see `this website <https://lampz.tugraz.at/~hadley/ss1/crystaldiffraction/atomicformfactors/formfactors.php>`_
 
     Attributes
     ----------
-    TODO: add attributes.
+        - a1, a2, a3, a4 (float): The height of Gaussian 1, 2, 3, 4 respectively.
+        - b1, b2, b3, b4 (float): Proportional to the width of Gaussian 1, 2, 3, 4
+        respectively.
+        - c (float): The constant term.
 
     Methods
     -------
-    TODO: add methods.
+        - get_xray_form_factor:
+            TODO: implement this function.
     """
 
     def __init__(
