@@ -94,6 +94,7 @@ class UnitCell:
     -------
         - parameters_to_unit_cell: Converts lattice and basis parameters to an instance
         of `UnitCell`.
+        -
     """
 
     def __init__(
