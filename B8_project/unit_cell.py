@@ -3,7 +3,7 @@ TODO: add unit tests for functions in this module.
 """
 
 import B8_project.utils as utils
-import B8_project.extract_parameters as extract_parameters
+import B8_project.file_reading as file_reading
 
 
 class Atom:
@@ -16,7 +16,6 @@ class Atom:
     Attributes
     ----------
         - atomic_number (int): The atomic number of the atom.
-        - atomic_mass (float): The atomic mass of the atom, in atomic mass units (AMU).
         - position (tuple[float, float, float]): The position of the atom in the unit
         cell, given in terms of the lattice constants.
 
@@ -28,25 +27,19 @@ class Atom:
     def __init__(
         self,
         atomic_number: int,
-        atomic_mass: float,
         position: tuple[float, float, float],
     ):
         """
         Initialize an `Atom` instance
         """
         self.atomic_number = atomic_number
-        self.atomic_mass = atomic_mass
         self.position = position
 
     def __str__(self):
         """
         Return a string representing an `Atom` instance for printing.
         """
-        return (
-            f"Atomic Number: {self.atomic_number}, "
-            f"Atomic Mass: {self.atomic_mass}, "
-            f"Position: {self.position}"
-        )
+        return f"Atomic Number: {self.atomic_number}, " f"Position: {self.position}"
 
     def __repr__(self):
         """
@@ -70,9 +63,7 @@ class Atom:
         -------
         TODO: add returns.
         """
-        return Atom(
-            self.atomic_number, self.atomic_mass, utils.add_tuples(self.position, shift)
-        )
+        return Atom(self.atomic_number, utils.add_tuples(self.position, shift))
 
 
 class UnitCell:
@@ -130,7 +121,7 @@ class UnitCell:
     def parameters_to_unit_cell(
         cls,
         lattice: tuple[str, int, tuple[float, float, float]],
-        basis: tuple[list[int], list[float], list[tuple[float, float, float]]],
+        basis: tuple[list[int], list[tuple[float, float, float]]],
     ):
         """
         Parameters to unit cell
@@ -152,20 +143,18 @@ class UnitCell:
         TODO: Implement base centred lattice logic.
         """
         material, lattice_type, lattice_constants = lattice
-        atomic_numbers, atomic_masses, atomic_positions = basis
+        atomic_numbers, atomic_positions = basis
 
         # Validate the lattice and basis parameters
         try:
-            extract_parameters.validate_parameters(lattice, basis)
+            file_reading.validate_parameters(lattice, basis)
         except ValueError as exc:
             raise ValueError(f"Invalid parameters: {exc}") from exc
 
         # Convert the basis into a list of atoms.
         atoms = [
-            Atom(number, mass, position)
-            for number, mass, position in zip(
-                atomic_numbers, atomic_masses, atomic_positions
-            )
+            Atom(number, position)
+            for number, position in zip(atomic_numbers, atomic_positions)
         ]
 
         # Simple lattice
@@ -214,3 +203,42 @@ class UnitCell:
                 """Base centred lattice logic not implemented yet. Please choose a 
                 different lattice type."""
             )
+
+
+class XRayFormFactor:
+    """
+    X-ray form factor
+    -----------------
+
+    TODO: add description.
+
+    Attributes
+    ----------
+    TODO: add attributes.
+
+    Methods
+    -------
+    TODO: add methods.
+    """
+
+    def __init__(
+        self,
+        a1: float,
+        b1: float,
+        a2: float,
+        b2: float,
+        a3: float,
+        b3: float,
+        a4: float,
+        b4: float,
+        c: float,
+    ):
+        self.a1 = a1
+        self.b1 = b1
+        self.a2 = a2
+        self.b2 = b2
+        self.a3 = a3
+        self.b3 = b3
+        self.a4 = a4
+        self.b4 = b4
+        self.c = c
