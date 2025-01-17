@@ -12,16 +12,12 @@ def duplicate_elements(original_list: list, num_duplicates: int) -> list:
 
     Parameters
     ----------
-    original_list : list
-        The original list of elements.
-
-    num_duplicates : int
-        The number of duplicates.
+        - original_list (list): The original list of elements.
+        - num_duplicates (int): The number of duplicates.
 
     Returns
     -------
-    list
-        A new list with each element duplicated.
+        - (list): A new list with each element duplicated.
     """
     return [item for item in original_list for _ in range(num_duplicates)]
 
@@ -37,15 +33,12 @@ def add_tuples(
 
     Parameters
     ----------
-    tuple_1 : tuple[float, float, float]
-        The first tuple.
-    tuple_2 : tuple[float, float, float]
-        The second tuple.
+        - tuple_1 (tuple[float, float, float]): The first tuple.
+        - tuple_2 (tuple[float, float, float]): The second tuple.
 
     Returns
     -------
-    tuple[float, float, float]
-        A new tuple where each element is the sum of the corresponding elements of
-        `tuple_1` and `tuple_2`.
+        - (tuple[float, float, float]): A new tuple where each element is the sum of
+        the corresponding elements of `tuple_1` and `tuple_2`.
     """
     return (tuple_1[0] + tuple_2[0], tuple_1[1] + tuple_2[1], tuple_1[2] + tuple_2[2])

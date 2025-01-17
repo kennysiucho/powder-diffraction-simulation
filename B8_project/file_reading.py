@@ -208,7 +208,7 @@ def get_neutron_scattering_lengths_from_csv(filename: str) -> dict[int, float]:
 
     Returns
     -------
-        - dict[int, float]: A dictionary where the keys are atomic numbers (int) and
+        - (dict[int, float]): A dictionary where the keys are atomic numbers (int) and
         the values are the neutron scattering lengths (float).
     """
     try:
@@ -275,7 +275,7 @@ def get_x_ray_form_factors_from_csv(
 
     Returns
     -------
-        - dict[int, XRayFormFactor]: A dictionary where the keys are atomic numbers (int) and the values are instances of the `XRayFormFactor` class containing the form factor parameters.
+        - (dict[int, XRayFormFactor]): A dictionary where the keys are atomic numbers (int) and the values are instances of the `XRayFormFactor` class containing the form factor parameters.
     """
     try:
         # Read the CSV file containing the X-ray form factors into a DataFrame.
