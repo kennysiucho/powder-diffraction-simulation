@@ -208,7 +208,7 @@ class UnitCell:
 class XRayFormFactor:
     """
     X-ray form factor
-    -----------------
+    ==================
 
     TODO: add description.
 
