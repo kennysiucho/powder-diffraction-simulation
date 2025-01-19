@@ -40,3 +40,6 @@ tomli==2.2.1
 tzdata==2024.2
 urllib3==2.3.0
 zipp==3.21.0
+
+pytest~=8.3.4
+matplotlib~=3.10.0
