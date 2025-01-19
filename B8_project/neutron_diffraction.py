@@ -8,7 +8,22 @@ scattering_lengths = {
     59: 4.58
 }
 
+class NeutronDiffractionRunStats:
+    def __init__(self):
+        self.accepted_data_points = 0
+        self.angles_accepted = 0
+        self.angles_accepted_avg_intensity = 0.0
+        self.total_trials = 0
+        self.start_time_ = time.time()
+        self.prev_print_time_ = 0
 
+    def angle_accepted_update(self, intensity: float):
+        self.angles_accepted_avg_intensity = ((self.angles_accepted_avg_intensity * self.angles_accepted + intensity) /
+                                              (self.angles_accepted + 1))
+        self.angles_accepted += 1
+
+    def __str__(self):
+        return "".join([f"{key}={val} | " if key[-1] != '_' else "" for key, val in self.__dict__.items()])
 
 class NeutronDiffraction:
     def __init__(self, unit_cell: UnitCell, wavelength: float):
@@ -26,16 +41,12 @@ class NeutronDiffraction:
         print(expanded_pos)
 
 
-        i = 0
-        prev_print = -1
-        cnt = 0
-        avg = 0.0
-        start_time = time.time()
+        stats = NeutronDiffractionRunStats()
 
-        while i < N_trials:
-            if i != prev_print and i % (N_trials // 100) == 0:
-                prev_print = i
-                print(f"Data points: {i} | Angle in range: {cnt}, Average intensity={avg}")
+        while stats.accepted_data_points < N_trials:
+            if time.time() - stats.prev_print_time_ > 5:
+                stats.prev_print_time_ = time.time()
+                print(stats)
 
             structure_factor = 0 + 0j
             k_vec = k * np.array(random_uniform_unit_vector(3))
@@ -50,18 +61,12 @@ class NeutronDiffraction:
             if two_theta < np.radians(15) or two_theta > np.radians(60): continue
             intensity = abs(structure_factor)**2
 
-            avg = (avg * cnt + intensity) / (cnt + 1)
-            cnt += 1
-            if intensity > 50 * avg:
-                two_thetas[i] = two_theta
-                intensities[i] = intensity
-                i += 1
+            stats.angle_accepted_update(intensity)
+            if intensity > 50 * stats.angles_accepted_avg_intensity:
+                two_thetas[stats.accepted_data_points] = np.degrees(two_theta)
+                intensities[stats.accepted_data_points] = intensity
+                stats.accepted_data_points += 1
 
-            # for atom in self.unit_cell.atoms:
-            #     for cell in expanded_pos:
-            #         r = np.multiply(atom.position, self.unit_cell.lattice_constants) + cell
-            #         structure_factor += scattering_lengths[atom.atomic_number] * np.exp(1j * np.dot(scattering_vec, r))
-            # two_thetas[i] = np.arccos(np.dot(k_vec, k_prime) / k**2)
-            # intensities[i] = abs(structure_factor)**2
+        intensities /= np.max(intensities)
 
-        return np.degrees(two_thetas), intensities / np.max(intensities)
+        return two_thetas, intensities
