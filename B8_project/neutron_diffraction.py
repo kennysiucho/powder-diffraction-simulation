@@ -16,14 +16,20 @@ class NeutronDiffractionRunStats:
         self.total_trials = 0
         self.start_time_ = time.time()
         self.prev_print_time_ = 0
+        self.microseconds_per_trial = 0.0
 
     def angle_accepted_update(self, intensity: float):
         self.angles_accepted_avg_intensity = ((self.angles_accepted_avg_intensity * self.angles_accepted + intensity) /
                                               (self.angles_accepted + 1))
         self.angles_accepted += 1
 
+    def update(self):
+        if self.total_trials == 0: return
+        self.microseconds_per_trial = (time.time() - self.start_time_) / self.total_trials * 1000000
+
     def __str__(self):
-        return "".join([f"{key}={val} | " if key[-1] != '_' else "" for key, val in self.__dict__.items()])
+        self.update()
+        return "".join([f"{key}={val:.1f} | " if key[-1] != '_' else "" for key, val in self.__dict__.items()])
 
 class NeutronDiffraction:
     def __init__(self, unit_cell: UnitCell, wavelength: float):
@@ -44,6 +50,7 @@ class NeutronDiffraction:
         stats = NeutronDiffractionRunStats()
 
         while stats.accepted_data_points < N_trials:
+            stats.total_trials += 1
             if time.time() - stats.prev_print_time_ > 5:
                 stats.prev_print_time_ = time.time()
                 print(stats)
