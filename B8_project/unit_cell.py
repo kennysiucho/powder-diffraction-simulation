@@ -5,6 +5,7 @@ files.
 TODO: add unit tests for functions in this module.
 """
 
+import math
 import B8_project.utils as utils
 import B8_project.file_reading as file_reading
 
@@ -71,6 +72,70 @@ class Atom:
         return Atom(self.atomic_number, utils.add_tuples(self.position, shift))
 
 
+class ReciprocalLatticeVector:
+    """
+    Reciprocal lattice vector
+    =========================
+
+    A class to represent a reciprocal lattice vector.
+
+    Attributes
+    ----------
+        - "h", "k", "l" (float): The miller indices associated with a reciprocal
+        lattice vector.
+
+    Methods
+    -------
+    TODO: add methods.
+    """
+
+    def __init__(self, miller_indices: tuple[int, int, int]):
+        """
+        Initialize an `Atom` instance
+        """
+        self.h = miller_indices[0]
+        self.k = miller_indices[1]
+        self.l = miller_indices[2]
+
+    def __str__(self):
+        """
+        Return a string representing an `Atom` instance for printing.
+        """
+        return f"(h, k, l): ({self.h}, {self.k}, {self.l})"
+
+    def __repr__(self):
+        """
+        Return a string representation of an `Atom` instance.
+        """
+        return self.__str__()
+
+    def calculate_reciprocal_lattice_vector(
+        self, lattice_constants: tuple[float, float, float]
+    ) -> tuple[float, float, float]:
+        """
+        Calculate reciprocal lattice vector
+        =============================
+
+        Returns the reciprocal lattice vector associated with an instance of
+        `ReciprocalLatticeVector`, given the lattice constants of the conventional unit
+        cell.
+
+        Parameters
+        ----------
+        TODO: add parameters.
+
+        Returns
+        -------
+        TODO: add returns.
+
+        """
+        return (
+            2 * math.pi * self.h / lattice_constants[0],
+            2 * math.pi * self.k / lattice_constants[1],
+            2 * math.pi * self.l / lattice_constants[2],
+        )
+
+
 class UnitCell:
     """
     Unit cell
@@ -122,6 +187,28 @@ class UnitCell:
         Return a string representation of a `UnitCell` instance.
         """
         return self.__str__()
+
+    # def get_neutron_diffraction_pattern(
+    #     self,
+    #     neutron_scattering_lengths: dict[int, float],
+    #     reciprocal_lattice_vectors: list[ReciprocalLatticeVector],
+    # ):
+    #     """
+    #     Get neutron diffraction pattern
+    #     ===============================
+
+    #     Calculates the neutron diffraction pattern for a crystal, given an instance of
+    #     `UnitCell` and a dictionary which maps the atomic number of an atom to its
+    #     neutron scattering length.
+
+    #     Parameters
+    #     ----------
+    #     TODO: add parameters.
+
+    #     Returns
+    #     -------
+    #     TODO: add returns.
+    #     """
 
     @classmethod
     def parameters_to_unit_cell(
@@ -243,7 +330,8 @@ class XRayFormFactor:
     An instance of `XRayFormFactor` stores these nine parameters, allowing the form
     factor to be calculated.
 
-    For more information, see `this website <https://lampz.tugraz.at/~hadley/ss1/crystaldiffraction/atomicformfactors/formfactors.php>`_
+    For more information, see `this website <https://lampz.tugraz.at/~hadley/ss1/
+    crystaldiffraction/atomicformfactors/formfactors.php>`_
 
     Attributes
     ----------
