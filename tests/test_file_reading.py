@@ -1,5 +1,5 @@
 """
-This module contains tests for the file_reading.py module.
+This module contains unit tests for the file_reading.py module.
 TODO: add tests for error handling for get_lattice_from_csv.
 TODO: add tests for error handling for get_basis_from_csv.
 TODO: add tests for error handling for validate_parameters.
