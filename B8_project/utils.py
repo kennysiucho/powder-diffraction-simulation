@@ -1,5 +1,11 @@
 """
-TODO: add unit tests for functions in this module.
+This module includes useful functions for performing arithmetic operations with tuples.
+
+Functions:
+TODO: add functions.
+
+Example usage:
+TODO: add example usage.
 """
 
 

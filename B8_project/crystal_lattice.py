@@ -1,8 +1,9 @@
 """
-utils contains utility functions for manipulating tuples and arrays.
-file_reading contains functions for reading and validating data extracted from CSV 
-files.
-TODO: add unit tests for functions in this module.
+This module contains a selection of classes which represent various properties of a 
+crystal lattice.
+
+Classes:
+TODO: add classes.
 """
 
 import math

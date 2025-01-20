@@ -1,5 +1,9 @@
 """
-TODO: add unit tests for functions in this module.
+This module contains functions which calculate the X-ray or neutron diffraction pattern
+of a given crystal.
+
+Functions:
+TODO: add functions.
 """
 
 import math
