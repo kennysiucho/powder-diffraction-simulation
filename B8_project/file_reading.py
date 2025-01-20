@@ -198,7 +198,8 @@ def get_neutron_scattering_lengths_from_csv(filename: str) -> dict[int, float]:
     Each row of the CSV file corresponds to a different atom. The CSV file must contain
     the following columns:
         - atomic_number (int): The atomic number of the atom.
-        - nuclear_scattering_length (float): The neutron scattering length of the atom.
+        - neutron_scattering_length (float): The neutron scattering length of the
+        atom, in femtometers (fm).
 
     Parameters
     ----------

@@ -19,3 +19,10 @@ try:
     print(f"{my_cell}")
 except ValueError as exc:
     print(f"Error: {exc}")
+
+FILENAME = "tests/parameters/test_xray_form_factors.csv"
+
+x_ray_form_factors = file_reading.get_x_ray_form_factors_from_csv(FILENAME)
+
+print(x_ray_form_factors[11])
+print(x_ray_form_factors[17])
