@@ -3,8 +3,8 @@ This module contains tests for the file_reading.py module.
 TODO: add tests for error handling for get_lattice_from_csv.
 TODO: add tests for error handling for get_basis_from_csv.
 TODO: add tests for error handling for validate_parameters.
-TODO: add tests for get_neutron_scattering_lengths_from_csv.
-TODO: add tests for get_x_ray_form_factors_from_csv.
+TODO: add tests for error handling for get_neutron_scattering_lengths_from_csv.
+TODO: add tests for error handling for get_x_ray_form_factors_from_csv.
 """
 
 from B8_project.file_reading import (
@@ -12,10 +12,10 @@ from B8_project.file_reading import (
     get_basis_from_csv,
     validate_parameters,
     get_neutron_scattering_lengths_from_csv,
-    # get_x_ray_form_factors_from_csv,
+    get_x_ray_form_factors_from_csv,
 )
 
-# from B8_project.crystal_lattice import XRayFormFactor
+from B8_project.crystal_lattice import XRayFormFactor
 
 
 def test_get_lattice_from_csv_normal_operation():
@@ -73,13 +73,13 @@ def test_get_x_ray_form_factors_from_csv():
     A unit test for the get_x_ray_form_factors_from_csv function. This unit test tests
     normal operation of the function.
     """
-    # filename = "tests/parameters/test_xray_form_factors.csv"
+    filename = "tests/parameters/test_xray_form_factors.csv"
 
-    # x_ray_form_factors = get_x_ray_form_factors_from_csv(filename)
+    x_ray_form_factors = get_x_ray_form_factors_from_csv(filename)
 
-    # assert x_ray_form_factors[11] == XRayFormFactor(
-    #     4.7626, 3.285, 3.1736, 8.8422, 1.2674, 0.3136, 1.1128, 129.424, 0.676
-    # )
-    # assert x_ray_form_factors[17] == XRayFormFactor(
-    #     11.4604, 0.0104, 7.1964, 1.1662, 6.2556, 18.5194, 1.6455, 47.7784, -9.5574
-    # )
+    assert x_ray_form_factors[11] == XRayFormFactor(
+        4.7626, 3.285, 3.1736, 8.8422, 1.2674, 0.3136, 1.1128, 129.424, 0.676
+    )
+    assert x_ray_form_factors[17] == XRayFormFactor(
+        11.4604, 0.0104, 7.1964, 1.1662, 6.2556, 18.5194, 1.6455, 47.7784, -9.5574
+    )
