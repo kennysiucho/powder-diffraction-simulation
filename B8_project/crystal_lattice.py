@@ -419,20 +419,35 @@ class XRayFormFactor:
         self.b4 = b4
         self.c = c
 
+    def __eq__(self, other):
+        if isinstance(other, XRayFormFactor):
+            return (
+                self.a1 == other.a1
+                and self.b1 == other.b1
+                and self.a2 == other.a2
+                and self.b2 == other.b2
+                and self.a3 == other.a3
+                and self.b3 == other.b3
+                and self.a4 == other.a4
+                and self.b4 == other.b4
+                and self.c == other.c
+            )
+        return False
+
     def __str__(self):
         """
         Return a string representing an `XRayFormFactor` instance for printing.
         """
         return (
-            f"a1: {self.a1}, \n"
-            f"b1: {self.b1}, \n"
-            f"a2: {self.a2}, \n"
-            f"b2: {self.b2}, \n"
-            f"a3: {self.a3}, \n"
-            f"b3: {self.b3}, \n"
-            f"a4: {self.a4}, \n"
-            f"b4: {self.b4}, \n"
-            f"c: {self.c}, \n"
+            f"a1: {self.a1}\n"
+            f"b1: {self.b1}\n"
+            f"a2: {self.a2}\n"
+            f"b2: {self.b2}\n"
+            f"a3: {self.a3}\n"
+            f"b3: {self.b3}\n"
+            f"a4: {self.a4}\n"
+            f"b4: {self.b4}\n"
+            f"c: {self.c}"
         )
 
     def __repr__(self):
