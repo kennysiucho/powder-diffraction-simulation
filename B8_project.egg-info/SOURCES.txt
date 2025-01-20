@@ -1,0 +1,12 @@
+README.md
+setup.py
+B8_project/__init__.py
+B8_project/crystal_lattice.py
+B8_project/diffraction_pattern.py
+B8_project/file_reading.py
+B8_project/utils.py
+B8_project.egg-info/PKG-INFO
+B8_project.egg-info/SOURCES.txt
+B8_project.egg-info/dependency_links.txt
+B8_project.egg-info/top_level.txt
+tests/test_file_reading.py

@@ -1,7 +1,6 @@
 """
 This module uses pandas to read parameters from .csv files.
 XRayFormFactor is a class which represents the atomic form factor of an atom.
-TODO: add unit tests for functions in this module.
 """
 
 import pandas as pd
