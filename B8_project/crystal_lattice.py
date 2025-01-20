@@ -84,7 +84,8 @@ class UnitCell:
     ----------
         - material (str): The chemical formula of the crystal, e.g. "NaCl".
         - lattice_constants (tuple[float, float, float]): The side lengths (a, b, c) of
-        the unit cell in the (x, y, z) directions respectively, given in Angstroms (Å).
+        the unit cell in the (x, y, z) directions respectively, given in nanometers
+        (nm).
         - atoms(list[Atom]): A list of the atoms in the unit cell. Each atom is
         represented by an `Atom` instance.
 
@@ -149,7 +150,7 @@ class UnitCell:
                     - 3 -> Face centred.
                     - 4 -> Base centred.
                 - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
-                directions respectively in Angstroms (Å).
+                directions respectively in nanometers (nm).
             - basis (tuple[list[int], list[tuple[float, float, float]]]): a tuple
             (atomic_numbers, atomic_positions) that represents the basis.
                 - atomic_numbers (list[int]): The atomic number of each atom in the
@@ -250,7 +251,7 @@ class ReciprocalLatticeVector:
     TODO: add methods.
     """
 
-    def __init__(self, miller_indices, unit_cell):
+    def __init__(self, miller_indices: tuple[int, int, int], unit_cell: UnitCell):
         """
         Initialize a `ReciprocalLatticeVector` instance
         """
@@ -336,6 +337,10 @@ class ReciprocalLatticeVector:
         -------
         TODO: add returns.
         """
+        # Validate that max_magnitude is greater than 0.
+        if not max_magnitude > 0:
+            raise ValueError("max_magnitude should be greater than 0.")
+
         a, b, c = unit_cell.lattice_constants
 
         # Upper bounds on Miller indices.

@@ -37,10 +37,14 @@ def get_neutron_structure_factor(
             reciprocal_lattice_vector.miller_indices, atom.position
         )
 
-        structure_factor += neutron_scattering_length[atom.atomic_number] * cmath.exp(
-            exponent
-        )
-
+        try:
+            structure_factor += neutron_scattering_length[
+                atom.atomic_number
+            ] * cmath.exp(exponent)
+        except KeyError as exc:
+            raise KeyError(
+                f"Error reading neutron scattering length dictionary: {exc}"
+            ) from exc
     return structure_factor
 
 
@@ -68,11 +72,14 @@ def get_diffraction_peaks(
     """
     # Generates a list of all reciprocal lattice vectors within a sphere of radius
     # max_magnitude in k-space.
-    reciprocal_lattice_vectors = (
-        ReciprocalLatticeVector.get_reciprocal_lattice_vectors_inside_sphere(
-            max_magnitude, unit_cell
+    try:
+        reciprocal_lattice_vectors = (
+            ReciprocalLatticeVector.get_reciprocal_lattice_vectors_inside_sphere(
+                max_magnitude, unit_cell
+            )
         )
-    )
+    except ValueError as exc:
+        raise ValueError(f"Error generating reciprocal lattice vectors: {exc}") from exc
 
     # Empty list that will store the squared magnitude of the structure factor
     # associated with each reciprocal lattice vector.
@@ -81,11 +88,15 @@ def get_diffraction_peaks(
     # Iterates through reciprocal_lattice_vectors. For each RLV, calculates the squared
     # magnitude of the structure factor and appends this to structure_factor_magnitudes.
     for reciprocal_lattice_vector in reciprocal_lattice_vectors:
-        structure_factor = get_neutron_structure_factor(
-            unit_cell, neutron_scattering_length, reciprocal_lattice_vector
-        )
+        try:
+            structure_factor = get_neutron_structure_factor(
+                unit_cell, neutron_scattering_length, reciprocal_lattice_vector
+            )
 
-        structure_factor_squared_magnitudes.append(abs(structure_factor) ** 2)
+            structure_factor_squared_magnitudes.append(abs(structure_factor) ** 2)
+
+        except Exception as exc:
+            raise ValueError(f"Error computing structure factor: {exc}") from exc
 
     # Returns a dictionary which maps reciprocal lattice vectors to the squared
     # magnitude of their structure factors.

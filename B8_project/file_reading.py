@@ -25,7 +25,7 @@ def get_lattice_from_csv(
             - 3 -> Face centred.
             - 4 -> Base centred.
         - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
-        directions respectively in Angstroms (Å).
+        directions respectively in nanometers (nm).
 
     Parameters
     ----------
