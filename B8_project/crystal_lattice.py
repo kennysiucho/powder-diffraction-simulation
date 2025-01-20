@@ -418,3 +418,25 @@ class XRayFormFactor:
         self.a4 = a4
         self.b4 = b4
         self.c = c
+
+    def __str__(self):
+        """
+        Return a string representing an `XRayFormFactor` instance for printing.
+        """
+        return (
+            f"a1: {self.a1}, \n"
+            f"b1: {self.b1}, \n"
+            f"a2: {self.a2}, \n"
+            f"b2: {self.b2}, \n"
+            f"a3: {self.a3}, \n"
+            f"b3: {self.b3}, \n"
+            f"a4: {self.a4}, \n"
+            f"b4: {self.b4}, \n"
+            f"c: {self.c}, \n"
+        )
+
+    def __repr__(self):
+        """
+        Return a string representation of an `XRayFormFactor` instance.
+        """
+        return self.__str__()
