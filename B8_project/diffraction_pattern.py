@@ -42,3 +42,55 @@ def get_neutron_structure_factor(
         )
 
     return structure_factor
+
+
+def get_diffraction_peaks(
+    unit_cell: UnitCell,
+    neutron_scattering_length: dict[int, float],
+    max_magnitude: float,
+) -> dict["ReciprocalLatticeVector", float]:
+    """
+    Get diffraction peaks
+    =====================
+
+    Computes the structure factors for all reciprocal lattice vectors whose magnitudes
+    are less than the specified max_magnitude. The function returns a dictionary where
+    the keys are instances of `ReciprocalLatticeVectors` and the values are the squared
+    magnitudes of the corresponding structure factors.
+
+    Parameters
+    ----------
+    TODO: add parameters.
+
+    Returns
+    -------
+    TODO: add returns.
+    """
+    # Generates a list of all reciprocal lattice vectors within a sphere of radius
+    # max_magnitude in k-space.
+    reciprocal_lattice_vectors = (
+        ReciprocalLatticeVector.get_reciprocal_lattice_vectors_inside_sphere(
+            max_magnitude, unit_cell
+        )
+    )
+
+    # Empty list that will store the squared magnitude of the structure factor
+    # associated with each reciprocal lattice vector.
+    structure_factor_squared_magnitudes = []
+
+    # Iterates through reciprocal_lattice_vectors. For each RLV, calculates the squared
+    # magnitude of the structure factor and appends this to structure_factor_magnitudes.
+    for reciprocal_lattice_vector in reciprocal_lattice_vectors:
+        structure_factor = get_neutron_structure_factor(
+            unit_cell, neutron_scattering_length, reciprocal_lattice_vector
+        )
+
+        structure_factor_squared_magnitudes.append(abs(structure_factor) ** 2)
+
+    # Returns a dictionary which maps reciprocal lattice vectors to the squared
+    # magnitude of their structure factors.
+    length = len(reciprocal_lattice_vectors)
+    return {
+        reciprocal_lattice_vectors[i]: structure_factor_squared_magnitudes[i]
+        for i in range(length)
+    }
