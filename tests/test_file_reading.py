@@ -20,8 +20,8 @@ from B8_project.crystal_lattice import XRayFormFactor
 
 def test_get_lattice_from_csv_normal_operation():
     """
-    A unit test for the get_lattice_from_csv function. This unit tests normal operation
-    of the function.
+    A unit test for the get_lattice_from_csv function. This unit test tests normal
+    operation of the function.
     """
     filename = "tests/parameters/test_lattice.csv"
     material, lattice_type, lattice_constants = get_lattice_from_csv(filename)
