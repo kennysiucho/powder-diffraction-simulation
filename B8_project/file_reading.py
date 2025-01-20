@@ -5,7 +5,7 @@ TODO: add unit tests for functions in this module.
 """
 
 import pandas as pd
-from B8_project.unit_cell import XRayFormFactor
+from B8_project.crystal_lattice import XRayFormFactor
 
 
 def get_lattice_from_csv(

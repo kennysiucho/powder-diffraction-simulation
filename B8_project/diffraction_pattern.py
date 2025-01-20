@@ -5,8 +5,7 @@ TODO: add unit tests for functions in this module.
 import math
 import cmath
 import utils
-from B8_project.unit_cell import UnitCell
-from B8_project.reciprocal_lattice_vectors import ReciprocalLatticeVector
+from B8_project.crystal_lattice import UnitCell, ReciprocalLatticeVector
 
 
 def get_neutron_structure_factor(
