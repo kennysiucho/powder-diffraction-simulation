@@ -5,6 +5,7 @@ files.
 TODO: add unit tests for functions in this module.
 """
 
+import math
 import B8_project.utils as utils
 import B8_project.file_reading as file_reading
 
@@ -228,6 +229,138 @@ class UnitCell:
                 """Base centred lattice logic not implemented yet. Please choose a 
                 different lattice type."""
             )
+
+
+class ReciprocalLatticeVector:
+    """
+    Reciprocal lattice vector
+    =========================
+
+    A class to represent a reciprocal lattice vector.
+
+    Attributes
+    ----------
+        - miller_indices (tuple[float, float, float]): The miller indices (hkl)
+        associated with a reciprocal lattice vector.
+        - lattice_constants (tuple[float, float, float]): The side lengths of the unit
+        cell in the x, y and z directions respectively.
+
+    Methods
+    -------
+    TODO: add methods.
+    """
+
+    def __init__(self, miller_indices, unit_cell):
+        """
+        Initialize a `ReciprocalLatticeVector` instance
+        """
+        self.miller_indices = miller_indices
+        self.lattice_constants = unit_cell.lattice_constants
+        self.components = self._get_components()
+        self.magnitude = self._get_magnitude()
+
+    def __str__(self):
+        """
+        Return a string representing a `ReciprocalLatticeVector` instance for printing.
+        """
+        return (
+            f"(h, k, l): ({self.miller_indices[0]}, {self.miller_indices[1]}, "
+            f"{self.miller_indices[2]}). \n "
+            f"(a, b, c): ({self.lattice_constants[0]}, {self.lattice_constants[1]}, "
+            f"{self.lattice_constants[2]})"
+        )
+
+    def __repr__(self):
+        """
+        Return a string representation of a `ReciprocalLatticeVector` instance.
+        """
+        return self.__str__()
+
+    def _get_components(self) -> tuple[float, float, float]:
+        """
+        Get components
+        ==============
+
+        Returns the components of the reciprocal lattice vector associated with an
+        instance of `ReciprocalLatticeVector`.
+
+        Parameters
+        ----------
+        TODO: add parameters.
+
+        Returns
+        -------
+        TODO: add returns.
+
+        """
+        return (
+            2 * math.pi * self.miller_indices[0] / self.lattice_constants[0],
+            2 * math.pi * self.miller_indices[1] / self.lattice_constants[1],
+            2 * math.pi * self.miller_indices[2] / self.lattice_constants[2],
+        )
+
+    def _get_magnitude(self) -> float:
+        """
+        Get magnitude
+        =============
+
+        Returns the magnitude of the reciprocal lattice vector associated with an
+        instance  of `ReciprocalLatticeVector`.
+
+        Parameters
+        ----------
+        TODO: add parameters.
+
+        Returns
+        -------
+        TODO: add returns.
+        """
+        return math.sqrt(utils.dot_product_tuples(self.components, self.components))
+
+    @classmethod
+    def get_reciprocal_lattice_vectors_inside_sphere(
+        cls, max_magnitude: float, unit_cell: UnitCell
+    ) -> list["ReciprocalLatticeVector"]:
+        """
+        Get reciprocal lattice vectors
+        ==============================
+
+        Returns a list of all reciprocal lattice vectors with `magnitude` less than
+        `max_magnitude`.
+
+        Parameters
+        ----------
+        TODO: add parameters.
+
+        Returns
+        -------
+        TODO: add returns.
+        """
+        a, b, c = unit_cell.lattice_constants
+
+        # Upper bounds on Miller indices.
+        max_h = math.ceil((a * max_magnitude) / (2 * math.pi))
+        max_k = math.ceil((b * max_magnitude) / (2 * math.pi))
+        max_l = math.ceil((c * max_magnitude) / (2 * math.pi))
+
+        # List to store reciprocal lattice vectors.
+        reciprocal_lattice_vectors = []
+
+        # Iterate through all the Miller indices, and add all reciprocal lattice vectors
+        # with magnitude less than max_magnitude.
+        for h in range(-max_h, max_h + 1, 1):
+            for k in range(-max_k, max_k + 1, 1):
+                for l in range(-max_l, max_l + 1, 1):
+                    # Define an instance of `ReciprocalLatticeVector` associated with
+                    # the Miller indices (hkl)
+                    reciprocal_lattice_vector = cls((h, k, l), unit_cell)
+
+                    # If reciprocal_lattice_vector has a magnitude less than
+                    # max_magnitude, append it to the list
+                    if reciprocal_lattice_vector.magnitude <= max_magnitude:
+                        reciprocal_lattice_vectors.append(reciprocal_lattice_vector)
+
+        return reciprocal_lattice_vectors
 
 
 class XRayFormFactor:
