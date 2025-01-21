@@ -8,7 +8,7 @@ TODO: add functions.
 
 import math
 import cmath
-import utils
+from B8_project import utils
 from B8_project.crystal_lattice import UnitCell, ReciprocalLatticeVector
 
 

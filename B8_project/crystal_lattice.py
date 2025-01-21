@@ -340,8 +340,14 @@ class ReciprocalLatticeVector:
         """
         self.miller_indices = miller_indices
         self.lattice_constants = unit_cell.lattice_constants
-        self.components = self._get_components()
-        self.magnitude = self._get_magnitude()
+
+    def __eq__(self, other):
+        if isinstance(other, ReciprocalLatticeVector):
+            return (
+                self.miller_indices == other.miller_indices
+                and self.lattice_constants == other.lattice_constants
+            )
+        return False
 
     def __str__(self):
         """
@@ -360,7 +366,7 @@ class ReciprocalLatticeVector:
         """
         return self.__str__()
 
-    def _get_components(self) -> tuple[float, float, float]:
+    def get_components(self) -> tuple[float, float, float]:
         """
         Get components
         ==============
@@ -383,7 +389,7 @@ class ReciprocalLatticeVector:
             2 * math.pi * self.miller_indices[2] / self.lattice_constants[2],
         )
 
-    def _get_magnitude(self) -> float:
+    def get_magnitude(self) -> float:
         """
         Get magnitude
         =============
@@ -399,7 +405,9 @@ class ReciprocalLatticeVector:
         -------
         TODO: add returns.
         """
-        return math.sqrt(utils.dot_product_tuples(self.components, self.components))
+        return math.sqrt(
+            utils.dot_product_tuples(self.get_components(), self.get_components())
+        )
 
     @classmethod
     def get_reciprocal_lattice_vectors_inside_sphere(
@@ -445,7 +453,7 @@ class ReciprocalLatticeVector:
 
                     # If reciprocal_lattice_vector has a magnitude less than
                     # max_magnitude, append it to the list
-                    if reciprocal_lattice_vector.magnitude <= max_magnitude:
+                    if reciprocal_lattice_vector.get_magnitude() <= max_magnitude:
                         reciprocal_lattice_vectors.append(reciprocal_lattice_vector)
 
         return reciprocal_lattice_vectors

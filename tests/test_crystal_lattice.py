@@ -1,13 +1,16 @@
 """
 This module contains unit tests for the crystal_lattice.py module.
-TODO: add tests for ReciprocalLatticeVector class.
+TODO: add tests for get_reciprocal_lattice_vectors_inside_sphere function.
 TODO: add tests for XRayFormFactor class.
 
-TODO: finish tests for UnitCell class.
+TODO: add test for base-centred lattice type once base-centred logic has been 
+implemented.
 """
 
-from B8_project.crystal_lattice import Atom, UnitCell
+import math
+from B8_project.crystal_lattice import Atom, UnitCell, ReciprocalLatticeVector
 from B8_project import file_reading
+from B8_project import utils
 
 
 def test_atom_initialization_normal_operation():
@@ -123,3 +126,67 @@ def test_crystal_parameters_to_unit_cell_normal_operation():
         Atom(17, (1.0, 0.5, 1.0)),
         Atom(17, (0.5, 1.0, 1.0)),
     ]
+
+
+def test_reciprocal_lattice_vector_initialization_normal_operation():
+    """
+    A unit test that tests the initialization of a `ReciprocalLatticeVector` instance.
+    This unit test tests initialization with normal attributes.
+    """
+    CsCl_basis = file_reading.get_basis_from_csv("tests/parameters/CsCl_basis.csv")
+    CsCl_lattice = file_reading.get_lattice_from_csv(
+        "tests/parameters/CsCl_lattice.csv"
+    )
+    unit_cell = UnitCell.crystal_parameters_to_unit_cell(CsCl_lattice, CsCl_basis)
+    assert unit_cell is not None
+
+    reciprocal_lattice_vector = ReciprocalLatticeVector((1, 2, 3), unit_cell)
+    assert reciprocal_lattice_vector.miller_indices == (1, 2, 3)
+    assert reciprocal_lattice_vector.lattice_constants == (0.4119, 0.4119, 0.4119)
+
+
+def test_get_components_normal_operation():
+    """
+    A unit test for the get_components function. This unit test tests normal operation
+    of the function.
+    """
+    CsCl_basis = file_reading.get_basis_from_csv("tests/parameters/CsCl_basis.csv")
+    CsCl_lattice = file_reading.get_lattice_from_csv(
+        "tests/parameters/CsCl_lattice.csv"
+    )
+    unit_cell = UnitCell.crystal_parameters_to_unit_cell(CsCl_lattice, CsCl_basis)
+    assert unit_cell is not None
+
+    reciprocal_lattice_vector = ReciprocalLatticeVector((1, 2, 3), unit_cell)
+    components = reciprocal_lattice_vector.get_components()
+
+    a, b, c = reciprocal_lattice_vector.lattice_constants
+    expected_components = (2 * math.pi / a, 4 * math.pi / b, 6 * math.pi / c)
+
+    assert math.isclose(components[0], expected_components[0], rel_tol=1e-6)
+    assert math.isclose(components[1], expected_components[1], rel_tol=1e-6)
+    assert math.isclose(components[2], expected_components[2], rel_tol=1e-6)
+
+
+def test_get_magnitude_normal_operation():
+    """
+    A unit test for the get_magnitude function. This unit test tests normal operation
+    of the function.
+    """
+    CsCl_basis = file_reading.get_basis_from_csv("tests/parameters/CsCl_basis.csv")
+    CsCl_lattice = file_reading.get_lattice_from_csv(
+        "tests/parameters/CsCl_lattice.csv"
+    )
+    unit_cell = UnitCell.crystal_parameters_to_unit_cell(CsCl_lattice, CsCl_basis)
+    assert unit_cell is not None
+
+    reciprocal_lattice_vector = ReciprocalLatticeVector((1, 2, 3), unit_cell)
+
+    a, b, c = reciprocal_lattice_vector.lattice_constants
+    expected_components = (2 * math.pi / a, 4 * math.pi / b, 6 * math.pi / c)
+
+    assert math.isclose(
+        reciprocal_lattice_vector.get_magnitude(),
+        math.sqrt(utils.dot_product_tuples(expected_components, expected_components)),
+        rel_tol=1e-6,
+    )
