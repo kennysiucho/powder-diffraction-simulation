@@ -40,6 +40,14 @@ class Atom:
         self.atomic_number = atomic_number
         self.position = position
 
+    def __eq__(self, other):
+        if isinstance(other, Atom):
+            return (
+                self.atomic_number == other.atomic_number
+                and self.position == other.position
+            )
+        return False
+
     def __str__(self):
         """
         Return a string representing an `Atom` instance for printing.
