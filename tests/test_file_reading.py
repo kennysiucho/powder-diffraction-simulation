@@ -22,11 +22,29 @@ def test_get_lattice_from_csv_normal_operation():
     A unit test for the get_lattice_from_csv function. This unit test tests normal
     operation of the function.
     """
-    filename = "tests/parameters/test_lattice.csv"
-    material, lattice_type, lattice_constants = get_lattice_from_csv(filename)
+    CsCl_lattice = "tests/parameters/CsCl_lattice.csv"
+    material, lattice_type, lattice_constants = get_lattice_from_csv(CsCl_lattice)
+    assert material == "CsCl"
+    assert lattice_type == 1
+    assert lattice_constants == (0.4119, 0.4119, 0.4119)
+
+    Cu_lattice = "tests/parameters/Cu_lattice.csv"
+    material, lattice_type, lattice_constants = get_lattice_from_csv(Cu_lattice)
+    assert material == "Cu"
+    assert lattice_type == 3
+    assert lattice_constants == (0.3615, 0.3615, 0.3615)
+
+    Na_lattice = "tests/parameters/Na_lattice.csv"
+    material, lattice_type, lattice_constants = get_lattice_from_csv(Na_lattice)
+    assert material == "Na"
+    assert lattice_type == 2
+    assert lattice_constants == (0.4287, 0.4287, 0.4287)
+
+    NaCl_lattice = "tests/parameters/NaCl_lattice.csv"
+    material, lattice_type, lattice_constants = get_lattice_from_csv(NaCl_lattice)
     assert material == "NaCl"
     assert lattice_type == 3
-    assert lattice_constants == (1, 1, 1)
+    assert lattice_constants == (0.5640, 0.5640, 0.5640)
 
 
 def test_get_basis_from_csv_normal_operation():
@@ -34,8 +52,23 @@ def test_get_basis_from_csv_normal_operation():
     A unit test for the get_basis_from_csv function. This unit test tests normal
     operation of the function.
     """
-    filename = "tests/parameters/test_basis.csv"
-    atomic_numbers, atomic_positions = get_basis_from_csv(filename)
+    CsCl_basis = "tests/parameters/CsCl_basis.csv"
+    atomic_numbers, atomic_positions = get_basis_from_csv(CsCl_basis)
+    assert atomic_numbers == [55, 17]
+    assert atomic_positions == [(0, 0, 0), (0.5, 0.5, 0.5)]
+
+    Cu_basis = "tests/parameters/Cu_basis.csv"
+    atomic_numbers, atomic_positions = get_basis_from_csv(Cu_basis)
+    assert atomic_numbers == [29]
+    assert atomic_positions == [(0, 0, 0)]
+
+    Na_basis = "tests/parameters/Na_basis.csv"
+    atomic_numbers, atomic_positions = get_basis_from_csv(Na_basis)
+    assert atomic_numbers == [11]
+    assert atomic_positions == [(0, 0, 0)]
+
+    NaCl_basis = "tests/parameters/NaCl_basis.csv"
+    atomic_numbers, atomic_positions = get_basis_from_csv(NaCl_basis)
     assert atomic_numbers == [11, 17]
     assert atomic_positions == [(0, 0, 0), (0.5, 0.5, 0.5)]
 
@@ -45,12 +78,14 @@ def test_get_neutron_scattering_lengths_from_csv_normal_operation():
     A unit test for the get_neutron_scattering_lengths_from_csv function. This unit
     test tests normal operation of the function.
     """
-    filename = "tests/parameters/test_neutron_scattering_lengths.csv"
+    filename = "tests/parameters/neutron_scattering_lengths.csv"
 
     neutron_scattering_lengths = get_neutron_scattering_lengths_from_csv(filename)
 
     assert neutron_scattering_lengths[11] == 3.63
     assert neutron_scattering_lengths[17] == 9.5792
+    assert neutron_scattering_lengths[29] == 7.718
+    assert neutron_scattering_lengths[55] == 5.42
 
 
 def test_get_x_ray_form_factors_from_csv_normal_operation():
@@ -58,7 +93,7 @@ def test_get_x_ray_form_factors_from_csv_normal_operation():
     A unit test for the get_x_ray_form_factors_from_csv function. This unit test tests
     normal operation of the function.
     """
-    filename = "tests/parameters/test_xray_form_factors.csv"
+    filename = "tests/parameters/xray_form_factors.csv"
 
     x_ray_form_factors = get_x_ray_form_factors_from_csv(filename)
 

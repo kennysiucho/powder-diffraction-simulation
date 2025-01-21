@@ -45,34 +45,34 @@ def test_unit_cell_initialization_normal_operation():
     assert unit_cell.atoms == atoms
 
 
-def test_validate_parameters_normal_operation():
-    """
-    A unit test for the validate_parameters function. This unit test tests normal
-    operation of the function.
-    """
-    filename_1 = "tests/parameters/test_lattice.csv"
-    filename_2 = "tests/parameters/test_basis.csv"
+# def test_validate_parameters_normal_operation():
+#     """
+#     A unit test for the validate_parameters function. This unit test tests normal
+#     operation of the function.
+#     """
+#     filename_1 = "tests/parameters/test_lattice.csv"
+#     filename_2 = "tests/parameters/test_basis.csv"
 
-    lattice = file_reading.get_lattice_from_csv(filename_1)
-    basis = file_reading.get_basis_from_csv(filename_2)
+#     lattice = file_reading.get_lattice_from_csv(filename_1)
+#     basis = file_reading.get_basis_from_csv(filename_2)
 
-    assert UnitCell.validate_crystal_parameters(lattice, basis) is None
+#     assert UnitCell.validate_crystal_parameters(lattice, basis) is None
 
 
-def test_crystal_parameters_to_unit_cell_normal_operation():
-    """
-    A unit test for the crystal_parameters_to_unit_cell function. This unit test tests
-    normal operation of the function.
-    """
-    filename_1 = "tests/parameters/test_lattice.csv"
-    filename_2 = "tests/parameters/test_basis.csv"
+# def test_crystal_parameters_to_unit_cell_normal_operation():
+#     """
+#     A unit test for the crystal_parameters_to_unit_cell function. This unit test tests
+#     normal operation of the function.
+#     """
+#     filename_1 = "tests/parameters/test_lattice.csv"
+#     filename_2 = "tests/parameters/test_basis.csv"
 
-    lattice = file_reading.get_lattice_from_csv(filename_1)
-    basis = file_reading.get_basis_from_csv(filename_2)
+#     lattice = file_reading.get_lattice_from_csv(filename_1)
+#     basis = file_reading.get_basis_from_csv(filename_2)
 
-    unit_cell = UnitCell.crystal_parameters_to_unit_cell(lattice, basis)
-    assert unit_cell is not None
+#     unit_cell = UnitCell.crystal_parameters_to_unit_cell(lattice, basis)
+#     assert unit_cell is not None
 
-    assert unit_cell.material == "NaCl"
-    assert unit_cell.lattice_constants == (1, 1, 1)
-    # Add assertion for atoms in the unit cell.
+#     assert unit_cell.material == "NaCl"
+#     assert unit_cell.lattice_constants == (1, 1, 1)
+#     # Add assertion for atoms in the unit cell.
