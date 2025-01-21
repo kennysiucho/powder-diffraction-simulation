@@ -306,7 +306,7 @@ class UnitCell:
             return cls(material, lattice_constants, atoms)
 
         # Base centred lattice
-        elif lattice_type == 4:
+        else:
             # Implement base centred lattice logic here.
 
             raise ValueError(
@@ -352,12 +352,12 @@ class ReciprocalLatticeVector:
     def __str__(self):
         """
         Return a string representing a `ReciprocalLatticeVector` instance for printing.
+        The string contains the miller indices of the `ReciprocalLatticeVector`
+        instance.
         """
         return (
             f"(h, k, l): ({self.miller_indices[0]}, {self.miller_indices[1]}, "
-            f"{self.miller_indices[2]}). \n "
-            f"(a, b, c): ({self.lattice_constants[0]}, {self.lattice_constants[1]}, "
-            f"{self.lattice_constants[2]})"
+            f"{self.miller_indices[2]})"
         )
 
     def __repr__(self):
@@ -410,7 +410,7 @@ class ReciprocalLatticeVector:
         )
 
     @classmethod
-    def get_reciprocal_lattice_vectors_inside_sphere(
+    def get_reciprocal_lattice_vectors(
         cls, max_magnitude: float, unit_cell: UnitCell
     ) -> list["ReciprocalLatticeVector"]:
         """

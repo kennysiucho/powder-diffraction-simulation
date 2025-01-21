@@ -1,10 +1,10 @@
 """
 This module contains unit tests for the crystal_lattice.py module.
-TODO: add tests for get_reciprocal_lattice_vectors_inside_sphere function.
-TODO: add tests for XRayFormFactor class.
-
 TODO: add test for base-centred lattice type once base-centred logic has been 
 implemented.
+TODO: add tests for XRayFormFactor class.
+
+TODO: add tests for error handling for crystal_lattice module.
 """
 
 import math
@@ -85,7 +85,9 @@ def test_crystal_parameters_to_unit_cell_normal_operation():
     assert unit_cell is not None
     assert unit_cell.material == "CsCl"
     assert unit_cell.lattice_constants == (0.4119, 0.4119, 0.4119)
-    assert unit_cell.atoms == [Atom(55, (0, 0, 0)), Atom(17, (0.5, 0.5, 0.5))]
+    assert sorted(unit_cell.atoms, key=str) == sorted(
+        [Atom(55, (0, 0, 0)), Atom(17, (0.5, 0.5, 0.5))], key=str
+    )
 
     Cu_basis = file_reading.get_basis_from_csv("tests/parameters/Cu_basis.csv")
     Cu_lattice = file_reading.get_lattice_from_csv("tests/parameters/Cu_lattice.csv")
@@ -93,12 +95,15 @@ def test_crystal_parameters_to_unit_cell_normal_operation():
     assert unit_cell is not None
     assert unit_cell.material == "Cu"
     assert unit_cell.lattice_constants == (0.3615, 0.3615, 0.3615)
-    assert unit_cell.atoms == [
-        Atom(29, (0, 0, 0)),
-        Atom(29, (0.5, 0.5, 0)),
-        Atom(29, (0.5, 0, 0.5)),
-        Atom(29, (0, 0.5, 0.5)),
-    ]
+    assert sorted(unit_cell.atoms, key=str) == sorted(
+        [
+            Atom(29, (0, 0, 0)),
+            Atom(29, (0.5, 0.5, 0)),
+            Atom(29, (0.5, 0, 0.5)),
+            Atom(29, (0, 0.5, 0.5)),
+        ],
+        key=str,
+    )
 
     Na_basis = file_reading.get_basis_from_csv("tests/parameters/Na_basis.csv")
     Na_lattice = file_reading.get_lattice_from_csv("tests/parameters/Na_lattice.csv")
@@ -106,7 +111,9 @@ def test_crystal_parameters_to_unit_cell_normal_operation():
     assert unit_cell is not None
     assert unit_cell.material == "Na"
     assert unit_cell.lattice_constants == (0.4287, 0.4287, 0.4287)
-    assert unit_cell.atoms == [Atom(11, (0, 0, 0)), Atom(11, (0.5, 0.5, 0.5))]
+    assert sorted(unit_cell.atoms, key=str) == sorted(
+        [Atom(11, (0, 0, 0)), Atom(11, (0.5, 0.5, 0.5))], key=str
+    )
 
     NaCl_basis = file_reading.get_basis_from_csv("tests/parameters/NaCl_basis.csv")
     NaCl_lattice = file_reading.get_lattice_from_csv(
@@ -116,16 +123,19 @@ def test_crystal_parameters_to_unit_cell_normal_operation():
     assert unit_cell is not None
     assert unit_cell.material == "NaCl"
     assert unit_cell.lattice_constants == (0.5640, 0.5640, 0.5640)
-    assert unit_cell.atoms == [
-        Atom(11, (0, 0, 0)),
-        Atom(11, (0.5, 0.5, 0)),
-        Atom(11, (0.5, 0, 0.5)),
-        Atom(11, (0, 0.5, 0.5)),
-        Atom(17, (0.5, 0.5, 0.5)),
-        Atom(17, (1.0, 1.0, 0.5)),
-        Atom(17, (1.0, 0.5, 1.0)),
-        Atom(17, (0.5, 1.0, 1.0)),
-    ]
+    assert sorted(unit_cell.atoms, key=str) == sorted(
+        [
+            Atom(11, (0, 0, 0)),
+            Atom(11, (0.5, 0.5, 0)),
+            Atom(11, (0.5, 0, 0.5)),
+            Atom(11, (0, 0.5, 0.5)),
+            Atom(17, (0.5, 0.5, 0.5)),
+            Atom(17, (1.0, 1.0, 0.5)),
+            Atom(17, (1.0, 0.5, 1.0)),
+            Atom(17, (0.5, 1.0, 1.0)),
+        ],
+        key=str,
+    )
 
 
 def test_reciprocal_lattice_vector_initialization_normal_operation():
@@ -189,4 +199,32 @@ def test_get_magnitude_normal_operation():
         reciprocal_lattice_vector.get_magnitude(),
         math.sqrt(utils.dot_product_tuples(expected_components, expected_components)),
         rel_tol=1e-6,
+    )
+
+
+def test_get_reciprocal_lattice_vectors_normal_operation():
+    """
+    A unit test for the get_reciprocal_lattice_vectors function. This unit test tests
+    normal operation of the function.
+    """
+    basis = file_reading.get_basis_from_csv("tests/parameters/test_basis.csv")
+    lattice = file_reading.get_lattice_from_csv("tests/parameters/test_lattice.csv")
+    unit_cell = UnitCell.crystal_parameters_to_unit_cell(lattice, basis)
+
+    reciprocal_lattice_vectors = ReciprocalLatticeVector.get_reciprocal_lattice_vectors(
+        2 * math.pi + 0.001, unit_cell
+    )
+
+    expected_reciprocal_lattice_vectors = [
+        ReciprocalLatticeVector((-1, 0, 0), unit_cell),
+        ReciprocalLatticeVector((0, -1, 0), unit_cell),
+        ReciprocalLatticeVector((0, 0, -1), unit_cell),
+        ReciprocalLatticeVector((0, 0, 0), unit_cell),
+        ReciprocalLatticeVector((1, 0, 0), unit_cell),
+        ReciprocalLatticeVector((0, 1, 0), unit_cell),
+        ReciprocalLatticeVector((0, 0, 1), unit_cell),
+    ]
+
+    assert sorted(reciprocal_lattice_vectors, key=str) == sorted(
+        expected_reciprocal_lattice_vectors, key=str
     )
