@@ -45,34 +45,81 @@ def test_unit_cell_initialization_normal_operation():
     assert unit_cell.atoms == atoms
 
 
-# def test_validate_parameters_normal_operation():
-#     """
-#     A unit test for the validate_parameters function. This unit test tests normal
-#     operation of the function.
-#     """
-#     filename_1 = "tests/parameters/test_lattice.csv"
-#     filename_2 = "tests/parameters/test_basis.csv"
+def test_validate_parameters_normal_operation():
+    """
+    A unit test for the validate_parameters function. This unit test tests normal
+    operation of the function.
+    """
+    CsCl_basis = file_reading.get_basis_from_csv("tests/parameters/CsCl_basis.csv")
+    CsCl_lattice = file_reading.get_lattice_from_csv(
+        "tests/parameters/CsCl_lattice.csv"
+    )
+    Cu_basis = file_reading.get_basis_from_csv("tests/parameters/Cu_basis.csv")
+    Cu_lattice = file_reading.get_lattice_from_csv("tests/parameters/Cu_lattice.csv")
+    Na_basis = file_reading.get_basis_from_csv("tests/parameters/Na_basis.csv")
+    Na_lattice = file_reading.get_lattice_from_csv("tests/parameters/Na_lattice.csv")
+    NaCl_basis = file_reading.get_basis_from_csv("tests/parameters/NaCl_basis.csv")
+    NaCl_lattice = file_reading.get_lattice_from_csv(
+        "tests/parameters/NaCl_lattice.csv"
+    )
 
-#     lattice = file_reading.get_lattice_from_csv(filename_1)
-#     basis = file_reading.get_basis_from_csv(filename_2)
+    assert UnitCell.validate_crystal_parameters(CsCl_lattice, CsCl_basis) is None
+    assert UnitCell.validate_crystal_parameters(Cu_lattice, Cu_basis) is None
+    assert UnitCell.validate_crystal_parameters(Na_lattice, Na_basis) is None
+    assert UnitCell.validate_crystal_parameters(NaCl_lattice, NaCl_basis) is None
 
-#     assert UnitCell.validate_crystal_parameters(lattice, basis) is None
 
+def test_crystal_parameters_to_unit_cell_normal_operation():
+    """
+    A unit test for the crystal_parameters_to_unit_cell function. This unit test tests
+    normal operation of the function.
+    """
+    CsCl_basis = file_reading.get_basis_from_csv("tests/parameters/CsCl_basis.csv")
+    CsCl_lattice = file_reading.get_lattice_from_csv(
+        "tests/parameters/CsCl_lattice.csv"
+    )
+    unit_cell = UnitCell.crystal_parameters_to_unit_cell(CsCl_lattice, CsCl_basis)
+    assert unit_cell is not None
+    assert unit_cell.material == "CsCl"
+    assert unit_cell.lattice_constants == (0.4119, 0.4119, 0.4119)
+    assert unit_cell.atoms == [Atom(55, (0, 0, 0)), Atom(17, (0.5, 0.5, 0.5))]
 
-# def test_crystal_parameters_to_unit_cell_normal_operation():
-#     """
-#     A unit test for the crystal_parameters_to_unit_cell function. This unit test tests
-#     normal operation of the function.
-#     """
-#     filename_1 = "tests/parameters/test_lattice.csv"
-#     filename_2 = "tests/parameters/test_basis.csv"
+    Cu_basis = file_reading.get_basis_from_csv("tests/parameters/Cu_basis.csv")
+    Cu_lattice = file_reading.get_lattice_from_csv("tests/parameters/Cu_lattice.csv")
+    unit_cell = UnitCell.crystal_parameters_to_unit_cell(Cu_lattice, Cu_basis)
+    assert unit_cell is not None
+    assert unit_cell.material == "Cu"
+    assert unit_cell.lattice_constants == (0.3615, 0.3615, 0.3615)
+    assert unit_cell.atoms == [
+        Atom(29, (0, 0, 0)),
+        Atom(29, (0.5, 0.5, 0)),
+        Atom(29, (0.5, 0, 0.5)),
+        Atom(29, (0, 0.5, 0.5)),
+    ]
 
-#     lattice = file_reading.get_lattice_from_csv(filename_1)
-#     basis = file_reading.get_basis_from_csv(filename_2)
+    Na_basis = file_reading.get_basis_from_csv("tests/parameters/Na_basis.csv")
+    Na_lattice = file_reading.get_lattice_from_csv("tests/parameters/Na_lattice.csv")
+    unit_cell = UnitCell.crystal_parameters_to_unit_cell(Na_lattice, Na_basis)
+    assert unit_cell is not None
+    assert unit_cell.material == "Na"
+    assert unit_cell.lattice_constants == (0.4287, 0.4287, 0.4287)
+    assert unit_cell.atoms == [Atom(11, (0, 0, 0)), Atom(11, (0.5, 0.5, 0.5))]
 
-#     unit_cell = UnitCell.crystal_parameters_to_unit_cell(lattice, basis)
-#     assert unit_cell is not None
-
-#     assert unit_cell.material == "NaCl"
-#     assert unit_cell.lattice_constants == (1, 1, 1)
-#     # Add assertion for atoms in the unit cell.
+    NaCl_basis = file_reading.get_basis_from_csv("tests/parameters/NaCl_basis.csv")
+    NaCl_lattice = file_reading.get_lattice_from_csv(
+        "tests/parameters/NaCl_lattice.csv"
+    )
+    unit_cell = UnitCell.crystal_parameters_to_unit_cell(NaCl_lattice, NaCl_basis)
+    assert unit_cell is not None
+    assert unit_cell.material == "NaCl"
+    assert unit_cell.lattice_constants == (0.5640, 0.5640, 0.5640)
+    assert unit_cell.atoms == [
+        Atom(11, (0, 0, 0)),
+        Atom(11, (0.5, 0.5, 0)),
+        Atom(11, (0.5, 0, 0.5)),
+        Atom(11, (0, 0.5, 0.5)),
+        Atom(17, (0.5, 0.5, 0.5)),
+        Atom(17, (1.0, 1.0, 0.5)),
+        Atom(17, (1.0, 0.5, 1.0)),
+        Atom(17, (0.5, 1.0, 1.0)),
+    ]

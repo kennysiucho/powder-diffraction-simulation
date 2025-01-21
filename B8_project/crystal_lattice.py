@@ -247,8 +247,10 @@ class UnitCell:
             an error.
 
         Todos
-        ----
+        -----
         TODO: Implement base centred lattice logic.
+        TODO: modify algorithm so that the positions of the new atoms are defined modulo
+        a real lattice vector.
         """
         material, lattice_type, lattice_constants = lattice
         atomic_numbers, atomic_positions = basis
