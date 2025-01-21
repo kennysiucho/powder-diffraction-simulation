@@ -94,3 +94,19 @@ def test_random_uniform_3d_unit_vector():
     ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
 
     plt.show()
+
+def test_random_uniform_3d_unit_vectors():
+    N = 500
+    vectors = random_uniform_unit_vectors(N, 3)
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+
+    xs, ys, zs = vectors[:, 0], vectors[:, 1], vectors[:, 2]
+    ax.scatter(xs, ys, zs)
+
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
+
+    plt.show()

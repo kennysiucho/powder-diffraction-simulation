@@ -88,3 +88,8 @@ def random_uniform_unit_vector(dims: int):
     vec = [random.gauss(0, 1) for i in range(dims)]
     mag = sum(x ** 2 for x in vec) ** .5
     return [x / mag for x in vec]
+
+def random_uniform_unit_vectors(n: int, dims: int):
+    vecs = np.random.normal(size=(n, dims))
+    mag = np.linalg.norm(vecs, axis=1, keepdims=True)
+    return vecs / mag
