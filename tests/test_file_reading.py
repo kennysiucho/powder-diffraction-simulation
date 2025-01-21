@@ -55,7 +55,7 @@ def test_validate_parameters_normal_operation():
     assert validate_parameters(lattice, basis) is None
 
 
-def test_get_neutron_scattering_lengths_from_csv():
+def test_get_neutron_scattering_lengths_from_csv_normal_operation():
     """
     A unit test for the get_neutron_scattering_lengths_from_csv function. This unit
     test tests normal operation of the function.
@@ -68,7 +68,7 @@ def test_get_neutron_scattering_lengths_from_csv():
     assert neutron_scattering_lengths[17] == 9.5792
 
 
-def test_get_x_ray_form_factors_from_csv():
+def test_get_x_ray_form_factors_from_csv_normal_operation():
     """
     A unit test for the get_x_ray_form_factors_from_csv function. This unit test tests
     normal operation of the function.

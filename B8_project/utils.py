@@ -1,5 +1,5 @@
 """
-This module includes useful functions for performing arithmetic operations with tuples.
+This module includes useful functions that performing arithmetic operations.
 
 Functions:
 TODO: add functions.
