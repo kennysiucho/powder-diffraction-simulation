@@ -8,7 +8,6 @@ TODO: add classes.
 
 import math
 import B8_project.utils as utils
-import B8_project.file_reading as file_reading
 
 
 class Atom:
@@ -126,8 +125,72 @@ class UnitCell:
         """
         return self.__str__()
 
+    @staticmethod
+    def validate_crystal_parameters(
+        lattice: tuple[str, int, tuple[float, float, float]],
+        basis: tuple[list[int], list[tuple[float, float, float]]],
+    ) -> None:
+        """
+        Validate parameters
+        ===================
+
+        Processes lattice and basis parameters, and raises an error if they are invalid.
+        This function has no return value.
+
+        Parameters
+        ----------
+            - lattice (tuple[str, int, tuple[float, float, float]]): The lattice parameters,
+            stored as a tuple (material, lattice_type, lattice_constants).
+            - basis (tuple[list[int], list[tuple[float, float, float]]]): The basis
+            parameters, stored as a tuple (atomic_numbers, atomic_positions).
+        """
+        _, lattice_type, lattice_constants = lattice
+        atomic_numbers, atomic_positions = basis
+
+        # Validate that the length of atomic_numbers and atomic_positions is the same.
+        if not len(atomic_numbers) == len(atomic_positions):
+            raise ValueError(
+                "Length of atomic_numbers and atomic_positions must be the same"
+            )
+
+        # Validate that the lattice constants are non-negative and non-zero.
+        (a, b, c) = lattice_constants
+        if not (a > 0 and b > 0 and c > 0):
+            raise ValueError(
+                "Lattice constants should all be non-negative and non-zero."
+            )
+
+        # Validate lattice_type
+        if lattice_type < 1 or lattice_type > 4:
+            raise ValueError(
+                "lattice_type should be an integer between 1 and 4 inclusive"
+            )
+
+        # Validate that lattice_type and lattice_constants are compatible for a cubic
+        # unit cell
+        if (a == b == c) and lattice_type == 4:
+            raise ValueError(
+                "Base centred lattice type is not permitted for a cubic lattice"
+            )
+
+        # Validate that lattice_type and lattice_constants are compatible for a
+        # tetragonal unit cell
+        if (
+            (a == b and not a == c)
+            or (a == c and not a == b)
+            or (b == c and not a == b)
+        ):
+            if lattice_type == 3:
+                raise ValueError(
+                    "Face centred lattice type is not permitted for a tetragonal lattice"
+                )
+            elif lattice_type == 4:
+                raise ValueError(
+                    "Base centred lattice type is not permitted for a tetragonal unit cell"
+                )
+
     @classmethod
-    def parameters_to_unit_cell(
+    def crystal_parameters_to_unit_cell(
         cls,
         lattice: tuple[str, int, tuple[float, float, float]],
         basis: tuple[list[int], list[tuple[float, float, float]]],
@@ -175,7 +238,7 @@ class UnitCell:
 
         # Validate the lattice and basis parameters
         try:
-            file_reading.validate_parameters(lattice, basis)
+            cls.validate_crystal_parameters(lattice, basis)
         except ValueError as exc:
             raise ValueError(f"Invalid parameters: {exc}") from exc
 
