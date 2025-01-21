@@ -116,6 +116,15 @@ class UnitCell:
         self.lattice_constants = lattice_constants
         self.atoms = atoms
 
+    def __eq__(self, other):
+        if isinstance(other, UnitCell):
+            return (
+                self.material == other.material
+                and self.lattice_constants == other.lattice_constants
+                and self.atoms == other.atoms
+            )
+        return False
+
     def __str__(self):
         """
         Return a string representing a `UnitCell` instance for printing.
