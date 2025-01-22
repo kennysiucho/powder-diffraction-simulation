@@ -1,14 +1,20 @@
 """
-This module contains unit tests for the crystal_lattice.py module.
+This module contains unit tests for the crystal.py module.
 TODO: add test for base-centred lattice type once base-centred logic has been 
 implemented.
 TODO: add tests for XRayFormFactor class.
+TODO: add tests for Diffraction class.
 
-TODO: add tests for error handling for crystal_lattice module.
+TODO: add tests for error handling for crystal module.
 """
 
 import math
-from B8_project.crystal import Atom, UnitCell, ReciprocalLatticeVector
+from B8_project.crystal import (
+    Atom,
+    UnitCell,
+    ReciprocalLatticeVector,
+    NeutronFormFactor,
+)
 from B8_project import file_reading
 from B8_project import utils
 
@@ -44,7 +50,7 @@ class TestAtom:
 
 class TestUnitCell:
     """
-    Unit tests for the `UnitCell` class
+    Unit tests for the `UnitCell` class.
     """
 
     @staticmethod
@@ -160,7 +166,7 @@ class TestUnitCell:
 
 class TestReciprocalLatticeVector:
     """
-    Unit tests for the `ReciprocalLatticeVector` class
+    Unit tests for the `ReciprocalLatticeVector` class.
     """
 
     @staticmethod
@@ -210,8 +216,7 @@ class TestReciprocalLatticeVector:
     @staticmethod
     def test_get_magnitude_normal_operation():
         """
-        A unit test for the get_magnitude function. This unit test tests normal operation
-        of the function.
+        A unit test for the get_magnitude function. This unit test tests normal operation of the function.
         """
         CsCl_basis = file_reading.get_basis_from_csv("tests/parameters/CsCl_basis.csv")
         CsCl_lattice = file_reading.get_lattice_from_csv(
@@ -264,3 +269,44 @@ class TestReciprocalLatticeVector:
         assert sorted(reciprocal_lattice_vectors, key=str) == sorted(
             expected_reciprocal_lattice_vectors, key=str
         )
+
+
+class TestNeutronFormFactor:
+    """
+    Unit tests for the `NeutronFormFactor` class.
+    """
+
+    @staticmethod
+    def test_neutron_form_factor_initialization_normal_operation():
+        """
+        A unit test that tests the initialization of a `NeutronFormFactor` instance.
+        This unit test tests initialization with normal attributes.
+        """
+        neutron_form_factor = NeutronFormFactor(1)
+        assert neutron_form_factor.neutron_scattering_length == 1
+
+    @staticmethod
+    def test_get_form_factor_normal_operation():
+        """
+        A unit test for the get_form_factor function. This unit test tests normal
+        operation of the function.
+        """
+        neutron_form_factor = NeutronFormFactor(1)
+        assert (
+            neutron_form_factor.get_form_factor(
+                ReciprocalLatticeVector((0, 0, 0), (1, 1, 1))
+            )
+            == 1
+        )
+
+
+class TestXRayFormFactor:
+    """
+    Unit tests for the `XRayFormFactor` class.
+    """
+
+
+class TestDiffraction:
+    """
+    Unit tests for the `Diffraction` class.
+    """
