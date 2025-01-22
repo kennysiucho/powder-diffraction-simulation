@@ -14,7 +14,7 @@ from B8_project.file_reading import (
     get_x_ray_form_factors_from_csv,
 )
 
-from B8_project.crystal import XRayFormFactor
+from B8_project.crystal import NeutronFormFactor, XRayFormFactor
 
 
 def test_get_lattice_from_csv_normal_operation():
@@ -82,10 +82,10 @@ def test_get_neutron_scattering_lengths_from_csv_normal_operation():
 
     neutron_scattering_lengths = get_neutron_scattering_lengths_from_csv(filename)
 
-    assert neutron_scattering_lengths[11] == 3.63
-    assert neutron_scattering_lengths[17] == 9.5792
-    assert neutron_scattering_lengths[29] == 7.718
-    assert neutron_scattering_lengths[55] == 5.42
+    assert neutron_scattering_lengths[11] == NeutronFormFactor(3.63)
+    assert neutron_scattering_lengths[17] == NeutronFormFactor(9.5792)
+    assert neutron_scattering_lengths[29] == NeutronFormFactor(7.718)
+    assert neutron_scattering_lengths[55] == NeutronFormFactor(5.42)
 
 
 def test_get_x_ray_form_factors_from_csv_normal_operation():

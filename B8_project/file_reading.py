@@ -7,7 +7,7 @@ dict[int, NeutronFormFactor].
 """
 
 import pandas as pd
-from B8_project.crystal import XRayFormFactor
+from B8_project.crystal import NeutronFormFactor, XRayFormFactor
 
 
 def get_basis_from_csv(
@@ -131,7 +131,9 @@ def get_lattice_from_csv(
     return material, lattice_type, lattice_constants
 
 
-def get_neutron_scattering_lengths_from_csv(filename: str) -> dict[int, float]:
+def get_neutron_scattering_lengths_from_csv(
+    filename: str,
+) -> dict[int, NeutronFormFactor]:
     """
     Get neutron scattering lengths from a CSV file
     ==============================================
@@ -155,8 +157,9 @@ def get_neutron_scattering_lengths_from_csv(filename: str) -> dict[int, float]:
 
     Returns
     -------
-        - (dict[int, float]): A dictionary where the keys are atomic numbers (int) and
-        the values are the neutron scattering lengths (float).
+        - (dict[int, NeutronFormFactor]): A dictionary where the keys are atomic
+        numbers (int) and the values are the neutron scattering lengths, stored as an
+        instance of `NeutronFormFactor`.
     """
     try:
         # Read the CSV file containing the neutron scattering lengths into a DataFrame.
@@ -174,10 +177,12 @@ def get_neutron_scattering_lengths_from_csv(filename: str) -> dict[int, float]:
         # Read the atomic numbers.
         atomic_numbers = neutron_df["atomic_number"].astype(int).tolist()
 
-        # Read the neutron scattering lengths.
-        neutron_scattering_lengths = (
-            neutron_df["neutron_scattering_length"].astype(float).tolist()
-        )
+        # Read the neutron scattering lengths, and store them as an instance of
+        # NeutronFormFactor
+        neutron_scattering_lengths = [
+            NeutronFormFactor(x)
+            for x in neutron_df["neutron_scattering_length"].astype(float).tolist()
+        ]
 
         # Validate that atomic_numbers and neutron_scattering_lengths have the same
         # length.

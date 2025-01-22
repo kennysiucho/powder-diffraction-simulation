@@ -72,7 +72,7 @@ def test_validate_parameters_normal_operation():
     assert UnitCell.validate_crystal_parameters(NaCl_lattice, NaCl_basis) is None
 
 
-def test_crystal_parameters_to_unit_cell_normal_operation():
+def test_get_unit_cell_normal_operation():
     """
     A unit test for the crystal_parameters_to_unit_cell function. This unit test tests
     normal operation of the function.

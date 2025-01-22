@@ -413,28 +413,28 @@ class NeutronFormFactor(FormFactor):
 
     A class to represent the neutron form factor of an atom.
 
-    The neutron form factor is proportional to the nuclear scattering length. Since we
+    The neutron form factor is proportional to the neutron scattering length. Since we
     are only interested in relative intensities, we do not need to make a distinction
-    between the neutron form factor and the nuclear scattering length of an atom.
+    between the neutron form factor and the neutron scattering length of an atom.
 
     Attributes
     ----------
-        - nuclear_scattering_length (float): The nuclear scattering length of an atom.
+        - neutron_scattering_length (float): The neutron scattering length of an atom.
 
     Methods
     -------
     TODO: add methods.
     """
 
-    nuclear_scattering_length: float
+    neutron_scattering_length: float
 
     def get_form_factor(self, _reciprocal_lattice_vector: ReciprocalLatticeVector):
         """
         Get neutron form factor
         =======================
 
-        Returns the nuclear scattering length of an instance of `NeutronFormFactor`.
-        The nuclear scattering length of an atom is proportional to the neutron form
+        Returns the neutron scattering length of an instance of `NeutronFormFactor`.
+        The neutron scattering length of an atom is proportional to the neutron form
         factor.
 
         Parameters
@@ -445,7 +445,7 @@ class NeutronFormFactor(FormFactor):
         -------
         TODO: add returns.
         """
-        return self.nuclear_scattering_length
+        return self.neutron_scattering_length
 
 
 @dataclass
