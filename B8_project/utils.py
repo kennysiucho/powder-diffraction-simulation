@@ -1,3 +1,5 @@
+import numpy as np
+
 """
 TODO: add unit tests for functions in this module.
 """
@@ -42,3 +44,8 @@ def add_tuples(
         the corresponding elements of `tuple_1` and `tuple_2`.
     """
     return (tuple_1[0] + tuple_2[0], tuple_1[1] + tuple_2[1], tuple_1[2] + tuple_2[2])
+
+def reciprocal_lattice_vector(lattice_constants: tuple[float, float, float], h: int, k: int, l: int):
+    return [2 * np.pi / lattice_constants[0] * h,
+            2 * np.pi / lattice_constants[1] * k,
+            2 * np.pi / lattice_constants[2] * l]
