@@ -14,7 +14,7 @@ from B8_project.file_reading import (
     get_x_ray_form_factors_from_csv,
 )
 
-from B8_project.crystal_lattice import XRayFormFactor
+from B8_project.crystal import XRayFormFactor
 
 
 def test_get_lattice_from_csv_normal_operation():

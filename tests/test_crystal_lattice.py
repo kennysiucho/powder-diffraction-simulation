@@ -8,7 +8,7 @@ TODO: add tests for error handling for crystal_lattice module.
 """
 
 import math
-from B8_project.crystal_lattice import Atom, UnitCell, ReciprocalLatticeVector
+from B8_project.crystal import Atom, UnitCell, ReciprocalLatticeVector
 from B8_project import file_reading
 from B8_project import utils
 

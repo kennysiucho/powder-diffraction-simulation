@@ -4,7 +4,7 @@ XRayFormFactor is a class which represents the atomic form factor of an atom.
 """
 
 import pandas as pd
-from B8_project.crystal_lattice import XRayFormFactor
+from B8_project.crystal import XRayFormFactor
 
 
 def get_lattice_from_csv(
