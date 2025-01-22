@@ -6,10 +6,13 @@ Classes:
 TODO: add classes.
 """
 
+import cmath
+from dataclasses import dataclass
 import math
 import B8_project.utils as utils
 
 
+@dataclass
 class Atom:
     """
     Atom
@@ -29,36 +32,8 @@ class Atom:
         amount.
     """
 
-    def __init__(
-        self,
-        atomic_number: int,
-        position: tuple[float, float, float],
-    ):
-        """
-        Initialize an `Atom` instance
-        """
-        self.atomic_number = atomic_number
-        self.position = position
-
-    def __eq__(self, other):
-        if isinstance(other, Atom):
-            return (
-                self.atomic_number == other.atomic_number
-                and self.position == other.position
-            )
-        return False
-
-    def __str__(self):
-        """
-        Return a string representing an `Atom` instance for printing.
-        """
-        return f"Atomic Number: {self.atomic_number}, " f"Position: {self.position}"
-
-    def __repr__(self):
-        """
-        Return a string representation of an `Atom` instance.
-        """
-        return self.__str__()
+    atomic_number: int
+    position: tuple[float, float, float]
 
     def shift_position(self, shift: tuple[float, float, float]) -> "Atom":
         """
@@ -80,6 +55,7 @@ class Atom:
         return Atom(self.atomic_number, utils.add_tuples(self.position, shift))
 
 
+@dataclass
 class UnitCell:
     """
     Unit cell
@@ -103,44 +79,9 @@ class UnitCell:
         of `UnitCell`.
     """
 
-    def __init__(
-        self,
-        material: str,
-        lattice_constants: tuple[float, float, float],
-        atoms: list[Atom],
-    ):
-        """
-        Initialize a `UnitCell` instance
-        """
-        self.material = material
-        self.lattice_constants = lattice_constants
-        self.atoms = atoms
-
-    def __eq__(self, other):
-        if isinstance(other, UnitCell):
-            return (
-                self.material == other.material
-                and self.lattice_constants == other.lattice_constants
-                and self.atoms == other.atoms
-            )
-        return False
-
-    def __str__(self):
-        """
-        Return a string representing a `UnitCell` instance for printing.
-        """
-        atoms_str = "\n".join([str(atom) for atom in self.atoms])
-        return (
-            f"Material: {self.material}\n"
-            f"Lattice Constants: {self.lattice_constants}\n"
-            f"Atoms:\n{atoms_str}"
-        )
-
-    def __repr__(self):
-        """
-        Return a string representation of a `UnitCell` instance.
-        """
-        return self.__str__()
+    material: str
+    lattice_constants: tuple[float, float, float]
+    atoms: list[Atom]
 
     @staticmethod
     def validate_crystal_parameters(
@@ -207,10 +148,10 @@ class UnitCell:
                 )
 
     @classmethod
-    def crystal_parameters_to_unit_cell(
+    def get_unit_cell(
         cls,
-        lattice: tuple[str, int, tuple[float, float, float]],
         basis: tuple[list[int], list[tuple[float, float, float]]],
+        lattice: tuple[str, int, tuple[float, float, float]],
     ):
         """
         Parameters to unit cell
@@ -315,6 +256,7 @@ class UnitCell:
             )
 
 
+@dataclass
 class ReciprocalLatticeVector:
     """
     Reciprocal lattice vector
@@ -334,37 +276,8 @@ class ReciprocalLatticeVector:
     TODO: add methods.
     """
 
-    def __init__(self, miller_indices: tuple[int, int, int], unit_cell: UnitCell):
-        """
-        Initialize a `ReciprocalLatticeVector` instance
-        """
-        self.miller_indices = miller_indices
-        self.lattice_constants = unit_cell.lattice_constants
-
-    def __eq__(self, other):
-        if isinstance(other, ReciprocalLatticeVector):
-            return (
-                self.miller_indices == other.miller_indices
-                and self.lattice_constants == other.lattice_constants
-            )
-        return False
-
-    def __str__(self):
-        """
-        Return a string representing a `ReciprocalLatticeVector` instance for printing.
-        The string contains the miller indices of the `ReciprocalLatticeVector`
-        instance.
-        """
-        return (
-            f"(h, k, l): ({self.miller_indices[0]}, {self.miller_indices[1]}, "
-            f"{self.miller_indices[2]})"
-        )
-
-    def __repr__(self):
-        """
-        Return a string representation of a `ReciprocalLatticeVector` instance.
-        """
-        return self.__str__()
+    miller_indices: tuple[int, int, int]
+    lattice_constants: tuple[float, float, float]
 
     def get_components(self) -> tuple[float, float, float]:
         """
@@ -449,7 +362,9 @@ class ReciprocalLatticeVector:
                 for l in range(-max_l, max_l + 1, 1):
                     # Define an instance of `ReciprocalLatticeVector` associated with
                     # the Miller indices (hkl)
-                    reciprocal_lattice_vector = cls((h, k, l), unit_cell)
+                    reciprocal_lattice_vector = cls(
+                        (h, k, l), unit_cell.lattice_constants
+                    )
 
                     # If reciprocal_lattice_vector has a magnitude less than
                     # max_magnitude, append it to the list
@@ -459,7 +374,82 @@ class ReciprocalLatticeVector:
         return reciprocal_lattice_vectors
 
 
-class XRayFormFactor:
+@dataclass
+class FormFactor:
+    """
+    Form factor base class
+    ======================
+
+    A base class to represent the form factor of an atom. This class should be inherited
+    by specific form factor classes, e.g. `NeutronFormFactor` and `XRayFormFactor`.
+    """
+
+    def get_form_factor(self, reciprocal_lattice_vector: ReciprocalLatticeVector):
+        """
+        Get form factor
+        ===============
+
+        Returns the form factor of an instance of `FormFactor`.
+
+        Parameters
+        ----------
+            - reciprocal_lattice_vector (ReciprocalLatticeVector): represents the
+            scattering vector.
+
+        Returns
+        -------
+        TODO: add returns.
+        """
+        raise NotImplementedError(
+            "This method should be implemented by a specific form factor class."
+        )
+
+
+@dataclass
+class NeutronFormFactor(FormFactor):
+    """
+    Neutron form factor
+    ===================
+
+    A class to represent the neutron form factor of an atom.
+
+    The neutron form factor is proportional to the nuclear scattering length. Since we
+    are only interested in relative intensities, we do not need to make a distinction
+    between the neutron form factor and the nuclear scattering length of an atom.
+
+    Attributes
+    ----------
+        - nuclear_scattering_length (float): The nuclear scattering length of an atom.
+
+    Methods
+    -------
+    TODO: add methods.
+    """
+
+    nuclear_scattering_length: float
+
+    def get_form_factor(self, _reciprocal_lattice_vector: ReciprocalLatticeVector):
+        """
+        Get neutron form factor
+        =======================
+
+        Returns the nuclear scattering length of an instance of `NeutronFormFactor`.
+        The nuclear scattering length of an atom is proportional to the neutron form
+        factor.
+
+        Parameters
+        ----------
+        TODO: add parameters.
+
+        Returns
+        -------
+        TODO: add returns.
+        """
+        return self.nuclear_scattering_length
+
+
+@dataclass
+class XRayFormFactor(FormFactor):
     """
     X-ray form factor
     ==================
@@ -488,61 +478,206 @@ class XRayFormFactor:
             TODO: implement this function.
     """
 
-    def __init__(
-        self,
-        a1: float,
-        b1: float,
-        a2: float,
-        b2: float,
-        a3: float,
-        b3: float,
-        a4: float,
-        b4: float,
-        c: float,
-    ):
-        self.a1 = a1
-        self.b1 = b1
-        self.a2 = a2
-        self.b2 = b2
-        self.a3 = a3
-        self.b3 = b3
-        self.a4 = a4
-        self.b4 = b4
-        self.c = c
+    a1: float
+    b1: float
+    a2: float
+    b2: float
+    a3: float
+    b3: float
+    a4: float
+    b4: float
+    c: float
 
-    def __eq__(self, other):
-        if isinstance(other, XRayFormFactor):
-            return (
-                self.a1 == other.a1
-                and self.b1 == other.b1
-                and self.a2 == other.a2
-                and self.b2 == other.b2
-                and self.a3 == other.a3
-                and self.b3 == other.b3
-                and self.a4 == other.a4
-                and self.b4 == other.b4
-                and self.c == other.c
+    def get_form_factor(self, reciprocal_lattice_vector: ReciprocalLatticeVector):
+        """
+        TODO: implement function.
+        TODO: add documentation.
+        """
+
+
+@dataclass
+class Diffraction:
+    """
+    Diffraction
+    ===========
+
+    A class to calculate diffraction patterns for a given crystal.
+    """
+
+    @staticmethod
+    def get_structure_factor(
+        unit_cell: UnitCell,
+        form_factors: dict[int, FormFactor],
+        reciprocal_lattice_vector: ReciprocalLatticeVector,
+    ) -> complex:
+        """
+        Get structure factor
+        ====================
+
+        Returns the structure factor of a crystal evaluated at a given reciprocal lattice vector.
+
+        An instance of `UnitCell` represents the crystal. The form factors are stored
+        in a dictionary which maps atomic number to form factor.
+
+        Parameters
+        ----------
+        TODO: add parameters.
+
+        Returns
+        -------
+        TODO: add returns.
+        """
+        structure_factor = 0 + 0j
+
+        for atom in unit_cell.atoms:
+            exponent = (2 * math.pi * 1j) * utils.dot_product_tuples(
+                reciprocal_lattice_vector.miller_indices, atom.position
             )
-        return False
 
-    def __str__(self):
+            try:
+                form_factor = form_factors[atom.atomic_number]
+
+                structure_factor += form_factor.get_form_factor(
+                    reciprocal_lattice_vector
+                ) * cmath.exp(exponent)
+
+            except KeyError as exc:
+                raise KeyError(f"Error reading form factor dictionary: {exc}") from exc
+        return structure_factor
+
+    @staticmethod
+    def get_structure_factors(
+        unit_cell: UnitCell,
+        form_factors: dict[int, FormFactor],
+        max_magnitude: float,
+    ) -> list[tuple["ReciprocalLatticeVector", complex]]:
         """
-        Return a string representing an `XRayFormFactor` instance for printing.
+        Get structure factors
+        =====================
+
+        Computes the structure factors for all reciprocal lattice vectors whose
+        magnitudes are less than the specified max_magnitude.
+
+        The function returns a list of tuples, where each tuple contains a reciprocal
+        lattice vector and the corresponding structure factor.
+
+        Parameters
+        ----------
+        TODO: add parameters.
+
+        Returns
+        -------
+        TODO: add returns.
         """
-        return (
-            f"a1: {self.a1}\n"
-            f"b1: {self.b1}\n"
-            f"a2: {self.a2}\n"
-            f"b2: {self.b2}\n"
-            f"a3: {self.a3}\n"
-            f"b3: {self.b3}\n"
-            f"a4: {self.a4}\n"
-            f"b4: {self.b4}\n"
-            f"c: {self.c}"
+        # Generates a list of all reciprocal lattice vectors within a sphere of radius
+        # max_magnitude in k-space.
+        try:
+            reciprocal_lattice_vectors = (
+                ReciprocalLatticeVector.get_reciprocal_lattice_vectors(
+                    max_magnitude, unit_cell
+                )
+            )
+        except ValueError as exc:
+            raise ValueError(
+                f"Error generating reciprocal lattice vectors: {exc}"
+            ) from exc
+
+        # Empty list that will store the structure factors associated with each
+        # reciprocal lattice vector.
+        structure_factors = []
+
+        # Iterates through reciprocal_lattice_vectors. For each RLV, calculates the
+        # structure factor and appends this to structure_factors.
+        for reciprocal_lattice_vector in reciprocal_lattice_vectors:
+            try:
+                structure_factors.append(
+                    Diffraction.get_structure_factor(
+                        unit_cell, form_factors, reciprocal_lattice_vector
+                    )
+                )
+
+            except Exception as exc:
+                raise ValueError(f"Error computing structure factor: {exc}") from exc
+
+        # Returns a list of tuples, where each tuple contains a reciprocal lattice
+        # vector and the corresponding structure factor.
+        return list(zip(reciprocal_lattice_vectors, structure_factors))
+
+    @staticmethod
+    def get_intensity_peaks(
+        unit_cell: UnitCell,
+        form_factors: dict[int, FormFactor],
+        wavelength: float,
+    ) -> list[tuple[float, float]]:
+        """
+        Get diffraction peaks
+        =====================
+
+        Calculates the angles and relative intensities of intensity peaks for a given
+        crystal. Returns a list of tuples, each containing the angle and relative
+        intensity of a peak.
+
+        Parameters
+        ----------
+        TODO: add parameters.
+
+        Returns
+        -------
+        TODO: add returns.
+        """
+        # Calculate maximum magnitude of RLV for scattering to still occur.
+        max_magnitude = ((4 * math.pi) / wavelength) - 1e-10
+
+        # Calculate list of RLVs and corresponding structure factors.
+        structure_factors = Diffraction.get_structure_factors(
+            unit_cell, form_factors, max_magnitude
         )
 
-    def __repr__(self):
-        """
-        Return a string representation of an `XRayFormFactor` instance.
-        """
-        return self.__str__()
+        # A list of tuples (angle, intensity).
+        intensity_peaks = []
+
+        # Iterates through neutron_structure_factors and populates intensity_peaks.
+        for reciprocal_lattice_vector, structure_factor in structure_factors:
+            # Calculate sin of the diffraction angle.
+            sin_angle = (
+                wavelength * reciprocal_lattice_vector.get_magnitude() / (4 * math.pi)
+            )
+
+            if sin_angle >= 1 or sin_angle <= -1:
+                continue
+
+            angle = math.asin(sin_angle)
+            intensity = abs(structure_factor) ** 2
+
+            intensity_peaks.append((angle, intensity))
+
+        # Sort the intensity peaks by angle, and separate intensity_peaks into two
+        # lists.
+        intensity_peaks.sort(key=lambda x: x[0])
+        angles, intensities = zip(*intensity_peaks)
+
+        # Iterate over angles. Any angles which are the same are merged, and the
+        # intensities are summed.
+        merged_intensity_peaks = []
+
+        i = 0
+        length = len(angles)
+        while i < length:
+            angle = angles[i]
+            intensity = intensities[i]
+
+            i += 1
+            while i < length and math.isclose(angle, angles[i], rel_tol=1e-10):
+                intensity += intensities[i]
+                i += 1
+
+            merged_intensity_peaks.append((angle, intensity))
+
+        # Find the maximum intensity
+        angles, intensities = zip(*merged_intensity_peaks)
+        max_intensity = max(intensities)
+
+        # Divide all intensities by max_intensity to get relative intensities
+        relative_intensities = [x / max_intensity for x in intensities]
+
+        return list(zip(angles, relative_intensities))

@@ -10,7 +10,7 @@ from B8_project import crystal
 
 basis = file_reading.get_basis_from_csv("tests/parameters/test_basis.csv")
 lattice = file_reading.get_lattice_from_csv("tests/parameters/test_lattice.csv")
-unit_cell = crystal.UnitCell.crystal_parameters_to_unit_cell(lattice, basis)
+unit_cell = crystal.UnitCell.get_unit_cell(basis, lattice)
 
 
 reciprocal_lattice_vectors = (

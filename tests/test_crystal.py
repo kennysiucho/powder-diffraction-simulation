@@ -81,7 +81,7 @@ def test_crystal_parameters_to_unit_cell_normal_operation():
     CsCl_lattice = file_reading.get_lattice_from_csv(
         "tests/parameters/CsCl_lattice.csv"
     )
-    unit_cell = UnitCell.crystal_parameters_to_unit_cell(CsCl_lattice, CsCl_basis)
+    unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
     assert unit_cell is not None
     assert unit_cell.material == "CsCl"
     assert unit_cell.lattice_constants == (0.4119, 0.4119, 0.4119)
@@ -91,7 +91,7 @@ def test_crystal_parameters_to_unit_cell_normal_operation():
 
     Cu_basis = file_reading.get_basis_from_csv("tests/parameters/Cu_basis.csv")
     Cu_lattice = file_reading.get_lattice_from_csv("tests/parameters/Cu_lattice.csv")
-    unit_cell = UnitCell.crystal_parameters_to_unit_cell(Cu_lattice, Cu_basis)
+    unit_cell = UnitCell.get_unit_cell(Cu_basis, Cu_lattice)
     assert unit_cell is not None
     assert unit_cell.material == "Cu"
     assert unit_cell.lattice_constants == (0.3615, 0.3615, 0.3615)
@@ -107,7 +107,7 @@ def test_crystal_parameters_to_unit_cell_normal_operation():
 
     Na_basis = file_reading.get_basis_from_csv("tests/parameters/Na_basis.csv")
     Na_lattice = file_reading.get_lattice_from_csv("tests/parameters/Na_lattice.csv")
-    unit_cell = UnitCell.crystal_parameters_to_unit_cell(Na_lattice, Na_basis)
+    unit_cell = UnitCell.get_unit_cell(Na_basis, Na_lattice)
     assert unit_cell is not None
     assert unit_cell.material == "Na"
     assert unit_cell.lattice_constants == (0.4287, 0.4287, 0.4287)
@@ -119,7 +119,7 @@ def test_crystal_parameters_to_unit_cell_normal_operation():
     NaCl_lattice = file_reading.get_lattice_from_csv(
         "tests/parameters/NaCl_lattice.csv"
     )
-    unit_cell = UnitCell.crystal_parameters_to_unit_cell(NaCl_lattice, NaCl_basis)
+    unit_cell = UnitCell.get_unit_cell(NaCl_basis, NaCl_lattice)
     assert unit_cell is not None
     assert unit_cell.material == "NaCl"
     assert unit_cell.lattice_constants == (0.5640, 0.5640, 0.5640)
@@ -147,10 +147,12 @@ def test_reciprocal_lattice_vector_initialization_normal_operation():
     CsCl_lattice = file_reading.get_lattice_from_csv(
         "tests/parameters/CsCl_lattice.csv"
     )
-    unit_cell = UnitCell.crystal_parameters_to_unit_cell(CsCl_lattice, CsCl_basis)
+    unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
     assert unit_cell is not None
 
-    reciprocal_lattice_vector = ReciprocalLatticeVector((1, 2, 3), unit_cell)
+    reciprocal_lattice_vector = ReciprocalLatticeVector(
+        (1, 2, 3), unit_cell.lattice_constants
+    )
     assert reciprocal_lattice_vector.miller_indices == (1, 2, 3)
     assert reciprocal_lattice_vector.lattice_constants == (0.4119, 0.4119, 0.4119)
 
@@ -164,10 +166,12 @@ def test_get_components_normal_operation():
     CsCl_lattice = file_reading.get_lattice_from_csv(
         "tests/parameters/CsCl_lattice.csv"
     )
-    unit_cell = UnitCell.crystal_parameters_to_unit_cell(CsCl_lattice, CsCl_basis)
+    unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
     assert unit_cell is not None
 
-    reciprocal_lattice_vector = ReciprocalLatticeVector((1, 2, 3), unit_cell)
+    reciprocal_lattice_vector = ReciprocalLatticeVector(
+        (1, 2, 3), unit_cell.lattice_constants
+    )
     components = reciprocal_lattice_vector.get_components()
 
     a, b, c = reciprocal_lattice_vector.lattice_constants
@@ -187,10 +191,12 @@ def test_get_magnitude_normal_operation():
     CsCl_lattice = file_reading.get_lattice_from_csv(
         "tests/parameters/CsCl_lattice.csv"
     )
-    unit_cell = UnitCell.crystal_parameters_to_unit_cell(CsCl_lattice, CsCl_basis)
+    unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
     assert unit_cell is not None
 
-    reciprocal_lattice_vector = ReciprocalLatticeVector((1, 2, 3), unit_cell)
+    reciprocal_lattice_vector = ReciprocalLatticeVector(
+        (1, 2, 3), unit_cell.lattice_constants
+    )
 
     a, b, c = reciprocal_lattice_vector.lattice_constants
     expected_components = (2 * math.pi / a, 4 * math.pi / b, 6 * math.pi / c)
@@ -209,20 +215,20 @@ def test_get_reciprocal_lattice_vectors_normal_operation():
     """
     basis = file_reading.get_basis_from_csv("tests/parameters/test_basis.csv")
     lattice = file_reading.get_lattice_from_csv("tests/parameters/test_lattice.csv")
-    unit_cell = UnitCell.crystal_parameters_to_unit_cell(lattice, basis)
+    unit_cell = UnitCell.get_unit_cell(basis, lattice)
 
     reciprocal_lattice_vectors = ReciprocalLatticeVector.get_reciprocal_lattice_vectors(
         2 * math.pi + 0.001, unit_cell
     )
 
     expected_reciprocal_lattice_vectors = [
-        ReciprocalLatticeVector((-1, 0, 0), unit_cell),
-        ReciprocalLatticeVector((0, -1, 0), unit_cell),
-        ReciprocalLatticeVector((0, 0, -1), unit_cell),
-        ReciprocalLatticeVector((0, 0, 0), unit_cell),
-        ReciprocalLatticeVector((1, 0, 0), unit_cell),
-        ReciprocalLatticeVector((0, 1, 0), unit_cell),
-        ReciprocalLatticeVector((0, 0, 1), unit_cell),
+        ReciprocalLatticeVector((-1, 0, 0), unit_cell.lattice_constants),
+        ReciprocalLatticeVector((0, -1, 0), unit_cell.lattice_constants),
+        ReciprocalLatticeVector((0, 0, -1), unit_cell.lattice_constants),
+        ReciprocalLatticeVector((0, 0, 0), unit_cell.lattice_constants),
+        ReciprocalLatticeVector((1, 0, 0), unit_cell.lattice_constants),
+        ReciprocalLatticeVector((0, 1, 0), unit_cell.lattice_constants),
+        ReciprocalLatticeVector((0, 0, 1), unit_cell.lattice_constants),
     ]
 
     assert sorted(reciprocal_lattice_vectors, key=str) == sorted(

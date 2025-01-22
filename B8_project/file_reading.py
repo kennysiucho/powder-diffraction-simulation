@@ -1,68 +1,13 @@
 """
 This module uses pandas to read parameters from .csv files.
 XRayFormFactor is a class which represents the atomic form factor of an atom.
+
+TODO: edit return type of get_neutron_scattering_lengths_from_csv to 
+dict[int, NeutronFormFactor].
 """
 
 import pandas as pd
 from B8_project.crystal import XRayFormFactor
-
-
-def get_lattice_from_csv(
-    filename: str,
-) -> tuple[str, int, tuple[float, float, float]]:
-    """
-    Get lattice parameters from a CSV file
-    ======================================
-
-    Format of the CSV file
-    ----------------------
-    The CSV file must contain the following columns:
-        - "material" (str): Chemical formula of the crystal (e.g. "NaCl").
-        - "lattice_type" (int): Integer (1 - 4 inclusive) that represents the Bravais lattice type.
-            - 1 -> Simple.
-            - 2 -> Body centred.
-            - 3 -> Face centred.
-            - 4 -> Base centred.
-        - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
-        directions respectively in nanometers (nm).
-
-    Parameters
-    ----------
-        - filename (str): The path to the CSV file containing the lattice parameters.
-
-    Returns
-    -------
-        - material (str): The material name.
-        - lattice_type (int): The Bravais lattice type.
-        - lattice_constants (tuple[float, float, float]): The side lengths (a, b, c) of
-        the unit cell in the x, y, z directions respectively.
-    """
-    try:
-        # Read the CSV file containing the lattice parameters into a DataFrame.
-        lattice_df = pd.read_csv(filename)
-
-        # Expected columns of the DataFrame
-        lattice_columns = {"material", "lattice_type", "a", "b", "c"}
-
-        # Ensure the DataFrame contains the required columns.
-        if not lattice_columns.issubset(lattice_df.columns):
-            raise KeyError(
-                f"The {filename} must contain the following columns: {lattice_columns}"
-            )
-
-        # Read parameters from DataFrame
-        material = str(lattice_df.loc[0, "material"])
-        lattice_type = int(pd.to_numeric(lattice_df.loc[0, "lattice_type"]))
-        lattice_constants = (
-            float(pd.to_numeric(lattice_df.loc[0, "a"])),
-            float(pd.to_numeric(lattice_df.loc[0, "b"])),
-            float(pd.to_numeric(lattice_df.loc[0, "c"])),
-        )
-
-    except (ValueError, KeyError, IndexError) as exc:
-        raise ValueError(f"Error processing '{filename}': {exc}") from exc
-
-    return material, lattice_type, lattice_constants
 
 
 def get_basis_from_csv(
@@ -126,6 +71,64 @@ def get_basis_from_csv(
         raise ValueError(f"Error processing '{filename}': {exc}") from exc
 
     return atomic_numbers, atomic_positions
+
+
+def get_lattice_from_csv(
+    filename: str,
+) -> tuple[str, int, tuple[float, float, float]]:
+    """
+    Get lattice parameters from a CSV file
+    ======================================
+
+    Format of the CSV file
+    ----------------------
+    The CSV file must contain the following columns:
+        - "material" (str): Chemical formula of the crystal (e.g. "NaCl").
+        - "lattice_type" (int): Integer (1 - 4 inclusive) that represents the Bravais lattice type.
+            - 1 -> Simple.
+            - 2 -> Body centred.
+            - 3 -> Face centred.
+            - 4 -> Base centred.
+        - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
+        directions respectively in nanometers (nm).
+
+    Parameters
+    ----------
+        - filename (str): The path to the CSV file containing the lattice parameters.
+
+    Returns
+    -------
+        - material (str): The material name.
+        - lattice_type (int): The Bravais lattice type.
+        - lattice_constants (tuple[float, float, float]): The side lengths (a, b, c) of
+        the unit cell in the x, y, z directions respectively.
+    """
+    try:
+        # Read the CSV file containing the lattice parameters into a DataFrame.
+        lattice_df = pd.read_csv(filename)
+
+        # Expected columns of the DataFrame
+        lattice_columns = {"material", "lattice_type", "a", "b", "c"}
+
+        # Ensure the DataFrame contains the required columns.
+        if not lattice_columns.issubset(lattice_df.columns):
+            raise KeyError(
+                f"The {filename} must contain the following columns: {lattice_columns}"
+            )
+
+        # Read parameters from DataFrame
+        material = str(lattice_df.loc[0, "material"])
+        lattice_type = int(pd.to_numeric(lattice_df.loc[0, "lattice_type"]))
+        lattice_constants = (
+            float(pd.to_numeric(lattice_df.loc[0, "a"])),
+            float(pd.to_numeric(lattice_df.loc[0, "b"])),
+            float(pd.to_numeric(lattice_df.loc[0, "c"])),
+        )
+
+    except (ValueError, KeyError, IndexError) as exc:
+        raise ValueError(f"Error processing '{filename}': {exc}") from exc
+
+    return material, lattice_type, lattice_constants
 
 
 def get_neutron_scattering_lengths_from_csv(filename: str) -> dict[int, float]:
