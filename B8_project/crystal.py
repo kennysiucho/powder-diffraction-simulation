@@ -462,8 +462,8 @@ class XRayFormFactor(FormFactor):
     An instance of `XRayFormFactor` stores these nine parameters, allowing the form
     factor to be calculated.
 
-    For more information, see `this website <https://lampz.tugraz.at/~hadley/ss1/
-    crystaldiffraction/atomicformfactors/formfactors.php>`_
+    For more information, see this website:
+    TODO: add link.
 
     Attributes
     ----------
@@ -490,9 +490,33 @@ class XRayFormFactor(FormFactor):
 
     def get_form_factor(self, reciprocal_lattice_vector: ReciprocalLatticeVector):
         """
-        TODO: implement function.
-        TODO: add documentation.
+        Get X-ray form factor
+        =====================
+
+        Returns the form factor associated with an instance of `XRayFormFactor`.
+
+        Parameters
+        ----------
+        TODO: add parameters.
+
+        Returns
+        -------
+        TODO: add returns.
         """
+        reciprocal_lattice_vector_magnitude = reciprocal_lattice_vector.get_magnitude()
+
+        a = [self.a1, self.a2, self.a3, self.a4]
+        b = [self.b1, self.b2, self.b3, self.b4]
+        c = self.c
+
+        form_factor = 0
+        for i in range(4):
+            form_factor += a[i] * math.exp(
+                -b[i] * (reciprocal_lattice_vector_magnitude / (4 * math.pi)) ** 2
+            )
+
+        form_factor += c
+        return form_factor
 
 
 @dataclass
