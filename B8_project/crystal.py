@@ -531,7 +531,8 @@ class Diffraction:
     @staticmethod
     def get_structure_factor(
         unit_cell: UnitCell,
-        form_factors: dict[int, FormFactor],
+        # form_factors: dict[int, FormFactor],
+        form_factors,
         reciprocal_lattice_vector: ReciprocalLatticeVector,
     ) -> complex:
         """
@@ -572,7 +573,8 @@ class Diffraction:
     @staticmethod
     def get_structure_factors(
         unit_cell: UnitCell,
-        form_factors: dict[int, FormFactor],
+        # form_factors: dict[int, FormFactor],
+        form_factors,
         max_magnitude: float,
     ) -> list[tuple["ReciprocalLatticeVector", complex]]:
         """
@@ -630,7 +632,8 @@ class Diffraction:
     @staticmethod
     def get_intensity_peaks(
         unit_cell: UnitCell,
-        form_factors: dict[int, FormFactor],
+        # form_factors: dict[int, FormFactor],
+        form_factors,
         wavelength: float,
     ) -> list[tuple[float, float]]:
         """
@@ -648,6 +651,10 @@ class Diffraction:
         Returns
         -------
         TODO: add returns.
+
+        Todos
+        -----
+        TODO: Convert angle into deflection angle in degrees.
         """
         # Calculate maximum magnitude of RLV for scattering to still occur.
         max_magnitude = ((4 * math.pi) / wavelength) - 1e-10
