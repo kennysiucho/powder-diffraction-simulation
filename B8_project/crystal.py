@@ -375,38 +375,7 @@ class ReciprocalLatticeVector:
 
 
 @dataclass
-class FormFactor:
-    """
-    Form factor base class
-    ======================
-
-    A base class to represent the form factor of an atom. This class should be inherited
-    by specific form factor classes, e.g. `NeutronFormFactor` and `XRayFormFactor`.
-    """
-
-    def get_form_factor(self, reciprocal_lattice_vector: ReciprocalLatticeVector):
-        """
-        Get form factor
-        ===============
-
-        Returns the form factor of an instance of `FormFactor`.
-
-        Parameters
-        ----------
-            - reciprocal_lattice_vector (ReciprocalLatticeVector): represents the
-            scattering vector.
-
-        Returns
-        -------
-        TODO: add returns.
-        """
-        raise NotImplementedError(
-            "This method should be implemented by a specific form factor class."
-        )
-
-
-@dataclass
-class NeutronFormFactor(FormFactor):
+class NeutronFormFactor:
     """
     Neutron form factor
     ===================
@@ -449,7 +418,7 @@ class NeutronFormFactor(FormFactor):
 
 
 @dataclass
-class XRayFormFactor(FormFactor):
+class XRayFormFactor:
     """
     X-ray form factor
     ==================
@@ -531,7 +500,6 @@ class Diffraction:
     @staticmethod
     def get_structure_factor(
         unit_cell: UnitCell,
-        # form_factors: dict[int, FormFactor],
         form_factors,
         reciprocal_lattice_vector: ReciprocalLatticeVector,
     ) -> complex:
@@ -551,6 +519,10 @@ class Diffraction:
         Returns
         -------
         TODO: add returns.
+
+        Todos
+        -----
+        TODO: add error handling for when form_factors is not the correct type.
         """
         structure_factor = 0 + 0j
 
@@ -573,7 +545,6 @@ class Diffraction:
     @staticmethod
     def get_structure_factors(
         unit_cell: UnitCell,
-        # form_factors: dict[int, FormFactor],
         form_factors,
         max_magnitude: float,
     ) -> list[tuple["ReciprocalLatticeVector", complex]]:
@@ -594,6 +565,10 @@ class Diffraction:
         Returns
         -------
         TODO: add returns.
+
+        Todos
+        -----
+        TODO: add error handling for when form_factors is not the correct type.
         """
         # Generates a list of all reciprocal lattice vectors within a sphere of radius
         # max_magnitude in k-space.
@@ -632,7 +607,6 @@ class Diffraction:
     @staticmethod
     def get_intensity_peaks(
         unit_cell: UnitCell,
-        # form_factors: dict[int, FormFactor],
         form_factors,
         wavelength: float,
     ) -> list[tuple[float, float]]:
@@ -655,6 +629,7 @@ class Diffraction:
         Todos
         -----
         TODO: Convert angle into deflection angle in degrees.
+        TODO: add error handling for when form_factors is not the correct type.
         """
         # Calculate maximum magnitude of RLV for scattering to still occur.
         max_magnitude = ((4 * math.pi) / wavelength) - 1e-10
