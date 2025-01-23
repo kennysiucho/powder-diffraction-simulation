@@ -57,8 +57,8 @@ for angle, intensity in intensity_peaks:
 plt.figure(figsize=(10, 6))
 plt.plot(x_values, y_values, linestyle="-", color="black")
 plt.xlabel("2θ (degrees)")
-plt.ylabel("Relative Intensity")
-plt.title("Intensity Pattern")
+plt.ylabel("Relative intensity")
+plt.title("PrO2 neutron diffraction pattern")
 plt.grid(True)
 
 # Save the plot as a PDF file
