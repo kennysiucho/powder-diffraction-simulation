@@ -38,6 +38,14 @@ intensity_peaks = [
     if min_angle <= intensity_peak[0] <= max_angle
 ]
 
+# Normalize the intensities
+angles, intensities = zip(*intensity_peaks)
+
+max_intensity = max(intensities)
+intensities = [intensity / max_intensity for intensity in intensities]
+
+normalized_intensity_peaks = list(zip(angles, intensities))
+
 # x values
 x_values = np.linspace(20, 55, 1000)
 
@@ -50,14 +58,14 @@ def gaussian(x, mu, sigma, amplitude):
 # Initialize y values, and then sum peaks
 y_values = np.zeros_like(x_values)
 
-for angle, intensity in intensity_peaks:
+for angle, intensity in normalized_intensity_peaks:
     y_values += gaussian(x_values, angle, 0.1, intensity)
 
 # Plot the intensity pattern
 plt.figure(figsize=(10, 6))
 plt.plot(x_values, y_values, linestyle="-", color="black")
 plt.xlabel("2θ (degrees)")
-plt.ylabel("Relative intensity")
+plt.ylabel("Normalized intensity")
 plt.title("PrO2 neutron diffraction pattern")
 plt.grid(True)
 
