@@ -444,7 +444,7 @@ class XRayFormFactor:
     Methods
     -------
         - get_xray_form_factor:
-            TODO: implement this function.
+            TODO: add documentation.
     """
 
     a1: float
