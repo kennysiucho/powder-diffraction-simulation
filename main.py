@@ -19,32 +19,32 @@ neutron_form_factors = file_reading.read_neutron_scattering_lengths(
 
 # Calculate the intensity peaks
 unit_cell = crystal.UnitCell.get_unit_cell(basis, lattice)
-intensity_peaks = crystal.Diffraction.get_intensity_peaks(
-    unit_cell, neutron_form_factors, 0.123
+diffraction_peaks = crystal.Diffraction.get_diffraction_peaks(
+    unit_cell, neutron_form_factors, wavelength=0.123
 )
 
 # Convert angle in radians to deflection angle in degrees
-intensity_peaks = [
+diffraction_peaks = [
     (angle * 360 / math.pi, relative_intensity)
-    for (angle, relative_intensity) in intensity_peaks
+    for (angle, relative_intensity) in diffraction_peaks
 ]
 
 # Remove deflection angles outside of a set range
 min_angle = 20
 max_angle = 55
-intensity_peaks = [
+diffraction_peaks = [
     intensity_peak
-    for intensity_peak in intensity_peaks
+    for intensity_peak in diffraction_peaks
     if min_angle <= intensity_peak[0] <= max_angle
 ]
 
 # Normalize the intensities
-angles, intensities = zip(*intensity_peaks)
+angles, intensities = zip(*diffraction_peaks)
 
 max_intensity = max(intensities)
 intensities = [intensity / max_intensity for intensity in intensities]
 
-normalized_intensity_peaks = list(zip(angles, intensities))
+normalized_diffraction_peaks = list(zip(angles, intensities))
 
 # x values
 x_values = np.linspace(20, 55, 1000)
@@ -58,7 +58,7 @@ def gaussian(x, mu, sigma, amplitude):
 # Initialize y values, and then sum peaks
 y_values = np.zeros_like(x_values)
 
-for angle, intensity in normalized_intensity_peaks:
+for angle, intensity in normalized_diffraction_peaks:
     y_values += gaussian(x_values, angle, 0.1, intensity)
 
 # Plot the intensity pattern

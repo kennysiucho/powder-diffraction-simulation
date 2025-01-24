@@ -156,7 +156,8 @@ def read_neutron_scattering_lengths(
 
     Format of the .csv file
     -----------------------
-    Each row of the .csv file corresponds to a different atom. The .csv file must contain the following columns:
+    Each row of the .csv file corresponds to a different atom. The .csv file must
+    contain the following columns:
         - atomic_number (int): The atomic number of the atom.
         - neutron_scattering_length (float): The neutron scattering length of the
         atom, in femtometers (fm).
@@ -218,7 +219,8 @@ def read_xray_form_factors(
 
     Format of the .csv file
     -----------------------
-    Each row of the .csv file corresponds to a different atom. The .csv file must contain the following columns:
+    Each row of the .csv file corresponds to a different atom. The .csv file must
+    contain the following columns:
         - "atomic_number" (int): The atomic number of the atom.
         - "a1", "b1", "a2", "b2", "a3", "b3", "a4", "b4", "c" (float): Parameters which
         specify the X-ray form factor of the atom. These correspond to the attributes

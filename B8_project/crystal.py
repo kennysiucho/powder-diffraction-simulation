@@ -75,7 +75,9 @@ class UnitCell:
 
     Methods
     -------
-        - parameters_to_unit_cell: Converts lattice and basis parameters to an instance
+        - validate_crystal_parameters: Takes lattice and basis parameters as inputs,
+        and raises an error if the parameters are invalid. This function has no returns.
+        - get_unit_cell: Converts lattice and basis parameters to an instance
         of `UnitCell`.
     """
 
@@ -85,8 +87,8 @@ class UnitCell:
 
     @staticmethod
     def validate_crystal_parameters(
-        lattice: tuple[str, int, tuple[float, float, float]],
         basis: tuple[list[int], list[tuple[float, float, float]]],
+        lattice: tuple[str, int, tuple[float, float, float]],
     ) -> None:
         """
         Validate parameters
@@ -154,8 +156,8 @@ class UnitCell:
         lattice: tuple[str, int, tuple[float, float, float]],
     ):
         """
-        Parameters to unit cell
-        =======================
+        Get unit cell
+        =============
 
         Returns an instance of `UnitCell` given the parameters of the lattice and the
         basis.
@@ -198,7 +200,7 @@ class UnitCell:
 
         # Validate the lattice and basis parameters
         try:
-            cls.validate_crystal_parameters(lattice, basis)
+            cls.validate_crystal_parameters(basis, lattice)
         except ValueError as exc:
             raise ValueError(f"Invalid parameters: {exc}") from exc
 
@@ -266,14 +268,22 @@ class ReciprocalLatticeVector:
 
     Attributes
     ----------
-        - miller_indices (tuple[float, float, float]): The miller indices (hkl)
+        - miller_indices (tuple[float, float, float]): The miller indices (h, k, l)
         associated with a reciprocal lattice vector.
-        - lattice_constants (tuple[float, float, float]): The side lengths of the unit
-        cell in the x, y and z directions respectively.
+        - lattice_constants (tuple[float, float, float]): The side lengths (a, b, c) of
+        the unit cell in the x, y and z directions respectively.
 
     Methods
     -------
-    TODO: add methods.
+        - get_components: Returns the components of a reciprocal lattice vector, in
+        units of inverse nanometers (nm^-1). For miller indices (h, k, l) and lattice
+        constants (a, b, c), the components of a reciprocal lattice vector are
+        (2π/a, 2π/b, 2π/c).
+        - get_magnitude: Returns the magnitude of a reciprocal lattice vector, in
+        units of inverse nanometers (nm^-1).
+        - get_reciprocal_lattice_vectors: Returns a list of `ReciprocalLatticeVectors`
+        with magnitude less than a specified maximum magnitude (i.e. returns a list of
+        all reciprocal lattice vectors that lie within a sphere in k-space).
     """
 
     miller_indices: tuple[int, int, int]
@@ -383,7 +393,7 @@ class NeutronFormFactor:
     A class to represent the neutron form factor of an atom.
 
     The neutron form factor is proportional to the neutron scattering length. Since we
-    are only interested in relative intensities, we do not need to make a distinction
+    are only interested in relative intensities, we do not make a distinction
     between the neutron form factor and the neutron scattering length of an atom.
 
     Attributes
@@ -512,14 +522,6 @@ class Diffraction:
         An instance of `UnitCell` represents the crystal. The form factors are stored
         in a dictionary which maps atomic number to form factor.
 
-        Parameters
-        ----------
-        TODO: add parameters.
-
-        Returns
-        -------
-        TODO: add returns.
-
         Todos
         -----
         TODO: add error handling for when form_factors is not the correct type.
@@ -557,14 +559,6 @@ class Diffraction:
 
         The function returns a list of tuples, where each tuple contains a reciprocal
         lattice vector and the corresponding structure factor.
-
-        Parameters
-        ----------
-        TODO: add parameters.
-
-        Returns
-        -------
-        TODO: add returns.
 
         Todos
         -----
@@ -605,7 +599,7 @@ class Diffraction:
         return list(zip(reciprocal_lattice_vectors, structure_factors))
 
     @staticmethod
-    def get_intensity_peaks(
+    def get_diffraction_peaks(
         unit_cell: UnitCell,
         form_factors,
         wavelength: float,
@@ -614,17 +608,19 @@ class Diffraction:
         Get diffraction peaks
         =====================
 
-        Calculates the angles and relative intensities of intensity peaks for a given
+        Calculates the angles and relative intensities of diffraction peaks for a given
         crystal. Returns a list of tuples, each containing the angle and relative
         intensity of a peak.
 
-        Parameters
-        ----------
-        TODO: add parameters.
-
-        Returns
-        -------
-        TODO: add returns.
+        Example use case
+        ----------------
+        >>> basis = read_basis("example_basis.csv")
+        >>> lattice = read_lattice("example_lattice.csv")
+        >>> neutron_scattering_lengths = read_neutron_scattering_lengths("example_neutron_data.csv")
+        >>> unit_cell = get_unit_cell(basis, lattice)
+        >>> diffraction_peaks = get_diffraction_peaks(unit_cell,
+        neutron_scattering_lengths, wavelength=0.1)
+        >>> peak_angles, relative_intensities = zip(*diffraction_peaks)
 
         Todos
         -----
