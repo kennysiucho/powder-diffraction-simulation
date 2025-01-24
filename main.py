@@ -11,9 +11,9 @@ from B8_project import file_reading
 from B8_project import crystal
 
 # Get basis, lattice and neutron form factors from CSV files.
-basis = file_reading.get_basis_from_csv("parameters/PrO2_basis.csv")
-lattice = file_reading.get_lattice_from_csv("parameters/PrO2_lattice.csv")
-neutron_form_factors = file_reading.get_neutron_scattering_lengths_from_csv(
+basis = file_reading.read_basis("parameters/PrO2_basis.csv")
+lattice = file_reading.read_lattice("parameters/PrO2_lattice.csv")
+neutron_form_factors = file_reading.read_neutron_scattering_lengths(
     "parameters/neutron_scattering_lengths.csv"
 )
 

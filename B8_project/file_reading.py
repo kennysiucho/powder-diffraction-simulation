@@ -1,25 +1,43 @@
 """
-This module uses pandas to read parameters from .csv files.
-XRayFormFactor is a class which represents the atomic form factor of an atom.
+file_reading.py
+===============
 
-TODO: edit return type of get_neutron_scattering_lengths_from_csv to 
-dict[int, NeutronFormFactor].
+This module includes provides functions to read crystal parameters and form factors from
+.csv files.
+
+Classes
+-------
+    - None
+
+Functions
+---------
+    - read_basis: reads basis parameters from a .csv file and returns the atomic 
+    numbers and positions of atoms in the basis.
+    - read_lattice: reads lattice parameters from a .csv file and returns the 
+    material, lattice type, and lattice constants.
+    - get_neutron_scattering_lengths_from_csv: reads neutron scattering lengths from a 
+    .csv file and returns a dictionary mapping atomic numbers to neutron scattering lengths.
+    - get_x_ray_form_factors_from_csv: reads X-ray form factors from a .csv file and 
+    returns a dictionary mapping atomic numbers to X-ray form factors.
 """
 
 import pandas as pd
 from B8_project.crystal import NeutronFormFactor, XRayFormFactor
 
 
-def get_basis_from_csv(
+def read_basis(
     filename: str,
 ) -> tuple[list[int], list[tuple[float, float, float]]]:
     """
-    Get basis parameters from a CSV file
-    ====================================
+    Read basis parameters from a .csv file
+    ======================================
 
-    Format of the CSV file
-    ----------------------
-    Each row of the CSV file corresponds to a different atom in the unit cell. The CSV
+    Reads basis parameters from a specified .csv file, and returns the atomic numbers
+    and positions of atoms in the basis.
+
+    Format of the .csv file
+    -----------------------
+    Each row of the .csv file corresponds to a different atom in the unit cell. The .csv
     file must contain the following columns:
         - "atomic_number" (int): The atomic number of the atom.
         - "x", "y", "z" (float): The position of the atom in the unit cell in terms of
@@ -27,16 +45,9 @@ def get_basis_from_csv(
         position (0.5*a, 0.5*b. 0.5*c), where a, b, c are the side lengths of the unit
         cell in the x, y, z directions respectively.
 
-    Parameters
-    ----------
-        - filename (str): The path to the CSV file containing the lattice parameters.
-
-    Returns
-    -------
-        - atomic_numbers(list[int]): A list of atomic numbers for each atom in the unit cell.
-        - atomic_positions (list[tuple[float, float, float]]): A list of atomic
-        positions for each atom in the unit cell. The position of each atom is
-        specified in terms of the lattice constants as a tuple (x, y, z) of floats.
+    Example use case
+    ----------------
+    >>> atomic_numbers, atomic_positions = read_basis("example_basis.csv")
     """
     try:
         # Read the CSV file containing the lattice parameters into a DataFrame.
@@ -73,16 +84,22 @@ def get_basis_from_csv(
     return atomic_numbers, atomic_positions
 
 
-def get_lattice_from_csv(
+def read_lattice(
     filename: str,
 ) -> tuple[str, int, tuple[float, float, float]]:
     """
-    Get lattice parameters from a CSV file
-    ======================================
+    Read lattice parameters from a .csv file
+    ========================================
 
-    Format of the CSV file
-    ----------------------
-    The CSV file must contain the following columns:
+    Reads lattice parameters from a specified .csv file and returns the  material,
+    lattice type, and lattice constants.
+
+    The lattice can be any orthorhombic lattice (i.e. the side lengths of the unit cell
+    can be different, but all angles must be 90 degrees).
+
+    Format of the .csv file
+    -----------------------
+    The .csv file must contain the following columns:
         - "material" (str): Chemical formula of the crystal (e.g. "NaCl").
         - "lattice_type" (int): Integer (1 - 4 inclusive) that represents the Bravais lattice type.
             - 1 -> Simple.
@@ -92,16 +109,9 @@ def get_lattice_from_csv(
         - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
         directions respectively in nanometers (nm).
 
-    Parameters
-    ----------
-        - filename (str): The path to the CSV file containing the lattice parameters.
-
-    Returns
-    -------
-        - material (str): The material name.
-        - lattice_type (int): The Bravais lattice type.
-        - lattice_constants (tuple[float, float, float]): The side lengths (a, b, c) of
-        the unit cell in the x, y, z directions respectively.
+    Example use case
+    ----------------
+    >>> material, lattice_type, lattice_constants = read_lattice("example_lattice.csv")
     """
     try:
         # Read the CSV file containing the lattice parameters into a DataFrame.
@@ -131,35 +141,29 @@ def get_lattice_from_csv(
     return material, lattice_type, lattice_constants
 
 
-def get_neutron_scattering_lengths_from_csv(
+def read_neutron_scattering_lengths(
     filename: str,
 ) -> dict[int, NeutronFormFactor]:
     """
-    Get neutron scattering lengths from a CSV file
-    ==============================================
+    Read neutron scattering lengths from a .csv file
+    ================================================
 
-    Reads a CSV file containing a list of atoms and their associated neutron scattering
-    lengths, and returns a dictionary which maps atomic numbers to neutron scattering
-    lengths.
+    Reads neutron scattering lengths from a specified .csv file and returns a
+    dictionary mapping atomic numbers to neutron scattering lengths.
 
-    Format of the CSV file
-    ----------------------
-    Each row of the CSV file corresponds to a different atom. The CSV file must contain
-    the following columns:
+    The neutron scattering lengths are represented in the dictionary as instances of
+    the `NeutronFormFactor` class.
+
+    Format of the .csv file
+    -----------------------
+    Each row of the .csv file corresponds to a different atom. The .csv file must contain the following columns:
         - atomic_number (int): The atomic number of the atom.
         - neutron_scattering_length (float): The neutron scattering length of the
         atom, in femtometers (fm).
 
-    Parameters
-    ----------
-        - filename (str): The path to the CSV file containing the neutron scattering
-        lengths.
-
-    Returns
-    -------
-        - (dict[int, NeutronFormFactor]): A dictionary where the keys are atomic
-        numbers (int) and the values are the neutron scattering lengths, stored as an
-        instance of `NeutronFormFactor`.
+    Example use case
+    ----------------
+    >>> neutron_scattering_lengths = read_neutron_scattering_lengths("example_neutron_data.csv")
     """
     try:
         # Read the CSV file containing the neutron scattering lengths into a DataFrame.
@@ -199,37 +203,30 @@ def get_neutron_scattering_lengths_from_csv(
     return {atomic_numbers[i]: neutron_scattering_lengths[i] for i in range(length)}
 
 
-def get_x_ray_form_factors_from_csv(
+def read_xray_form_factors(
     filename: str,
 ) -> dict[int, XRayFormFactor]:
     """
-    Get X-ray form factors from a CSV file
-    ======================================
+    Read X-ray form factors from a .csv file
+    ========================================
 
-    Reads a CSV file containing a list of atoms and their associated X-ray form factors
-    and returns a dictionary which maps atomic numbers to X-ray form factors.
+    Reads X-ray form factors from a specified .csv file and returns a dictionary
+    mapping atomic numbers to X-ray form factors.
 
-    The form factors in the dictionary are stored as instances of the
+    The X-ray form factors are represented in the dictionary as instances of the
     `XRayFormFactor` class.
 
-    Format of the CSV file
-    ----------------------
-    Each row of the CSV file corresponds to a different atom. The CSV file must contain
-    the following columns:
+    Format of the .csv file
+    -----------------------
+    Each row of the .csv file corresponds to a different atom. The .csv file must contain the following columns:
         - "atomic_number" (int): The atomic number of the atom.
         - "a1", "b1", "a2", "b2", "a3", "b3", "a4", "b4", "c" (float): Parameters which
         specify the X-ray form factor of the atom. These correspond to the attributes
         of the `XRayFormFactor` class.
 
-    Parameters
-    ----------
-        - filename (str): The path to the CSV file containing the X-ray form factors.
-
-    Returns
-    -------
-        - (dict[int, XRayFormFactor]): A dictionary where the keys are atomic numbers
-        (int) and the values are instances of the `XRayFormFactor` class containing the
-        form factor parameters.
+    Example use case
+    ----------------
+    >>> xray_form_factors = read_xray_form_factors("example_xray_data.csv")
     """
     try:
         # Read the CSV file containing the X-ray form factors into a DataFrame.
