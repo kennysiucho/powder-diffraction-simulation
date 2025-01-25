@@ -1,4 +1,4 @@
-from B8_project.unit_cell import Atom, UnitCell
+from B8_project.crystal import UnitCell
 from B8_project.utils import *
 import numpy as np
 import time

@@ -5,24 +5,24 @@ instance.
 """
 
 from B8_project import file_reading
-import B8_project.unit_cell as unit_cell
+import B8_project.crystal as unit_cell
 from B8_project.neutron_diffraction import NeutronDiffraction
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-LATTICE_FILE = "Parameters/lattice.csv"
-BASIS_FILE = "Parameters/basis.csv"
+LATTICE_FILE = "data/PrO2_lattice.csv"
+BASIS_FILE = "data/PrO2_basis.csv"
 
-lattice = file_reading.get_lattice_from_csv(LATTICE_FILE)
+lattice = file_reading.read_lattice(LATTICE_FILE)
 
-basis = file_reading.get_basis_from_csv(BASIS_FILE)
+basis = file_reading.read_basis(BASIS_FILE)
 
-my_cell = unit_cell.UnitCell.parameters_to_unit_cell(lattice, basis)
+my_cell = unit_cell.UnitCell.get_unit_cell(basis, lattice)
 nd = NeutronDiffraction(my_cell, 0.123)
 
 # TODO: better handling of whether to calculate or read from file
-two_thetas, intensities = nd.calculate_diffraction_pattern(1000)
+two_thetas, intensities = nd.calculate_diffraction_pattern(200)
 np.savetxt('two_thetas.txt', two_thetas)
 np.savetxt('intensities.txt', intensities)
 
