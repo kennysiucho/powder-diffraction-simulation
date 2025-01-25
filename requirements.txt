@@ -1,5 +1,5 @@
 alabaster==0.7.16
--e git+https://github.com/joeEndacott/B8_project.git@ef6100d5cf997c5ac981077a2b611a1271424410#egg=B8_project
+-e git+https://github.com/joeEndacott/B8_project.git@399f1f1ec4cf1c6babc4de9915f43c9da58aaaaa#egg=B8_project
 babel==2.16.0
 certifi==2024.12.14
 charset-normalizer==3.4.1
