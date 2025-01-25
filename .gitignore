@@ -3,3 +3,4 @@ B8_venv/
 __pycache__/
 .vscode/
 .DS_Store
+*.egg-info/
