@@ -43,7 +43,7 @@ properties of disordered alloys.
     pip install -r requirements.txt
     ```
 
-7. **Run the code**  
+7. **Install the project**  
     ```bash
-    python main.py
+    pip install -e .
     ```

@@ -1,81 +1,43 @@
 """
-This module uses pandas to read parameters from .csv files.
-XRayFormFactor is a class which represents the atomic form factor of an atom.
-TODO: add unit tests for functions in this module.
+file_reading.py
+===============
+
+This module includes provides functions to read crystal parameters and form factors from
+.csv files.
+
+Classes
+-------
+    - None
+
+Functions
+---------
+    - read_basis: reads basis parameters from a .csv file and returns the atomic 
+    numbers and positions of atoms in the basis.
+    - read_lattice: reads lattice parameters from a .csv file and returns the 
+    material, lattice type, and lattice constants.
+    - get_neutron_scattering_lengths_from_csv: reads neutron scattering lengths from a 
+    .csv file and returns a dictionary mapping atomic numbers to neutron scattering lengths.
+    - get_x_ray_form_factors_from_csv: reads X-ray form factors from a .csv file and 
+    returns a dictionary mapping atomic numbers to X-ray form factors.
 """
 
 import pandas as pd
-from B8_project.unit_cell import XRayFormFactor
+from B8_project.crystal import NeutronFormFactor, XRayFormFactor
 
 
-def get_lattice_from_csv(
-    filename: str,
-) -> tuple[str, int, tuple[float, float, float]]:
-    """
-    Get lattice parameters from a CSV file
-    ======================================
-
-    Format of the CSV file
-    ----------------------
-    The CSV file must contain the following columns:
-        - "material" (str): Chemical formula of the crystal (e.g. "NaCl").
-        - "lattice_type" (int): Integer (1 - 4 inclusive) that represents the Bravais lattice type.
-            - 1 -> Simple.
-            - 2 -> Body centred.
-            - 3 -> Face centred.
-            - 4 -> Base centred.
-        - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
-        directions respectively in Angstroms (Å).
-
-    Parameters
-    ----------
-        - filename (str): The path to the CSV file containing the lattice parameters.
-
-    Returns
-    -------
-        - material (str): The material name.
-        - lattice_type (int): The Bravais lattice type.
-        - lattice_constants (tuple[float, float, float]): The side lengths (a, b, c) of
-        the unit cell in the x, y, z directions respectively.
-    """
-    try:
-        # Read the CSV file containing the lattice parameters into a DataFrame.
-        lattice_df = pd.read_csv(filename)
-
-        # Expected columns of the DataFrame
-        lattice_columns = {"material", "lattice_type", "a", "b", "c"}
-
-        # Ensure the DataFrame contains the required columns.
-        if not lattice_columns.issubset(lattice_df.columns):
-            raise KeyError(
-                f"The {filename} must contain the following columns: {lattice_columns}"
-            )
-
-        # Read parameters from DataFrame
-        material = str(lattice_df.loc[0, "material"])
-        lattice_type = int(pd.to_numeric(lattice_df.loc[0, "lattice_type"]))
-        lattice_constants = (
-            float(pd.to_numeric(lattice_df.loc[0, "a"])),
-            float(pd.to_numeric(lattice_df.loc[0, "b"])),
-            float(pd.to_numeric(lattice_df.loc[0, "c"])),
-        )
-
-    except (ValueError, KeyError, IndexError) as exc:
-        raise ValueError(f"Error processing '{filename}': {exc}") from exc
-
-    return material, lattice_type, lattice_constants
-
-
-def get_basis_from_csv(
+def read_basis(
     filename: str,
 ) -> tuple[list[int], list[tuple[float, float, float]]]:
     """
-    Get basis parameters from a CSV file
-    ====================================
+    Read basis parameters from a .csv file
+    ======================================
 
-    Format of the CSV file
-    ----------------------
-    Each row of the CSV file corresponds to a different atom in the unit cell. The CSV
+    Reads basis parameters from a specified .csv file, and returns the atomic numbers
+    and positions of atoms in the basis.
+
+    Format of the .csv file
+    -----------------------
+    Each row of the .csv file corresponds to a different atom in the unit cell. The .csv
     file must contain the following columns:
         - "atomic_number" (int): The atomic number of the atom.
         - "x", "y", "z" (float): The position of the atom in the unit cell in terms of
@@ -83,16 +45,9 @@ def get_basis_from_csv(
         position (0.5*a, 0.5*b. 0.5*c), where a, b, c are the side lengths of the unit
         cell in the x, y, z directions respectively.
 
-    Parameters
-    ----------
-        - filename (str): The path to the CSV file containing the lattice parameters.
-
-    Returns
-    -------
-        - atomic_numbers(list[int]): A list of atomic numbers for each atom in the unit cell.
-        - atomic_positions (list[tuple[float, float, float]]): A list of atomic
-        positions for each atom in the unit cell. The position of each atom is
-        specified in terms of the lattice constants as a tuple (x, y, z) of floats.
+    Example use case
+    ----------------
+    >>> atomic_numbers, atomic_positions = read_basis("example_basis.csv")
     """
     try:
         # Read the CSV file containing the lattice parameters into a DataFrame.
@@ -129,87 +84,87 @@ def get_basis_from_csv(
     return atomic_numbers, atomic_positions
 
 
-def validate_parameters(
-    lattice: tuple[str, int, tuple[float, float, float]],
-    basis: tuple[list[int], list[tuple[float, float, float]]],
-) -> None:
+def read_lattice(
+    filename: str,
+) -> tuple[str, int, tuple[float, float, float]]:
     """
-    Validate parameters
-    ===================
+    Read lattice parameters from a .csv file
+    ========================================
 
-    Processes lattice and basis parameters, and raises an error if they are invalid.
-    This function has no return value.
+    Reads lattice parameters from a specified .csv file and returns the  material,
+    lattice type, and lattice constants.
 
-    Parameters
-    ----------
-        - lattice (tuple[str, int, tuple[float, float, float]]): The lattice parameters,
-        stored as a tuple (material, lattice_type, lattice_constants).
-        - basis (tuple[list[int], list[tuple[float, float, float]]]): The basis
-        parameters, stored as a tuple (atomic_numbers, atomic_positions).
+    The lattice can be any orthorhombic lattice (i.e. the side lengths of the unit cell
+    can be different, but all angles must be 90 degrees).
+
+    Format of the .csv file
+    -----------------------
+    The .csv file must contain the following columns:
+        - "material" (str): Chemical formula of the crystal (e.g. "NaCl").
+        - "lattice_type" (int): Integer (1 - 4 inclusive) that represents the Bravais lattice type.
+            - 1 -> Simple.
+            - 2 -> Body centred.
+            - 3 -> Face centred.
+            - 4 -> Base centred.
+        - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
+        directions respectively in nanometers (nm).
+
+    Example use case
+    ----------------
+    >>> material, lattice_type, lattice_constants = read_lattice("example_lattice.csv")
     """
-    _, lattice_type, lattice_constants = lattice
-    atomic_numbers, atomic_positions = basis
+    try:
+        # Read the CSV file containing the lattice parameters into a DataFrame.
+        lattice_df = pd.read_csv(filename)
 
-    # Validate that the length of atomic_numbers and atomic_positions is the same.
-    if not len(atomic_numbers) == len(atomic_positions):
-        raise ValueError(
-            "Length of atomic_numbers and atomic_positions must be the same"
-        )
+        # Expected columns of the DataFrame
+        lattice_columns = {"material", "lattice_type", "a", "b", "c"}
 
-    # Validate that the lattice constants are non-negative and non-zero.
-    (a, b, c) = lattice_constants
-    if not (a > 0 and b > 0 and c > 0):
-        raise ValueError("Lattice constants should all be non-negative and non-zero.")
-
-    # Validate lattice_type
-    if lattice_type < 1 or lattice_type > 4:
-        raise ValueError("lattice_type should be an integer between 1 and 4 inclusive")
-
-    # Validate that lattice_type and lattice_constants are compatible for a cubic
-    # unit cell
-    if (a == b == c) and lattice_type == 4:
-        raise ValueError(
-            "Base centred lattice type is not permitted for a cubic lattice"
-        )
-
-    # Validate that lattice_type and lattice_constants are compatible for a
-    # tetragonal unit cell
-    if (a == b and not a == c) or (a == c and not a == b) or (b == c and not a == b):
-        if lattice_type == 3:
-            raise ValueError(
-                "Face centred lattice type is not permitted for a tetragonal lattice"
-            )
-        elif lattice_type == 4:
-            raise ValueError(
-                "Base centred lattice type is not permitted for a tetragonal unit cell"
+        # Ensure the DataFrame contains the required columns.
+        if not lattice_columns.issubset(lattice_df.columns):
+            raise KeyError(
+                f"The {filename} must contain the following columns: {lattice_columns}"
             )
 
+        # Read parameters from DataFrame
+        material = str(lattice_df.loc[0, "material"])
+        lattice_type = int(pd.to_numeric(lattice_df.loc[0, "lattice_type"]))
+        lattice_constants = (
+            float(pd.to_numeric(lattice_df.loc[0, "a"])),
+            float(pd.to_numeric(lattice_df.loc[0, "b"])),
+            float(pd.to_numeric(lattice_df.loc[0, "c"])),
+        )
 
-def get_neutron_scattering_lengths_from_csv(filename: str) -> dict[int, float]:
+    except (ValueError, KeyError, IndexError) as exc:
+        raise ValueError(f"Error processing '{filename}': {exc}") from exc
+
+    return material, lattice_type, lattice_constants
+
+
+def read_neutron_scattering_lengths(
+    filename: str,
+) -> dict[int, NeutronFormFactor]:
     """
-    Get neutron scattering lengths from a CSV file
-    ==============================================
+    Read neutron scattering lengths from a .csv file
+    ================================================
 
-    Reads a CSV file containing a list of atoms and their associated neutron scattering
-    lengths, and returns a dictionary which maps atomic numbers to neutron scattering
-    lengths.
+    Reads neutron scattering lengths from a specified .csv file and returns a
+    dictionary mapping atomic numbers to neutron scattering lengths.
 
-    Format of the CSV file
-    ----------------------
-    Each row of the CSV file corresponds to a different atom. The CSV file must contain
-    the following columns:
+    The neutron scattering lengths are represented in the dictionary as instances of
+    the `NeutronFormFactor` class.
+
+    Format of the .csv file
+    -----------------------
+    Each row of the .csv file corresponds to a different atom. The .csv file must
+    contain the following columns:
         - atomic_number (int): The atomic number of the atom.
-        - nuclear_scattering_length (float): The neutron scattering length of the atom.
+        - neutron_scattering_length (float): The neutron scattering length of the
+        atom, in femtometers (fm).
 
-    Parameters
-    ----------
-        - filename (str): The path to the CSV file containing the neutron scattering
-        lengths.
-
-    Returns
-    -------
-        - (dict[int, float]): A dictionary where the keys are atomic numbers (int) and
-        the values are the neutron scattering lengths (float).
+    Example use case
+    ----------------
+    >>> neutron_scattering_lengths = read_neutron_scattering_lengths("example_neutron_data.csv")
     """
     try:
         # Read the CSV file containing the neutron scattering lengths into a DataFrame.
@@ -227,10 +182,12 @@ def get_neutron_scattering_lengths_from_csv(filename: str) -> dict[int, float]:
         # Read the atomic numbers.
         atomic_numbers = neutron_df["atomic_number"].astype(int).tolist()
 
-        # Read the neutron scattering lengths.
-        neutron_scattering_lengths = (
-            neutron_df["neutron_scattering_length"].astype(float).tolist()
-        )
+        # Read the neutron scattering lengths, and store them as an instance of
+        # NeutronFormFactor
+        neutron_scattering_lengths = [
+            NeutronFormFactor(x)
+            for x in neutron_df["neutron_scattering_length"].astype(float).tolist()
+        ]
 
         # Validate that atomic_numbers and neutron_scattering_lengths have the same
         # length.
@@ -247,35 +204,31 @@ def get_neutron_scattering_lengths_from_csv(filename: str) -> dict[int, float]:
     return {atomic_numbers[i]: neutron_scattering_lengths[i] for i in range(length)}
 
 
-def get_x_ray_form_factors_from_csv(
+def read_xray_form_factors(
     filename: str,
 ) -> dict[int, XRayFormFactor]:
     """
-    Get X-ray form factors from a CSV file
-    ======================================
+    Read X-ray form factors from a .csv file
+    ========================================
 
-    Reads a CSV file containing a list of atoms and their associated X-ray form factors
-    and returns a dictionary which maps atomic numbers to X-ray form factors.
+    Reads X-ray form factors from a specified .csv file and returns a dictionary
+    mapping atomic numbers to X-ray form factors.
 
-    The form factors in the dictionary are stored as instances of the
+    The X-ray form factors are represented in the dictionary as instances of the
     `XRayFormFactor` class.
 
-    Format of the CSV file
-    ----------------------
-    Each row of the CSV file corresponds to a different atom. The CSV file must contain
-    the following columns:
+    Format of the .csv file
+    -----------------------
+    Each row of the .csv file corresponds to a different atom. The .csv file must
+    contain the following columns:
         - "atomic_number" (int): The atomic number of the atom.
         - "a1", "b1", "a2", "b2", "a3", "b3", "a4", "b4", "c" (float): Parameters which
         specify the X-ray form factor of the atom. These correspond to the attributes
         of the `XRayFormFactor` class.
 
-    Parameters
-    ----------
-        - filename (str): The path to the CSV file containing the X-ray form factors.
-
-    Returns
-    -------
-        - (dict[int, XRayFormFactor]): A dictionary where the keys are atomic numbers (int) and the values are instances of the `XRayFormFactor` class containing the form factor parameters.
+    Example use case
+    ----------------
+    >>> xray_form_factors = read_xray_form_factors("example_xray_data.csv")
     """
     try:
         # Read the CSV file containing the X-ray form factors into a DataFrame.
