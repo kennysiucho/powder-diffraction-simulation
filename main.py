@@ -11,10 +11,10 @@ from B8_project import file_reading
 from B8_project import crystal
 
 # Get basis, lattice and neutron form factors from CSV files.
-basis = file_reading.read_basis("parameters/PrO2_basis.csv")
-lattice = file_reading.read_lattice("parameters/PrO2_lattice.csv")
+basis = file_reading.read_basis("data/PrO2_basis.csv")
+lattice = file_reading.read_lattice("data/PrO2_lattice.csv")
 neutron_form_factors = file_reading.read_neutron_scattering_lengths(
-    "parameters/neutron_scattering_lengths.csv"
+    "data/neutron_scattering_lengths.csv"
 )
 
 # Calculate the intensity peaks
@@ -70,4 +70,4 @@ plt.title("PrO2 neutron diffraction pattern")
 plt.grid(True)
 
 # Save the plot as a PDF file
-plt.savefig("results/PrO2_diffraction_pattern_23_01_25.pdf", format="pdf")
+plt.savefig("results/PrO2_diffraction_pattern_26_01_25.pdf", format="pdf")
