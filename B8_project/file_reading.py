@@ -16,11 +16,13 @@ Functions
     - read_lattice: reads lattice parameters from a .csv file and returns the 
     material, lattice type, and lattice constants.
     - get_neutron_scattering_lengths_from_csv: reads neutron scattering lengths from a 
-    .csv file and returns a dictionary mapping atomic numbers to neutron scattering lengths.
+    .csv file and returns a `Mapping` mapping atomic numbers to neutron scattering 
+    lengths.
     - get_x_ray_form_factors_from_csv: reads X-ray form factors from a .csv file and 
-    returns a dictionary mapping atomic numbers to X-ray form factors.
+    returns a `Mapping` mapping atomic numbers to X-ray form factors.
 """
 
+from typing import Mapping
 import pandas as pd
 from B8_project.crystal import NeutronFormFactor, XRayFormFactor
 
@@ -143,15 +145,15 @@ def read_lattice(
 
 def read_neutron_scattering_lengths(
     filename: str,
-) -> dict[int, NeutronFormFactor]:
+) -> Mapping[int, NeutronFormFactor]:
     """
     Read neutron scattering lengths from a .csv file
     ================================================
 
     Reads neutron scattering lengths from a specified .csv file and returns a
-    dictionary mapping atomic numbers to neutron scattering lengths.
+    `Mapping` mapping atomic numbers to neutron scattering lengths.
 
-    The neutron scattering lengths are represented in the dictionary as instances of
+    The neutron scattering lengths are represented in the `Mapping` as instances of
     the `NeutronFormFactor` class.
 
     Format of the .csv file
@@ -199,22 +201,22 @@ def read_neutron_scattering_lengths(
     except (ValueError, KeyError, IndexError) as exc:
         raise ValueError(f"Error processing '{filename}': {exc}") from exc
 
-    # Create a dictionary mapping the atomic numbers to the neutron scattering lengths
+    # Create a Mapping mapping the atomic numbers to the neutron scattering lengths
     length = len(atomic_numbers)
     return {atomic_numbers[i]: neutron_scattering_lengths[i] for i in range(length)}
 
 
 def read_xray_form_factors(
     filename: str,
-) -> dict[int, XRayFormFactor]:
+) -> Mapping[int, XRayFormFactor]:
     """
     Read X-ray form factors from a .csv file
     ========================================
 
-    Reads X-ray form factors from a specified .csv file and returns a dictionary
+    Reads X-ray form factors from a specified .csv file and returns a `Mapping`
     mapping atomic numbers to X-ray form factors.
 
-    The X-ray form factors are represented in the dictionary as instances of the
+    The X-ray form factors are represented in the `Mapping` as instances of the
     `XRayFormFactor` class.
 
     Format of the .csv file
@@ -282,6 +284,6 @@ def read_xray_form_factors(
     except (ValueError, KeyError, IndexError) as exc:
         raise ValueError(f"Error processing '{filename}': {exc}") from exc
 
-    # Create a dictionary mapping the atomic numbers to the X-ray form factors.
+    # Create a Mapping mapping the atomic numbers to the X-ray form factors.
     length = len(atomic_numbers)
     return {atomic_numbers[i]: xray_form_factors[i] for i in range(length)}

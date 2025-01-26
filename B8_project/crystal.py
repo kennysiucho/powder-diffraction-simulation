@@ -9,6 +9,7 @@ TODO: add classes.
 import cmath
 from dataclasses import dataclass
 import math
+from typing import Protocol, Mapping
 import B8_project.utils as utils
 
 
@@ -384,6 +385,29 @@ class ReciprocalLatticeVector:
         return reciprocal_lattice_vectors
 
 
+class FormFactorProtocol(Protocol):
+    """
+    Form factor protocol
+    ====================
+
+    This protocol defines the interface for any class that represents a form factor.
+    Form factor classes must implement the `get_form_factor` method.
+    """
+
+    def get_form_factor(
+        self, reciprocal_lattice_vector: ReciprocalLatticeVector
+    ) -> float:
+        """
+        Get form factor
+        ===============
+
+        Calculates the form factor given a reciprocal lattice vector. The way the form
+        factor is calculated varies depending on the class that implements the form
+        factor interface.
+        """
+        ...  # pylint: disable=W2301
+
+
 @dataclass
 class NeutronFormFactor:
     """
@@ -407,7 +431,10 @@ class NeutronFormFactor:
 
     neutron_scattering_length: float
 
-    def get_form_factor(self, _reciprocal_lattice_vector: ReciprocalLatticeVector):
+    def get_form_factor(
+        self,
+        reciprocal_lattice_vector: ReciprocalLatticeVector,  # pylint: disable=W0613
+    ) -> float:
         """
         Get neutron form factor
         =======================
@@ -467,7 +494,9 @@ class XRayFormFactor:
     b4: float
     c: float
 
-    def get_form_factor(self, reciprocal_lattice_vector: ReciprocalLatticeVector):
+    def get_form_factor(
+        self, reciprocal_lattice_vector: ReciprocalLatticeVector
+    ) -> float:
         """
         Get X-ray form factor
         =====================
@@ -498,7 +527,6 @@ class XRayFormFactor:
         return form_factor
 
 
-@dataclass
 class Diffraction:
     """
     Diffraction
@@ -510,7 +538,7 @@ class Diffraction:
     @staticmethod
     def get_structure_factor(
         unit_cell: UnitCell,
-        form_factors,
+        form_factors: Mapping[int, FormFactorProtocol],
         reciprocal_lattice_vector: ReciprocalLatticeVector,
     ) -> complex:
         """
@@ -520,7 +548,7 @@ class Diffraction:
         Returns the structure factor of a crystal evaluated at a given reciprocal lattice vector.
 
         An instance of `UnitCell` represents the crystal. The form factors are stored
-        in a dictionary which maps atomic number to form factor.
+        in a `Mapping` which maps atomic number to form factor.
 
         Todos
         -----
@@ -541,13 +569,13 @@ class Diffraction:
                 ) * cmath.exp(exponent)
 
             except KeyError as exc:
-                raise KeyError(f"Error reading form factor dictionary: {exc}") from exc
+                raise KeyError(f"Error reading form factor Mapping: {exc}") from exc
         return structure_factor
 
     @staticmethod
     def get_structure_factors(
         unit_cell: UnitCell,
-        form_factors,
+        form_factors: Mapping[int, FormFactorProtocol],
         max_magnitude: float,
     ) -> list[tuple["ReciprocalLatticeVector", complex]]:
         """
@@ -559,6 +587,9 @@ class Diffraction:
 
         The function returns a list of tuples, where each tuple contains a reciprocal
         lattice vector and the corresponding structure factor.
+
+        The form factors are stored in a `Mapping` which maps atomic number to form
+        factor.
 
         Todos
         -----
@@ -601,7 +632,7 @@ class Diffraction:
     @staticmethod
     def get_diffraction_peaks(
         unit_cell: UnitCell,
-        form_factors,
+        form_factors: Mapping[int, FormFactorProtocol],
         wavelength: float,
     ) -> list[tuple[float, float]]:
         """
