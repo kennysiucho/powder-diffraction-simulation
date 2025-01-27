@@ -3,9 +3,6 @@ This module includes useful functions that perform arithmetic operations.
 
 Functions:
 TODO: add functions.
-
-Example usage:
-TODO: add example usage.
 """
 
 import numpy as np

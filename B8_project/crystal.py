@@ -299,15 +299,6 @@ class ReciprocalLatticeVector:
 
         Returns the components of the reciprocal lattice vector associated with an
         instance of `ReciprocalLatticeVector`.
-
-        Parameters
-        ----------
-        TODO: add parameters.
-
-        Returns
-        -------
-        TODO: add returns.
-
         """
         return (
             2 * np.pi * self.miller_indices[0] / self.lattice_constants[0],
@@ -322,14 +313,6 @@ class ReciprocalLatticeVector:
 
         Returns the magnitude of the reciprocal lattice vector associated with an
         instance  of `ReciprocalLatticeVector`.
-
-        Parameters
-        ----------
-        TODO: add parameters.
-
-        Returns
-        -------
-        TODO: add returns.
         """
         return np.sqrt(
             utils.dot_product_tuples(self.get_components(), self.get_components())
@@ -446,14 +429,6 @@ class NeutronFormFactor:
         Returns the neutron scattering length of an instance of `NeutronFormFactor`.
         The neutron scattering length of an atom is proportional to the neutron form
         factor.
-
-        Parameters
-        ----------
-        TODO: add parameters.
-
-        Returns
-        -------
-        TODO: add returns.
         """
         return self.neutron_scattering_length
 
@@ -506,14 +481,6 @@ class XRayFormFactor:
         =====================
 
         Returns the form factor associated with an instance of `XRayFormFactor`.
-
-        Parameters
-        ----------
-        TODO: add parameters.
-
-        Returns
-        -------
-        TODO: add returns.
         """
         reciprocal_lattice_vector_magnitude = reciprocal_lattice_vector.get_magnitude()
 
@@ -553,10 +520,6 @@ class Diffraction:
 
         An instance of `UnitCell` represents the crystal. The form factors are stored
         in a `Mapping` which maps atomic number to form factor.
-
-        Todos
-        -----
-        TODO: add error handling for when form_factors is not the correct type.
         """
         structure_factor = 0 + 0j
 
@@ -596,10 +559,6 @@ class Diffraction:
 
         The form factors are stored in a `Mapping` which maps atomic number to form
         factor.
-
-        Todos
-        -----
-        TODO: add error handling for when form_factors is not the correct type.
         """
         # Generates a list of all reciprocal lattice vectors with valid magnitudes.
         try:
