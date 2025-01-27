@@ -11,7 +11,7 @@ from B8_project.file_reading import (
     read_xray_form_factors,
 )
 
-from B8_project.crystal import NeutronFormFactor, XRayFormFactor
+from B8_project.form_factor import NeutronFormFactor, XRayFormFactor
 
 
 def test_read_lattice_normal_operation():
