@@ -1,9 +1,5 @@
 """
 This module contains unit tests for the utils.py module.
-TODO: add tests for error handling for duplicate_elements.
-TODO: add tests for error handling for add_tuples.
-TODO: add tests for error handling for dot_product_tuples.
-TODO: add tests for error handling for gaussian.
 """
 
 import numpy as np

@@ -3,9 +3,6 @@ This module contains unit tests for the crystal.py module.
 TODO: add test for base-centred lattice type once base-centred logic has been 
 implemented.
 TODO: add tests for Diffraction class.
-
-TODO: add tests for error handling for crystal module.
-TODO: make tests for crystal module more comprehensive.
 """
 
 import numpy as np

@@ -703,26 +703,38 @@ class Diffraction:
             )
 
         # Calculate the minimum and maximum RLV magnitudes
-        min_magnitude = Diffraction.get_reciprocal_lattice_vector_magnitude(
-            min_deflection_angle, wavelength
-        )
-        max_magnitude = Diffraction.get_reciprocal_lattice_vector_magnitude(
-            max_deflection_angle, wavelength
-        )
+        try:
+            min_magnitude = Diffraction.get_reciprocal_lattice_vector_magnitude(
+                min_deflection_angle, wavelength
+            )
+            max_magnitude = Diffraction.get_reciprocal_lattice_vector_magnitude(
+                max_deflection_angle, wavelength
+            )
+        except ValueError as exc:
+            raise ValueError(
+                f"Error calculating RLV max and min magnitudes: {exc}"
+            ) from exc
 
         # Calculate list of RLVs and corresponding structure factors.
-        structure_factors = Diffraction.get_structure_factors(
-            unit_cell, form_factors, min_magnitude, max_magnitude
-        )
+        try:
+            structure_factors = Diffraction.get_structure_factors(
+                unit_cell, form_factors, min_magnitude, max_magnitude
+            )
+        except ValueError as exc:
+            raise ValueError(f"Error calculating structure factors: {exc}") from exc
 
         # A list which will store the deflection angles and intensities of each peak.
         intensity_peaks = []
 
         # Iterates through neutron_structure_factors and populates intensity_peaks.
         for reciprocal_lattice_vector, structure_factor in structure_factors:
-            angle = Diffraction.get_deflection_angle(
-                reciprocal_lattice_vector.get_magnitude(), wavelength
-            )
+            try:
+                angle = Diffraction.get_deflection_angle(
+                    reciprocal_lattice_vector.get_magnitude(), wavelength
+                )
+            except ValueError as exc:
+                raise ValueError(f"Error calculating deflection angle: {exc}") from exc
+
             intensity = abs(structure_factor) ** 2
             intensity_peaks.append((angle, intensity))
 
@@ -801,13 +813,16 @@ class Diffraction:
         -------
             - (str): The path to the plot.
         """
-        diffraction_peaks = Diffraction.get_diffraction_peaks(
-            unit_cell,
-            form_factors,
-            wavelength,
-            min_deflection_angle,
-            max_deflection_angle,
-        )
+        try:
+            diffraction_peaks = Diffraction.get_diffraction_peaks(
+                unit_cell,
+                form_factors,
+                wavelength,
+                min_deflection_angle,
+                max_deflection_angle,
+            )
+        except Exception as exc:
+            raise ValueError(f"Error finding diffraction peaks: {exc}") from exc
 
         # Calculate a sensible number of points
         num_points = np.round(

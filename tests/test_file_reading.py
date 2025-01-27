@@ -1,10 +1,5 @@
 """
 This module contains unit tests for the file_reading.py module.
-TODO: add tests for error handling for get_lattice_from_csv.
-TODO: add tests for error handling for get_basis_from_csv.
-TODO: add tests for error handling for validate_parameters.
-TODO: add tests for error handling for get_neutron_scattering_lengths_from_csv.
-TODO: add tests for error handling for get_x_ray_form_factors_from_csv.
 """
 
 from typing import Mapping
