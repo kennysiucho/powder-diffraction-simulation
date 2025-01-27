@@ -81,7 +81,7 @@ class UnitCell:
 
     Methods
     -------
-        - validate_crystal_parameters: Takes lattice and basis parameters as inputs,
+        - _validate_crystal_parameters: Takes lattice and basis parameters as inputs,
         and raises an error if the parameters are invalid. This function has no returns.
         - get_unit_cell: Converts lattice and basis parameters to an instance
         of `UnitCell`.
@@ -92,7 +92,7 @@ class UnitCell:
     atoms: list[Atom]
 
     @staticmethod
-    def validate_crystal_parameters(
+    def _validate_crystal_parameters(
         basis: tuple[list[int], list[tuple[float, float, float]]],
         lattice: tuple[str, int, tuple[float, float, float]],
     ) -> None:
@@ -206,7 +206,7 @@ class UnitCell:
 
         # Validate the lattice and basis parameters
         try:
-            cls.validate_crystal_parameters(basis, lattice)
+            cls._validate_crystal_parameters(basis, lattice)
         except ValueError as exc:
             raise ValueError(f"Invalid parameters: {exc}") from exc
 
