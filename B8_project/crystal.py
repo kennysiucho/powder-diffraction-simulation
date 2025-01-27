@@ -283,8 +283,9 @@ class ReciprocalLatticeVector:
         - get_magnitude: Returns the magnitude of a reciprocal lattice vector, in
         units of inverse nanometers (nm^-1).
         - get_reciprocal_lattice_vectors: Returns a list of `ReciprocalLatticeVectors`
-        with magnitude less than a specified maximum magnitude (i.e. returns a list of
-        all reciprocal lattice vectors that lie within a sphere in k-space).
+        with magnitude in between a specified minimum and maximum magnitude (i.e.
+        returns a list of all reciprocal lattice vectors that lie within a spherical
+        shell in k-space).
     """
 
     miller_indices: tuple[int, int, int]
@@ -335,26 +336,23 @@ class ReciprocalLatticeVector:
 
     @classmethod
     def get_reciprocal_lattice_vectors(
-        cls, max_magnitude: float, unit_cell: UnitCell
+        cls, min_magnitude: float, max_magnitude: float, unit_cell: UnitCell
     ) -> list["ReciprocalLatticeVector"]:
         """
         Get reciprocal lattice vectors
         ==============================
 
-        Returns a list of all reciprocal lattice vectors with `magnitude` less than
-        `max_magnitude`.
-
-        Parameters
-        ----------
-        TODO: add parameters.
-
-        Returns
-        -------
-        TODO: add returns.
+        Returns a list of all reciprocal lattice vectors with `magnitude` in between `min_magnitude` and `max_magnitude`.
         """
-        # Validate that max_magnitude is greater than 0.
-        if not max_magnitude > 0:
-            raise ValueError("max_magnitude should be greater than 0.")
+        # Validate that max_magnitude and min_magnitude are greater than 0.
+        if not (max_magnitude > 0 and min_magnitude >= 0):
+            raise ValueError(
+                "max_magnitude and min_magnitude should be greater than or equal to 0."
+            )
+
+        # Validate that max_magnitude is greater than min_magnitude
+        if not max_magnitude > min_magnitude:
+            raise ValueError("max_magnitude must be greater than min_magnitude.")
 
         a, b, c = unit_cell.lattice_constants
 
@@ -367,7 +365,7 @@ class ReciprocalLatticeVector:
         reciprocal_lattice_vectors = []
 
         # Iterate through all the Miller indices, and add all reciprocal lattice vectors
-        # with magnitude less than max_magnitude.
+        # with magnitude greater than min_magnitude and less than max_magnitude.
         for h in range(-max_h, max_h + 1, 1):
             for k in range(-max_k, max_k + 1, 1):
                 for l in range(-max_l, max_l + 1, 1):
@@ -377,9 +375,12 @@ class ReciprocalLatticeVector:
                         (h, k, l), unit_cell.lattice_constants
                     )
 
-                    # If reciprocal_lattice_vector has a magnitude less than
-                    # max_magnitude, append it to the list
-                    if reciprocal_lattice_vector.get_magnitude() <= max_magnitude:
+                    # If reciprocal_lattice_vector has a valid magnitude, append it to
+                    # the list
+                    if (
+                        reciprocal_lattice_vector.get_magnitude() >= min_magnitude
+                        and reciprocal_lattice_vector.get_magnitude() <= max_magnitude
+                    ):
                         reciprocal_lattice_vectors.append(reciprocal_lattice_vector)
 
         return reciprocal_lattice_vectors
@@ -576,6 +577,7 @@ class Diffraction:
     def get_structure_factors(
         unit_cell: UnitCell,
         form_factors: Mapping[int, FormFactorProtocol],
+        min_magnitude: float,
         max_magnitude: float,
     ) -> list[tuple["ReciprocalLatticeVector", complex]]:
         """
@@ -583,7 +585,8 @@ class Diffraction:
         =====================
 
         Computes the structure factors for all reciprocal lattice vectors whose
-        magnitudes are less than the specified max_magnitude.
+        magnitudes are greater than a specified minimum magnitude and less than a
+        specified maximum magnitude.
 
         The function returns a list of tuples, where each tuple contains a reciprocal
         lattice vector and the corresponding structure factor.
@@ -595,12 +598,11 @@ class Diffraction:
         -----
         TODO: add error handling for when form_factors is not the correct type.
         """
-        # Generates a list of all reciprocal lattice vectors within a sphere of radius
-        # max_magnitude in k-space.
+        # Generates a list of all reciprocal lattice vectors with valid magnitudes.
         try:
             reciprocal_lattice_vectors = (
                 ReciprocalLatticeVector.get_reciprocal_lattice_vectors(
-                    max_magnitude, unit_cell
+                    min_magnitude, max_magnitude, unit_cell
                 )
             )
         except ValueError as exc:
@@ -630,10 +632,47 @@ class Diffraction:
         return list(zip(reciprocal_lattice_vectors, structure_factors))
 
     @staticmethod
+    def get_reciprocal_lattice_vector_magnitude(
+        deflection_angle: float, wavelength: float
+    ):
+        """
+        Get reciprocal lattice vector magnitude
+        =======================================
+
+        Calculates the magnitude of the reciprocal lattice vector(s) associated with a
+        given deflection angle.
+        """
+        if deflection_angle < 0 or deflection_angle > 180:
+            raise ValueError("Invalid deflection angle.")
+
+        angle = deflection_angle * math.pi / 360
+        return 4 * math.pi * math.sin(angle) / wavelength
+
+    @staticmethod
+    def get_deflection_angle(
+        reciprocal_lattice_vector_magnitude: float, wavelength: float
+    ):
+        """
+        Get deflection angle
+        ====================
+
+        Calculates the deflection angle associated with a reciprocal lattice vector of
+        a given magnitude
+        """
+        sin_angle = (wavelength * reciprocal_lattice_vector_magnitude) / (4 * math.pi)
+
+        if sin_angle > 1 or sin_angle < 0:
+            raise ValueError("Invalid reciprocal lattice vector magnitude")
+
+        return math.asin(sin_angle) * 360 / math.pi
+
+    @staticmethod
     def get_diffraction_peaks(
         unit_cell: UnitCell,
         form_factors: Mapping[int, FormFactorProtocol],
         wavelength: float,
+        min_deflection_angle: float,
+        max_deflection_angle: float,
     ) -> list[tuple[float, float]]:
         """
         Get diffraction peaks
@@ -645,25 +684,32 @@ class Diffraction:
 
         Example use case
         ----------------
-        >>> basis = read_basis("example_basis.csv")
-        >>> lattice = read_lattice("example_lattice.csv")
-        >>> neutron_scattering_lengths = read_neutron_scattering_lengths("example_neutron_data.csv")
-        >>> unit_cell = get_unit_cell(basis, lattice)
-        >>> diffraction_peaks = get_diffraction_peaks(unit_cell,
-        neutron_scattering_lengths, wavelength=0.1)
-        >>> peak_angles, relative_intensities = zip(*diffraction_peaks)
-
-        Todos
-        -----
-        TODO: Convert angle into deflection angle in degrees.
-        TODO: add error handling for when form_factors is not the correct type.
+        TODO: add example use case.
         """
-        # Calculate maximum magnitude of RLV for scattering to still occur.
-        max_magnitude = ((4 * math.pi) / wavelength) - 1e-10
+        # Validate min_deflection_angle and max_angle are both greater than 0
+        if not (min_deflection_angle >= 0 and max_deflection_angle > 0):
+            raise ValueError(
+                """min_deflection_angle and max_deflection_angle should be greater than
+                or equal to 0."""
+            )
+
+        # Validate that max_deflection_angle is larger than min_deflection_angle
+        if not max_deflection_angle > min_deflection_angle:
+            raise ValueError(
+                "max_deflection_angle should be larger than min_deflection_angle"
+            )
+
+        # Calculate the minimum and maximum RLV magnitudes
+        min_magnitude = Diffraction.get_reciprocal_lattice_vector_magnitude(
+            min_deflection_angle, wavelength
+        )
+        max_magnitude = Diffraction.get_reciprocal_lattice_vector_magnitude(
+            max_deflection_angle, wavelength
+        )
 
         # Calculate list of RLVs and corresponding structure factors.
         structure_factors = Diffraction.get_structure_factors(
-            unit_cell, form_factors, max_magnitude
+            unit_cell, form_factors, min_magnitude, max_magnitude
         )
 
         # A list of tuples (angle, intensity).
@@ -671,17 +717,10 @@ class Diffraction:
 
         # Iterates through neutron_structure_factors and populates intensity_peaks.
         for reciprocal_lattice_vector, structure_factor in structure_factors:
-            # Calculate sin of the diffraction angle.
-            sin_angle = (
-                wavelength * reciprocal_lattice_vector.get_magnitude() / (4 * math.pi)
+            angle = Diffraction.get_deflection_angle(
+                reciprocal_lattice_vector.get_magnitude(), wavelength
             )
-
-            if sin_angle >= 1 or sin_angle <= -1:
-                continue
-
-            angle = math.asin(sin_angle)
             intensity = abs(structure_factor) ** 2
-
             intensity_peaks.append((angle, intensity))
 
         # Sort the intensity peaks by angle, and separate intensity_peaks into two
