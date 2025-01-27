@@ -9,7 +9,10 @@ TODO: add classes.
 import cmath
 from dataclasses import dataclass
 import math
+from datetime import datetime
 from typing import Protocol, Mapping
+import numpy as np
+import matplotlib.pyplot as plt
 import B8_project.utils as utils
 
 
@@ -679,8 +682,7 @@ class Diffraction:
         =====================
 
         Calculates the angles and relative intensities of diffraction peaks for a given
-        crystal. Returns a list of tuples, each containing the angle and relative
-        intensity of a peak.
+        crystal. Returns a list of tuples, each containing the deflection angle (2θ) and relative intensity of a peak.
 
         Example use case
         ----------------
@@ -712,7 +714,7 @@ class Diffraction:
             unit_cell, form_factors, min_magnitude, max_magnitude
         )
 
-        # A list of tuples (angle, intensity).
+        # A list which will store the deflection angles and intensities of each peak.
         intensity_peaks = []
 
         # Iterates through neutron_structure_factors and populates intensity_peaks.
@@ -753,3 +755,122 @@ class Diffraction:
         relative_intensities = [x / max_intensity for x in intensities]
 
         return list(zip(angles, relative_intensities))
+
+    @staticmethod
+    def plot_diffraction_pattern(
+        unit_cell: UnitCell,
+        form_factors: Mapping[int, FormFactorProtocol],
+        wavelength: float,
+        min_deflection_angle: float,
+        max_deflection_angle: float,
+        peak_width: float,
+    ) -> str:
+        """
+        Plot diffraction pattern
+        ========================
+
+        Plots the diffraction pattern for a given crystal and saves the plot as a .pdf
+        file in the results directory.
+
+        Name of .pdf file
+        -----------------
+            - For neutron diffraction, the .pdf file has the following name:
+            "<material>_<NDP>_<date>.pdf", where "NDP" stands for Neutron Diffraction
+            Pattern.
+            - For X-ray diffraction, the .pdf file has the following name:
+            "<material>_<XRDP>_<date>.pdf", where "XRDP" stands for X-Ray Diffraction
+            Pattern.
+
+        Parameters
+        ----------
+            - unit_cell (UnitCell): the unit cell of the chosen crystal.
+            - form_factors (Mapping[int, FormFactorProtocol]): a mapping from atomic
+            numbers to a class which represents an atomic form factor. Currently, two
+            classes implement the form factor protocol, `NeutronFormFactor` and
+            `XRayFormFactor`.
+            - wavelength (float): the wavelength of incident particles, given in
+            nanometers (nm).
+            - min_deflection_angle (float), max_deflection_angle (float): these
+            parameters specify the range of deflection angles to be plotted.
+            - peak_width (float): The width of the intensity peaks. This parameter is
+            only used for plotting. A value should be chosen so that all diffraction
+            peaks can be observed.
+
+        Returns
+        -------
+            - (str): The path to the plot.
+        """
+        diffraction_peaks = Diffraction.get_diffraction_peaks(
+            unit_cell,
+            form_factors,
+            wavelength,
+            min_deflection_angle,
+            max_deflection_angle,
+        )
+
+        # Calculate a sensible number of points
+        num_points = np.round(
+            10 * (max_deflection_angle - min_deflection_angle) / peak_width
+        ).astype(int)
+
+        # Get x coordinates of plotted points.
+        x_values = np.linspace(min_deflection_angle, max_deflection_angle, num_points)
+
+        # Get y coordinates of plotted points.
+        y_values = np.zeros_like(x_values)
+
+        for angle, intensity in diffraction_peaks:
+            y_values += utils.gaussian(x_values, angle, peak_width, intensity)
+
+        # Get today's date and format as a string
+        today = datetime.today()
+        date_string = today.strftime("%d_%m_%Y")
+
+        # Figure out the diffraction type and filename from form_factors
+        if isinstance(form_factors, Mapping) and all(
+            isinstance(v, NeutronFormFactor) for v in form_factors.values()
+        ):
+            diffraction_type = "neutron "
+            filename = f"{unit_cell.material}_NDP_{date_string}"
+        elif isinstance(form_factors, Mapping) and all(
+            isinstance(v, XRayFormFactor) for v in form_factors.values()
+        ):
+            diffraction_type = "X-ray "
+            filename = f"{unit_cell.material}_XRDP_{date_string}"
+        else:
+            diffraction_type = ""
+            filename = f"{unit_cell.material}_DP_{date_string}"
+
+        # Create the figure and axis objects
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Plot the data
+        ax.plot(x_values, y_values, color="black")
+
+        # Set axis labels
+        ax.set_xlabel("Deflection angle (°)", fontsize=11)
+        ax.set_ylabel("Relative intensity", fontsize=11)
+
+        # Set title
+        ax.set_title(
+            f"{unit_cell.material} {diffraction_type}diffraction pattern for λ = {wavelength}nm.",
+            fontsize=15,
+        )
+
+        # Add grid lines
+        ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
+
+        # Customize the tick marks
+        ax.tick_params(axis="both", which="major", labelsize=10)
+        ax.tick_params(axis="both", which="minor", length=4, color="gray")
+
+        # Add minor ticks
+        ax.minorticks_on()
+
+        # Adjust layout to prevent clipping
+        fig.tight_layout()
+
+        # Save the figure
+        fig.savefig(f"results/{filename}.pdf", format="pdf")
+
+        return f"results/{filename}.pdf"
