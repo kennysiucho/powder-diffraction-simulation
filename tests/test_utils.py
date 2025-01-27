@@ -3,10 +3,16 @@ This module contains unit tests for the utils.py module.
 TODO: add tests for error handling for duplicate_elements.
 TODO: add tests for error handling for add_tuples.
 TODO: add tests for error handling for dot_product_tuples.
+TODO: add tests for error handling for gaussian.
 """
 
-import math
-from B8_project.utils import duplicate_elements, add_tuples, dot_product_tuples
+import numpy as np
+from B8_project.utils import (
+    duplicate_elements,
+    add_tuples,
+    dot_product_tuples,
+    gaussian,
+)
 
 
 def test_duplicate_elements_normal_operation():
@@ -48,6 +54,23 @@ def test_dot_product_tuples_normal_operation():
     """
     assert dot_product_tuples((0, 0, 0), (0, 0, 0)) == 0
     assert dot_product_tuples((1, 2, 3), (4, 5, 6)) == 32
-    assert math.isclose(
-        dot_product_tuples((0.5, 0.5, 0.5), (0.6, 0.6, 0.6)), 0.9, rel_tol=1e-6
+    assert np.isclose(
+        dot_product_tuples((0.5, 0.5, 0.5), (0.6, 0.6, 0.6)), 0.9, rtol=1e-6
+    )
+
+
+def test_gaussian_normal_operation():
+    """
+    A unit test for the gaussian function. This unit test tests normal
+    operation of the function.
+    """
+    x = 5
+    mean = 1
+    width = 0.5
+    amplitude = 2
+
+    assert np.isclose(
+        gaussian(x, mean, width, amplitude),
+        amplitude * np.exp(-0.5 * ((x - mean) / width) ** 2),
+        rtol=1e-6,
     )
