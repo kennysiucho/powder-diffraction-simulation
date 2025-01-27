@@ -7,7 +7,10 @@ represent form factors should implement the interface defined by FormFactorProto
 
 Classes
 -------
-TODO: add classes.
+    - FormFactorProtocol: This protocol defines the interface for any class that 
+    represents a form factor.
+    - NeutronFormFactor: A class to represent the neutron form factor of an atom.
+    - XRayFormFactor: A class to represent the X-ray form factor of an atom.
 """
 
 from dataclasses import dataclass

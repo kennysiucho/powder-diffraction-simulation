@@ -1,13 +1,9 @@
 """
-file_reading.py
-===============
+File reading
+============
 
-This module includes provides functions to read crystal parameters and form factors from
-.csv files.
-
-Classes
--------
-    - None
+This module contains functions which read crystal parameters and form factors from .csv 
+files.
 
 Functions
 ---------

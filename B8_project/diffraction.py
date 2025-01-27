@@ -4,8 +4,8 @@ Diffraction
 
 This module contains a range of functions to calculate diffraction patterns.
 
-Methods
--------
+Functions
+---------
     - _get_reciprocal_lattice_vector_magnitude: Calculates the magnitude of the 
     reciprocal lattice vector(s) associated with a given deflection angle.
     - _get_deflection_angle: Calculates the deflection angle associated with a 
@@ -14,7 +14,11 @@ Methods
     given reciprocal lattice vector.
     - _get_structure_factors: Computes the structure factors for all reciprocal lattice 
     vectors whose magnitudes are within a specified range.
-    - 
+    - get_diffraction_peaks: Calculates the relative intensity of the peak associated 
+    with each reciprocal lattice vector.
+    - plot_diffraction_pattern: Plots the diffraction pattern for a given crystal and 
+    saves the plot as a .pdf file.
+
 """
 
 from datetime import datetime
