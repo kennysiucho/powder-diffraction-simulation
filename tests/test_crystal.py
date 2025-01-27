@@ -5,6 +5,7 @@ implemented.
 TODO: add tests for Diffraction class.
 
 TODO: add tests for error handling for crystal module.
+TODO: make tests for crystal module more comprehensive.
 """
 
 import math
@@ -230,7 +231,7 @@ class TestReciprocalLatticeVector:
 
         reciprocal_lattice_vectors = (
             ReciprocalLatticeVector.get_reciprocal_lattice_vectors(
-                2 * math.pi + 0.001, unit_cell
+                0, 2 * math.pi + 0.001, unit_cell
             )
         )
 
