@@ -345,7 +345,8 @@ class ReciprocalLatticeVector:
         Get reciprocal lattice vectors
         ==============================
 
-        Returns a list of all reciprocal lattice vectors with `magnitude` in between `min_magnitude` and `max_magnitude`.
+        Returns a list of all reciprocal lattice vectors with `magnitude` in between
+        `min_magnitude` and `max_magnitude`.
         """
         # Validate that max_magnitude and min_magnitude are greater than 0.
         if not (max_magnitude > 0 and min_magnitude >= 0):
@@ -682,7 +683,8 @@ class Diffraction:
         =====================
 
         Calculates the angles and relative intensities of diffraction peaks for a given
-        crystal. Returns a list of tuples, each containing the deflection angle (2θ) and relative intensity of a peak.
+        crystal. Returns a list of tuples, each containing the deflection angle (2θ)
+        and relative intensity of a peak.
 
         Example use case
         ----------------

@@ -72,14 +72,30 @@ class TestUnitCell:
         A unit test for the validate_parameters function. This unit test tests normal
         operation of the function.
         """
-        CsCl_basis = file_reading.read_basis("tests/data/CsCl_basis.csv")
-        CsCl_lattice = file_reading.read_lattice("tests/data/CsCl_lattice.csv")
-        Cu_basis = file_reading.read_basis("tests/data/Cu_basis.csv")
-        Cu_lattice = file_reading.read_lattice("tests/data/Cu_lattice.csv")
-        Na_basis = file_reading.read_basis("tests/data/Na_basis.csv")
-        Na_lattice = file_reading.read_lattice("tests/data/Na_lattice.csv")
-        NaCl_basis = file_reading.read_basis("tests/data/NaCl_basis.csv")
-        NaCl_lattice = file_reading.read_lattice("tests/data/NaCl_lattice.csv")
+        CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
+            "tests/data/CsCl_basis.csv"
+        )
+        CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
+            "tests/data/CsCl_lattice.csv"
+        )
+        Cu_basis = file_reading.read_basis(  # pylint: disable=C0103
+            "tests/data/Cu_basis.csv"
+        )
+        Cu_lattice = file_reading.read_lattice(  # pylint: disable=C0103
+            "tests/data/Cu_lattice.csv"
+        )
+        Na_basis = file_reading.read_basis(  # pylint: disable=C0103
+            "tests/data/Na_basis.csv"
+        )
+        Na_lattice = file_reading.read_lattice(  # pylint: disable=C0103
+            "tests/data/Na_lattice.csv"
+        )
+        NaCl_basis = file_reading.read_basis(  # pylint: disable=C0103
+            "tests/data/NaCl_basis.csv"
+        )
+        NaCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
+            "tests/data/NaCl_lattice.csv"
+        )
 
         assert UnitCell.validate_crystal_parameters(CsCl_basis, CsCl_lattice) is None
         assert UnitCell.validate_crystal_parameters(Cu_basis, Cu_lattice) is None
@@ -92,8 +108,12 @@ class TestUnitCell:
         A unit test for the crystal_parameters_to_unit_cell function. This unit test tests
         normal operation of the function.
         """
-        CsCl_basis = file_reading.read_basis("tests/data/CsCl_basis.csv")
-        CsCl_lattice = file_reading.read_lattice("tests/data/CsCl_lattice.csv")
+        CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
+            "tests/data/CsCl_basis.csv"
+        )
+        CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
+            "tests/data/CsCl_lattice.csv"
+        )
         unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "CsCl"
@@ -102,8 +122,12 @@ class TestUnitCell:
             [Atom(55, (0, 0, 0)), Atom(17, (0.5, 0.5, 0.5))], key=str
         )
 
-        Cu_basis = file_reading.read_basis("tests/data/Cu_basis.csv")
-        Cu_lattice = file_reading.read_lattice("tests/data/Cu_lattice.csv")
+        Cu_basis = file_reading.read_basis(  # pylint: disable=C0103
+            "tests/data/Cu_basis.csv"
+        )
+        Cu_lattice = file_reading.read_lattice(  # pylint: disable=C0103
+            "tests/data/Cu_lattice.csv"
+        )
         unit_cell = UnitCell.get_unit_cell(Cu_basis, Cu_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "Cu"
@@ -118,8 +142,12 @@ class TestUnitCell:
             key=str,
         )
 
-        Na_basis = file_reading.read_basis("tests/data/Na_basis.csv")
-        Na_lattice = file_reading.read_lattice("tests/data/Na_lattice.csv")
+        Na_basis = file_reading.read_basis(  # pylint: disable=C0103
+            "tests/data/Na_basis.csv"
+        )
+        Na_lattice = file_reading.read_lattice(  # pylint: disable=C0103
+            "tests/data/Na_lattice.csv"
+        )
         unit_cell = UnitCell.get_unit_cell(Na_basis, Na_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "Na"
@@ -128,8 +156,12 @@ class TestUnitCell:
             [Atom(11, (0, 0, 0)), Atom(11, (0.5, 0.5, 0.5))], key=str
         )
 
-        NaCl_basis = file_reading.read_basis("tests/data/NaCl_basis.csv")
-        NaCl_lattice = file_reading.read_lattice("tests/data/NaCl_lattice.csv")
+        NaCl_basis = file_reading.read_basis(  # pylint: disable=C0103
+            "tests/data/NaCl_basis.csv"
+        )
+        NaCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
+            "tests/data/NaCl_lattice.csv"
+        )
         unit_cell = UnitCell.get_unit_cell(NaCl_basis, NaCl_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "NaCl"
@@ -160,8 +192,12 @@ class TestReciprocalLatticeVector:
         A unit test that tests the initialization of a `ReciprocalLatticeVector` instance.
         This unit test tests initialization with normal attributes.
         """
-        CsCl_basis = file_reading.read_basis("tests/data/CsCl_basis.csv")
-        CsCl_lattice = file_reading.read_lattice("tests/data/CsCl_lattice.csv")
+        CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
+            "tests/data/CsCl_basis.csv"
+        )
+        CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
+            "tests/data/CsCl_lattice.csv"
+        )
         unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
         assert unit_cell is not None
 
@@ -177,8 +213,12 @@ class TestReciprocalLatticeVector:
         A unit test for the get_components function. This unit test tests normal operation
         of the function.
         """
-        CsCl_basis = file_reading.read_basis("tests/data/CsCl_basis.csv")
-        CsCl_lattice = file_reading.read_lattice("tests/data/CsCl_lattice.csv")
+        CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
+            "tests/data/CsCl_basis.csv"
+        )
+        CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
+            "tests/data/CsCl_lattice.csv"
+        )
         unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
         assert unit_cell is not None
 
@@ -197,10 +237,15 @@ class TestReciprocalLatticeVector:
     @staticmethod
     def test_get_magnitude_normal_operation():
         """
-        A unit test for the get_magnitude function. This unit test tests normal operation of the function.
+        A unit test for the get_magnitude function. This unit test tests normal
+        operation of the function.
         """
-        CsCl_basis = file_reading.read_basis("tests/data/CsCl_basis.csv")
-        CsCl_lattice = file_reading.read_lattice("tests/data/CsCl_lattice.csv")
+        CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
+            "tests/data/CsCl_basis.csv"
+        )
+        CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
+            "tests/data/CsCl_lattice.csv"
+        )
         unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
         assert unit_cell is not None
 
