@@ -24,7 +24,7 @@ Functions
 
 from typing import Mapping
 import pandas as pd
-from B8_project.crystal import NeutronFormFactor, XRayFormFactor
+from B8_project.form_factor import NeutronFormFactor, XRayFormFactor
 
 
 def read_basis(

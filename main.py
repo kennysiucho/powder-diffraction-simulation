@@ -4,7 +4,7 @@ pattern for a PrO2 crystal.
 """
 
 from B8_project import file_reading
-from B8_project import crystal
+from B8_project import crystal, diffraction
 
 # Get basis, lattice and neutron form factors from CSV files.
 basis = file_reading.read_basis("data/PrO2_basis.csv")
@@ -18,7 +18,7 @@ unit_cell = crystal.UnitCell.get_unit_cell(basis, lattice)
 
 # Plot the diffraction pattern
 print(
-    crystal.Diffraction.plot_diffraction_pattern(
+    diffraction.plot_diffraction_pattern(
         unit_cell,
         neutron_form_factors,
         0.123,
