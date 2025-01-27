@@ -6,9 +6,7 @@ Classes:
 TODO: add classes.
 """
 
-import cmath
 from dataclasses import dataclass
-import math
 from datetime import datetime
 from typing import Protocol, Mapping
 import numpy as np
@@ -312,9 +310,9 @@ class ReciprocalLatticeVector:
 
         """
         return (
-            2 * math.pi * self.miller_indices[0] / self.lattice_constants[0],
-            2 * math.pi * self.miller_indices[1] / self.lattice_constants[1],
-            2 * math.pi * self.miller_indices[2] / self.lattice_constants[2],
+            2 * np.pi * self.miller_indices[0] / self.lattice_constants[0],
+            2 * np.pi * self.miller_indices[1] / self.lattice_constants[1],
+            2 * np.pi * self.miller_indices[2] / self.lattice_constants[2],
         )
 
     def get_magnitude(self) -> float:
@@ -333,7 +331,7 @@ class ReciprocalLatticeVector:
         -------
         TODO: add returns.
         """
-        return math.sqrt(
+        return np.sqrt(
             utils.dot_product_tuples(self.get_components(), self.get_components())
         )
 
@@ -361,9 +359,9 @@ class ReciprocalLatticeVector:
         a, b, c = unit_cell.lattice_constants
 
         # Upper bounds on Miller indices.
-        max_h = math.ceil((a * max_magnitude) / (2 * math.pi))
-        max_k = math.ceil((b * max_magnitude) / (2 * math.pi))
-        max_l = math.ceil((c * max_magnitude) / (2 * math.pi))
+        max_h = np.ceil((a * max_magnitude) / (2 * np.pi)).astype(int)
+        max_k = np.ceil((b * max_magnitude) / (2 * np.pi)).astype(int)
+        max_l = np.ceil((c * max_magnitude) / (2 * np.pi)).astype(int)
 
         # List to store reciprocal lattice vectors.
         reciprocal_lattice_vectors = []
@@ -524,8 +522,8 @@ class XRayFormFactor:
 
         form_factor = 0
         for i in range(4):
-            form_factor += a[i] * math.exp(
-                -b[i] * (reciprocal_lattice_vector_magnitude / (4 * math.pi)) ** 2
+            form_factor += a[i] * np.exp(
+                -b[i] * (reciprocal_lattice_vector_magnitude / (4 * np.pi)) ** 2
             )
 
         form_factor += c
@@ -562,7 +560,7 @@ class Diffraction:
         structure_factor = 0 + 0j
 
         for atom in unit_cell.atoms:
-            exponent = (2 * math.pi * 1j) * utils.dot_product_tuples(
+            exponent = (2 * np.pi * 1j) * utils.dot_product_tuples(
                 reciprocal_lattice_vector.miller_indices, atom.position
             )
 
@@ -571,7 +569,7 @@ class Diffraction:
 
                 structure_factor += form_factor.get_form_factor(
                     reciprocal_lattice_vector
-                ) * cmath.exp(exponent)
+                ) * np.exp(exponent)
 
             except KeyError as exc:
                 raise KeyError(f"Error reading form factor Mapping: {exc}") from exc
@@ -649,8 +647,8 @@ class Diffraction:
         if deflection_angle < 0 or deflection_angle > 180:
             raise ValueError("Invalid deflection angle.")
 
-        angle = deflection_angle * math.pi / 360
-        return 4 * math.pi * math.sin(angle) / wavelength
+        angle = deflection_angle * np.pi / 360
+        return 4 * np.pi * np.sin(angle) / wavelength
 
     @staticmethod
     def get_deflection_angle(
@@ -663,12 +661,12 @@ class Diffraction:
         Calculates the deflection angle associated with a reciprocal lattice vector of
         a given magnitude
         """
-        sin_angle = (wavelength * reciprocal_lattice_vector_magnitude) / (4 * math.pi)
+        sin_angle = (wavelength * reciprocal_lattice_vector_magnitude) / (4 * np.pi)
 
         if sin_angle > 1 or sin_angle < 0:
             raise ValueError("Invalid reciprocal lattice vector magnitude")
 
-        return math.asin(sin_angle) * 360 / math.pi
+        return np.arcsin(sin_angle) * 360 / np.pi
 
     @staticmethod
     def get_diffraction_peaks(
@@ -743,7 +741,7 @@ class Diffraction:
             intensity = intensities[i]
 
             i += 1
-            while i < length and math.isclose(angle, angles[i], rel_tol=1e-10):
+            while i < length and np.isclose(angle, angles[i], rtol=1e-10):
                 intensity += intensities[i]
                 i += 1
 
