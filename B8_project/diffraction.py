@@ -105,9 +105,27 @@ def get_diffraction_peaks(
     Get diffraction peaks
     =====================
 
-    Calculates the reciprocal lattice vectors and relative intensities associated with
-    the diffraction peaks of a given crystal. Returns a list of tuples, each containing
-    the reciprocal lattice vector and relative intensity of a peak.
+    Calculates the relative intensity of the peak associated with each reciprocal
+    lattice vector. Returns a list of tuples, with each tuple containing a reciprocal
+    lattice vector and the relative intensity of the associated peak.
+
+    Parameters
+    ----------
+        - unit_cell (UnitCell): the unit cell of the chosen crystal.
+        - form_factors (Mapping[int, FormFactorProtocol]): a mapping from atomic
+        numbers to a class which represents an atomic form factor. Currently, two
+        classes implement the form factor protocol, `NeutronFormFactor` and
+        `XRayFormFactor`.
+        - wavelength (float): the wavelength of incident particles, given in
+        nanometers (nm).
+        - min_deflection_angle (float), max_deflection_angle (float): these
+        parameters specify the range of deflection angles to be plotted.
+
+    Returns
+    -------
+        - (list[tuple[ReciprocalLatticeVector, float]]): A list of tuples, with each
+        tuple containing a reciprocal lattice vector and the relative intensity of the
+        associated peak.
     """
     # Validate min_deflection_angle and max_angle are both greater than 0
     if not (min_deflection_angle >= 0 and max_deflection_angle > 0):
@@ -145,12 +163,8 @@ def get_diffraction_peaks(
     except ValueError as exc:
         raise ValueError(f"Error generating reciprocal lattice vectors: {exc}") from exc
 
-    # Empty list that will store the structure factors associated with each
-    # reciprocal lattice vector.
+    # Calculate the structure factor for each reciprocal lattice vectors
     structure_factors = []
-
-    # Iterates through reciprocal_lattice_vectors. For each RLV, calculates the
-    # structure factor and appends this to structure_factors.
     for reciprocal_lattice_vector in reciprocal_lattice_vectors:
         try:
             structure_factors.append(
@@ -162,7 +176,7 @@ def get_diffraction_peaks(
         except Exception as exc:
             raise ValueError(f"Error computing structure factor: {exc}") from exc
 
-    # Calculate the intensity of each peak and normalize
+    # Calculate the intensity of each peak and normalize the intensities
     intensities = [np.abs(x) ** 2 for x in structure_factors]
     relative_intensities = [x / max(intensities) for x in intensities]
 
@@ -182,7 +196,7 @@ def plot_diffraction_pattern(
     ========================
 
     Plots the diffraction pattern for a given crystal and saves the plot as a .pdf
-    file in the results directory.
+    file in the `results` directory.
 
     Name of .pdf file
     -----------------
@@ -225,7 +239,10 @@ def plot_diffraction_pattern(
 
     reciprocal_lattice_vectors, intensities = zip(*diffraction_peaks)
 
-    angles = [_get_deflection_angle(x, wavelength) for x in reciprocal_lattice_vectors]
+    # For each reciprocal lattice vector, calculate the associated deflection angle.
+    deflection_angles = [
+        _get_deflection_angle(x, wavelength) for x in reciprocal_lattice_vectors
+    ]
 
     # Calculate a sensible number of points
     num_points = np.round(
@@ -238,18 +255,18 @@ def plot_diffraction_pattern(
     # Get y coordinates of plotted points.
     y_values = np.zeros_like(x_values)
 
-    for angle, intensity in list(zip(angles, intensities)):
-        y_values += utils.gaussian(x_values, angle, peak_width, intensity)
+    for deflection_angle, intensity in list(zip(deflection_angles, intensities)):
+        y_values += utils.gaussian(x_values, deflection_angle, peak_width, intensity)
 
     # Normalize the intensities.
     max_intensity = np.max(y_values)
     y_values = y_values / max_intensity
 
-    # Get today's date and format as a string
+    # Get today's date and format as a string.
     today = datetime.today()
     date_string = today.strftime("%d_%m_%Y")
 
-    # Figure out the diffraction type and filename from form_factors
+    # Figure out the diffraction type and correct filename from form_factors.
     if isinstance(form_factors, Mapping) and all(
         isinstance(v, NeutronFormFactor) for v in form_factors.values()
     ):
@@ -264,36 +281,37 @@ def plot_diffraction_pattern(
         diffraction_type = ""
         filename = f"{unit_cell.material}_DP_{date_string}"
 
-    # Create the figure and axis objects
+    # Create the figure and axis.
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Plot the data
+    # Plot the data.
     ax.plot(x_values, y_values, color="black")
 
-    # Set axis labels
+    # Set axis labels.
     ax.set_xlabel("Deflection angle (°)", fontsize=11)
     ax.set_ylabel("Relative intensity", fontsize=11)
 
-    # Set title
+    # Set title.
     ax.set_title(
         f"{unit_cell.material} {diffraction_type}diffraction pattern for λ = {wavelength}nm.",
         fontsize=15,
     )
 
-    # Add grid lines
+    # Add grid lines.
     ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
 
-    # Customize the tick marks
+    # Customize the tick marks.
     ax.tick_params(axis="both", which="major", labelsize=10)
     ax.tick_params(axis="both", which="minor", length=4, color="gray")
 
-    # Add minor ticks
+    # Add minor ticks.
     ax.minorticks_on()
 
-    # Adjust layout to prevent clipping
+    # Adjust layout to prevent clipping.
     fig.tight_layout()
 
-    # Save the figure
+    # Save the figure.
     fig.savefig(f"results/{filename}.pdf", format="pdf")
 
+    # Return the path to the .pdf file.
     return f"results/{filename}.pdf"
