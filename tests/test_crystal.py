@@ -8,11 +8,12 @@ TODO: add tests for error handling for crystal module.
 TODO: make tests for crystal module more comprehensive.
 """
 
-import math
+import numpy as np
 from B8_project.crystal import (
     Atom,
     UnitCell,
     ReciprocalLatticeVector,
+    FormFactorProtocol,
     NeutronFormFactor,
     XRayFormFactor,
 )
@@ -228,11 +229,11 @@ class TestReciprocalLatticeVector:
         components = reciprocal_lattice_vector.get_components()
 
         a, b, c = reciprocal_lattice_vector.lattice_constants
-        expected_components = (2 * math.pi / a, 4 * math.pi / b, 6 * math.pi / c)
+        expected_components = (2 * np.pi / a, 4 * np.pi / b, 6 * np.pi / c)
 
-        assert math.isclose(components[0], expected_components[0], rel_tol=1e-6)
-        assert math.isclose(components[1], expected_components[1], rel_tol=1e-6)
-        assert math.isclose(components[2], expected_components[2], rel_tol=1e-6)
+        assert np.isclose(components[0], expected_components[0], rtol=1e-6)
+        assert np.isclose(components[1], expected_components[1], rtol=1e-6)
+        assert np.isclose(components[2], expected_components[2], rtol=1e-6)
 
     @staticmethod
     def test_get_magnitude_normal_operation():
@@ -254,14 +255,12 @@ class TestReciprocalLatticeVector:
         )
 
         a, b, c = reciprocal_lattice_vector.lattice_constants
-        expected_components = (2 * math.pi / a, 4 * math.pi / b, 6 * math.pi / c)
+        expected_components = (2 * np.pi / a, 4 * np.pi / b, 6 * np.pi / c)
 
-        assert math.isclose(
+        assert np.isclose(
             reciprocal_lattice_vector.get_magnitude(),
-            math.sqrt(
-                utils.dot_product_tuples(expected_components, expected_components)
-            ),
-            rel_tol=1e-6,
+            np.sqrt(utils.dot_product_tuples(expected_components, expected_components)),
+            rtol=1e-6,
         )
 
     @staticmethod
@@ -276,7 +275,7 @@ class TestReciprocalLatticeVector:
 
         reciprocal_lattice_vectors = (
             ReciprocalLatticeVector.get_reciprocal_lattice_vectors(
-                0, 2 * math.pi + 0.001, unit_cell
+                1, 2 * np.pi + 0.001, unit_cell
             )
         )
 
@@ -284,7 +283,6 @@ class TestReciprocalLatticeVector:
             ReciprocalLatticeVector((-1, 0, 0), unit_cell.lattice_constants),
             ReciprocalLatticeVector((0, -1, 0), unit_cell.lattice_constants),
             ReciprocalLatticeVector((0, 0, -1), unit_cell.lattice_constants),
-            ReciprocalLatticeVector((0, 0, 0), unit_cell.lattice_constants),
             ReciprocalLatticeVector((1, 0, 0), unit_cell.lattice_constants),
             ReciprocalLatticeVector((0, 1, 0), unit_cell.lattice_constants),
             ReciprocalLatticeVector((0, 0, 1), unit_cell.lattice_constants),
@@ -293,6 +291,30 @@ class TestReciprocalLatticeVector:
         assert sorted(reciprocal_lattice_vectors, key=str) == sorted(
             expected_reciprocal_lattice_vectors, key=str
         )
+
+
+class TestFormFactorProtocol:
+    """
+    Unit tests for the form factor protocol.
+    """
+
+    @staticmethod
+    def test_neutron_form_factor_implements_protocol():
+        """
+        A unit test to check if the `NeutronFormFactor` class implements the form
+        factor protocol
+        """
+        neutron_form_factor = NeutronFormFactor(neutron_scattering_length=1.0)
+        assert isinstance(neutron_form_factor, FormFactorProtocol)
+
+    @staticmethod
+    def test_x_ray_form_factor_implements_protocol():
+        """
+        A unit test to check if the `XRayFormFactor` class implements the form
+        factor protocol
+        """
+        x_ray_form_factor = XRayFormFactor(1, 1, 1, 1, 1, 1, 1, 1, 1)
+        assert isinstance(x_ray_form_factor, FormFactorProtocol)
 
 
 class TestNeutronFormFactor:
@@ -356,8 +378,8 @@ class TestXRayFormFactor:
         x_ray_form_factor = XRayFormFactor(1, 2, 3, 4, 5, 6, 7, 8, 9)
         reciprocal_lattice_vector = ReciprocalLatticeVector((1, 0, 0), (1, 1, 1))
 
-        assert math.isclose(
-            reciprocal_lattice_vector.get_magnitude(), 2 * math.pi, rel_tol=1e-6
+        assert np.isclose(
+            reciprocal_lattice_vector.get_magnitude(), 2 * np.pi, rtol=1e-6
         )
 
         result = x_ray_form_factor.get_form_factor(reciprocal_lattice_vector)
@@ -369,11 +391,11 @@ class TestXRayFormFactor:
         expected_result = 0
 
         for i in range(4):
-            expected_result += a[i] * math.exp(-b[i] / 4)
+            expected_result += a[i] * np.exp(-b[i] / 4)
 
         expected_result += c
 
-        assert math.isclose(result, expected_result, rel_tol=1e-6)
+        assert np.isclose(result, expected_result, rtol=1e-6)
 
 
 class TestDiffraction:

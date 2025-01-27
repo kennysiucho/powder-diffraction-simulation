@@ -111,5 +111,5 @@ def test_read_x_ray_form_factors_normal_operation():
     )
 
     assert isinstance(x_ray_form_factors, Mapping) and all(
-        isinstance(v, NeutronFormFactor) for v in x_ray_form_factors.values()
+        isinstance(v, XRayFormFactor) for v in x_ray_form_factors.values()
     )

@@ -8,7 +8,7 @@ TODO: add classes.
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol, Mapping
+from typing import Protocol, Mapping, runtime_checkable
 import numpy as np
 import matplotlib.pyplot as plt
 import B8_project.utils as utils
@@ -388,6 +388,7 @@ class ReciprocalLatticeVector:
         return reciprocal_lattice_vectors
 
 
+@runtime_checkable
 class FormFactorProtocol(Protocol):
     """
     Form factor protocol
