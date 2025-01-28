@@ -184,12 +184,15 @@ def get_diffraction_peaks(
 
 def plot_diffraction_pattern(
     unit_cell: UnitCell,
-    form_factors: Mapping[int, FormFactorProtocol],
-    wavelength: float,
-    min_deflection_angle: float,
-    max_deflection_angle: float,
+    diffraction_type: str,
+    neutron_form_factors: Mapping[int, NeutronFormFactor],
+    x_ray_form_factors: Mapping[int, XRayFormFactor],
+    wavelength: float = 0.1,
+    min_deflection_angle: float = 10,
+    max_deflection_angle: float = 170,
     peak_width: float = 0.1,
     plot: bool = True,
+    line_width: float = 1.0,
 ) -> tuple[list[float], list[float]]:
     """
     Plot diffraction pattern
@@ -231,16 +234,32 @@ def plot_diffraction_pattern(
         coordinates of the plotted points.
     """
     # Find the diffraction peaks.
-    try:
-        diffraction_peaks = get_diffraction_peaks(
-            unit_cell,
-            form_factors,
-            wavelength,
-            min_deflection_angle,
-            max_deflection_angle,
-        )
-    except Exception as exc:
-        raise ValueError(f"Error finding diffraction peaks: {exc}") from exc
+    if diffraction_type == "ND":
+        try:
+            diffraction_peaks = get_diffraction_peaks(
+                unit_cell,
+                neutron_form_factors,
+                wavelength,
+                min_deflection_angle,
+                max_deflection_angle,
+            )
+        except Exception as exc:
+            raise ValueError(f"Error finding diffraction peaks: {exc}") from exc
+
+    elif diffraction_type == "XRD":
+        try:
+            diffraction_peaks = get_diffraction_peaks(
+                unit_cell,
+                x_ray_form_factors,
+                wavelength,
+                min_deflection_angle,
+                max_deflection_angle,
+            )
+        except Exception as exc:
+            raise ValueError(f"Error finding diffraction peaks: {exc}") from exc
+
+    else:
+        raise ValueError("Invalid diffraction type.")
 
     reciprocal_lattice_vectors, intensities = zip(*diffraction_peaks)
 
@@ -272,26 +291,19 @@ def plot_diffraction_pattern(
         today = datetime.today()
         date_string = today.strftime("%d-%m-%Y")
 
-        # Figure out the diffraction type and correct filename from form_factors.
-        if isinstance(form_factors, Mapping) and all(
-            isinstance(v, NeutronFormFactor) for v in form_factors.values()
-        ):
-            diffraction_type = "neutron "
-            filename = f"{unit_cell.material}_NDP_{date_string}"
-        elif isinstance(form_factors, Mapping) and all(
-            isinstance(v, XRayFormFactor) for v in form_factors.values()
-        ):
-            diffraction_type = "X-ray "
-            filename = f"{unit_cell.material}_XRDP_{date_string}"
-        else:
-            diffraction_type = ""
-            filename = f"{unit_cell.material}_DP_{date_string}"
+        # Filename
+        filename = f"{unit_cell.material}_{diffraction_type}_{date_string}"
 
         # Create the figure and axis.
         fig, ax = plt.subplots(figsize=(10, 6))
 
         # Plot the data.
-        ax.plot(x_values, y_values, color="black")
+        ax.plot(
+            x_values,
+            y_values,
+            label=f"{unit_cell.material}, {diffraction_type}, λ = {wavelength}nm",
+            linewidth=line_width,
+        )
 
         # Set axis labels.
         ax.set_xlabel("Deflection angle (°)", fontsize=11)
@@ -299,9 +311,12 @@ def plot_diffraction_pattern(
 
         # Set title.
         ax.set_title(
-            f"{unit_cell.material} {diffraction_type}diffraction pattern for λ = {wavelength}nm.",
+            f"Diffraction pattern for {unit_cell.material} ({diffraction_type}).",
             fontsize=15,
         )
+
+        # Add legend.
+        ax.legend()
 
         # Add grid lines.
         ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
@@ -363,7 +378,9 @@ def plot_superimposed_diffraction_patterns(
             try:
                 x_values, y_values = plot_diffraction_pattern(
                     unit_cell,
+                    diffraction_type,
                     neutron_form_factors,
+                    x_ray_form_factors,
                     current_wavelength,
                     min_deflection_angle,
                     max_deflection_angle,
@@ -378,6 +395,8 @@ def plot_superimposed_diffraction_patterns(
             try:
                 x_values, y_values = plot_diffraction_pattern(
                     unit_cell,
+                    diffraction_type,
+                    neutron_form_factors,
                     x_ray_form_factors,
                     current_wavelength,
                     min_deflection_angle,
@@ -395,7 +414,7 @@ def plot_superimposed_diffraction_patterns(
             ax.plot(
                 x_values,
                 y_values,
-                label=f"{unit_cell.material}, {diffraction_type}, λ = {wavelength}nm",
+                label=f"{unit_cell.material}, {diffraction_type}, λ = {current_wavelength}nm",
                 linewidth=line_width,
                 alpha=opacity,
             )

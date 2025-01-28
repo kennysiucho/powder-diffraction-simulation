@@ -7,7 +7,7 @@ from B8_project import file_reading
 from B8_project import crystal, diffraction
 
 # Get basis and lattice parameters from CSV files.
-CRYSTAL_PATH = "data/type_3_5_semiconductors"
+CRYSTAL_PATH = "data/type_3_5_semiconductors/"
 AlAs_basis = file_reading.read_basis(CRYSTAL_PATH + "AlAs_basis.csv")
 AlAs_lattice = file_reading.read_lattice(CRYSTAL_PATH + "AlAs_lattice.csv")
 AlP_basis = file_reading.read_basis(CRYSTAL_PATH + "AlP_basis.csv")
@@ -143,3 +143,41 @@ for unit_cells in groups_of_unit_cells:
         min_deflection_angle=20,
         max_deflection_angle=60,
     )
+
+# Plot the ND and XRD pattern for GaAs
+diffraction.plot_diffraction_pattern(
+    GaAs_unit_cell,
+    "ND",
+    neutron_form_factors,
+    x_ray_form_factors,
+    0.1,
+    20,
+    60,
+)
+diffraction.plot_diffraction_pattern(
+    GaAs_unit_cell,
+    "XRD",
+    neutron_form_factors,
+    x_ray_form_factors,
+    0.1,
+    20,
+    60,
+)
+diffraction.plot_diffraction_pattern(
+    InAs_unit_cell,
+    "ND",
+    neutron_form_factors,
+    x_ray_form_factors,
+    0.1,
+    20,
+    60,
+)
+diffraction.plot_diffraction_pattern(
+    InAs_unit_cell,
+    "XRD",
+    neutron_form_factors,
+    x_ray_form_factors,
+    0.1,
+    20,
+    60,
+)
