@@ -329,7 +329,7 @@ def plot_superimposed_diffraction_patterns(
     unit_cells_with_diffraction_types: list[tuple[UnitCell, str]],
     neutron_form_factors: Mapping[int, NeutronFormFactor],
     x_ray_form_factors: Mapping[int, XRayFormFactor],
-    wavelength: float,
+    wavelength: float = 0.1,
     min_deflection_angle: float = 10,
     max_deflection_angle: float = 170,
     peak_width: float = 0.1,
