@@ -199,10 +199,10 @@ def plot_diffraction_pattern(
     Name of .pdf file
     -----------------
         - For neutron diffraction, the .pdf file has the following name:
-        "<material>_<NDP>_<date>.pdf", where "NDP" stands for Neutron Diffraction
+        "<material>_<NDP>_<date>_<time>.pdf", where "NDP" stands for Neutron Diffraction
         Pattern.
         - For X-ray diffraction, the .pdf file has the following name:
-        "<material>_<XRDP>_<date>.pdf", where "XRDP" stands for X-Ray Diffraction
+        "<material>_<XRDP>_<date>_<time>.pdf", where "XRDP" stands for X-Ray Diffraction
         Pattern.
 
     Parameters
@@ -262,7 +262,7 @@ def plot_diffraction_pattern(
 
     # Get today's date and format as a string.
     today = datetime.today()
-    date_string = today.strftime("%d_%m_%Y")
+    date_string = today.strftime("%d-%m-%Y_%H-%M")
 
     # Figure out the diffraction type and correct filename from form_factors.
     if isinstance(form_factors, Mapping) and all(
