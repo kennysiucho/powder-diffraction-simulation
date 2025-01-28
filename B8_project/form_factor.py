@@ -26,15 +26,15 @@ class FormFactorProtocol(Protocol):
     ====================
 
     This protocol defines the interface for any class that represents a form factor.
-    Form factor classes must implement the `get_form_factor` method.
+    Form factor classes must implement the `evaluate_form_factor` method.
     """
 
-    def get_form_factor(
+    def evaluate_form_factor(
         self, reciprocal_lattice_vector: ReciprocalLatticeVector
     ) -> float:
         """
-        Get form factor
-        ===============
+        Evaluate form factor
+        ====================
 
         Calculates the form factor given a reciprocal lattice vector. The way the form
         factor is calculated varies depending on the class that implements the form
@@ -66,13 +66,13 @@ class NeutronFormFactor:
 
     neutron_scattering_length: float
 
-    def get_form_factor(
+    def evaluate_form_factor(
         self,
         reciprocal_lattice_vector: ReciprocalLatticeVector,  # pylint: disable=W0613
     ) -> float:
         """
-        Get neutron form factor
-        =======================
+        Evaluate neutron form factor
+        ============================
 
         Returns the neutron scattering length of an instance of `NeutronFormFactor`.
         The neutron scattering length of an atom is proportional to the neutron form
@@ -101,13 +101,13 @@ class XRayFormFactor:
     Attributes
     ----------
         - a1, a2, a3, a4 (float): The height of Gaussian 1, 2, 3, 4 respectively.
-        - b1, b2, b3, b4 (float): Proportional to the width of Gaussian 1, 2, 3, 4
-        respectively.
+        - b1, b2, b3, b4 (float): Inversely proportional to the to the squared width of
+        Gaussian 1, 2, 3, 4 respectively.
         - c (float): The constant term.
 
     Methods
     -------
-        - get_xray_form_factor:
+        - evaluate_form_factor:
             TODO: add documentation.
     """
 
@@ -121,16 +121,16 @@ class XRayFormFactor:
     b4: float
     c: float
 
-    def get_form_factor(
+    def evaluate_form_factor(
         self, reciprocal_lattice_vector: ReciprocalLatticeVector
     ) -> float:
         """
-        Get X-ray form factor
-        =====================
+        Evaluate X-ray form factor
+        ==========================
 
         Returns the form factor associated with an instance of `XRayFormFactor`.
         """
-        reciprocal_lattice_vector_magnitude = reciprocal_lattice_vector.get_magnitude()
+        reciprocal_lattice_vector_magnitude = reciprocal_lattice_vector.magnitude()
 
         a = [self.a1, self.a2, self.a3, self.a4]
         b = [self.b1, self.b2, self.b3, self.b4]

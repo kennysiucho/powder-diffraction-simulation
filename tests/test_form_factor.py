@@ -46,14 +46,14 @@ class TestNeutronFormFactor:
         assert neutron_form_factor.neutron_scattering_length == 1
 
     @staticmethod
-    def test_get_form_factor_normal_operation():
+    def test_form_factor_normal_operation():
         """
-        A unit test for the get_form_factor function. This unit test tests normal
+        A unit test for the form_factor function. This unit test tests normal
         operation of the function.
         """
         neutron_form_factor = NeutronFormFactor(1)
         assert (
-            neutron_form_factor.get_form_factor(
+            neutron_form_factor.evaluate_form_factor(
                 ReciprocalLatticeVector((0, 0, 0), (1, 1, 1))
             )
             == 1
@@ -84,19 +84,17 @@ class TestXRayFormFactor:
         assert xray_form_factor.c == 9
 
     @staticmethod
-    def test_get_form_factor():
+    def test_form_factor():
         """
-        A unit test for the get_form_factor function. This unit test tests normal
+        A unit test for the form_factor function. This unit test tests normal
         operation of the function.
         """
         x_ray_form_factor = XRayFormFactor(1, 2, 3, 4, 5, 6, 7, 8, 9)
         reciprocal_lattice_vector = ReciprocalLatticeVector((1, 0, 0), (1, 1, 1))
 
-        assert np.isclose(
-            reciprocal_lattice_vector.get_magnitude(), 2 * np.pi, rtol=1e-6
-        )
+        assert np.isclose(reciprocal_lattice_vector.magnitude(), 2 * np.pi, rtol=1e-6)
 
-        result = x_ray_form_factor.get_form_factor(reciprocal_lattice_vector)
+        result = x_ray_form_factor.evaluate_form_factor(reciprocal_lattice_vector)
 
         a = [1, 3, 5, 7]
         b = [2, 4, 6, 8]

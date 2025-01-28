@@ -6,14 +6,12 @@ This module contains a range of functions to calculate diffraction patterns.
 
 Functions
 ---------
-    - _get_reciprocal_lattice_vector_magnitude: Calculates the magnitude of the 
+    - _reciprocal_lattice_vector_magnitude: Calculates the magnitude of the 
     reciprocal lattice vector(s) associated with a given deflection angle.
-    - _get_deflection_angle: Calculates the deflection angle associated with a 
+    - _deflection_angle: Calculates the deflection angle associated with a 
     reciprocal lattice vector of a given magnitude.
-    - _get_structure_factor: Returns the structure factor of a crystal evaluated at a 
+    - _structure_factor: Returns the structure factor of a crystal evaluated at a 
     given reciprocal lattice vector.
-    - _get_structure_factors: Computes the structure factors for all reciprocal lattice 
-    vectors whose magnitudes are within a specified range.
     - get_diffraction_peaks: Calculates the relative intensity of the peak associated 
     with each reciprocal lattice vector.
     - plot_diffraction_pattern: Plots the diffraction pattern for a given crystal and 
@@ -30,12 +28,10 @@ from B8_project.crystal import UnitCell, ReciprocalLatticeVector
 from B8_project.form_factor import FormFactorProtocol, NeutronFormFactor, XRayFormFactor
 
 
-def _get_reciprocal_lattice_vector_magnitude(
-    deflection_angle: float, wavelength: float
-):
+def _reciprocal_lattice_vector_magnitude(deflection_angle: float, wavelength: float):
     """
-    Get reciprocal lattice vector magnitude
-    =======================================
+    Reciprocal lattice vector magnitude
+    ===================================
 
     Calculates the magnitude of the reciprocal lattice vector(s) associated with a
     given deflection angle.
@@ -47,17 +43,17 @@ def _get_reciprocal_lattice_vector_magnitude(
     return 4 * np.pi * np.sin(angle) / wavelength
 
 
-def _get_deflection_angle(
+def _deflection_angle(
     reciprocal_lattice_vector: ReciprocalLatticeVector, wavelength: float
 ):
     """
-    Get deflection angle
-    ====================
+    Deflection angle
+    ================
 
     Calculates the deflection angle associated with a reciprocal lattice vector of
     a given magnitude
     """
-    sin_angle = (wavelength * reciprocal_lattice_vector.get_magnitude()) / (4 * np.pi)
+    sin_angle = (wavelength * reciprocal_lattice_vector.magnitude()) / (4 * np.pi)
 
     if sin_angle > 1 or sin_angle < 0:
         raise ValueError("Invalid reciprocal lattice vector magnitude")
@@ -65,14 +61,14 @@ def _get_deflection_angle(
     return np.arcsin(sin_angle) * 360 / np.pi
 
 
-def _get_structure_factor(
+def _structure_factor(
     unit_cell: UnitCell,
     form_factors: Mapping[int, FormFactorProtocol],
     reciprocal_lattice_vector: ReciprocalLatticeVector,
 ) -> complex:
     """
-    Get structure factor
-    ====================
+    Structure factor
+    ================
 
     Returns the structure factor of a crystal evaluated at a given reciprocal lattice vector.
 
@@ -89,7 +85,7 @@ def _get_structure_factor(
         try:
             form_factor = form_factors[atom.atomic_number]
 
-            structure_factor += form_factor.get_form_factor(
+            structure_factor += form_factor.evaluate_form_factor(
                 reciprocal_lattice_vector
             ) * np.exp(exponent)
 
@@ -146,10 +142,10 @@ def get_diffraction_peaks(
 
     # Calculate the minimum and maximum RLV magnitudes
     try:
-        min_magnitude = _get_reciprocal_lattice_vector_magnitude(
+        min_magnitude = _reciprocal_lattice_vector_magnitude(
             min_deflection_angle, wavelength
         )
-        max_magnitude = _get_reciprocal_lattice_vector_magnitude(
+        max_magnitude = _reciprocal_lattice_vector_magnitude(
             max_deflection_angle, wavelength
         )
     except ValueError as exc:
@@ -172,9 +168,7 @@ def get_diffraction_peaks(
     for reciprocal_lattice_vector in reciprocal_lattice_vectors:
         try:
             structure_factors.append(
-                _get_structure_factor(
-                    unit_cell, form_factors, reciprocal_lattice_vector
-                )
+                _structure_factor(unit_cell, form_factors, reciprocal_lattice_vector)
             )
 
         except Exception as exc:
@@ -245,7 +239,7 @@ def plot_diffraction_pattern(
 
     # For each reciprocal lattice vector, calculate the associated deflection angle.
     deflection_angles = [
-        _get_deflection_angle(x, wavelength) for x in reciprocal_lattice_vectors
+        _deflection_angle(x, wavelength) for x in reciprocal_lattice_vectors
     ]
 
     # Calculate a sensible number of points

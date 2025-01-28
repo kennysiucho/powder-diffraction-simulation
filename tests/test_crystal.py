@@ -91,13 +91,15 @@ class TestUnitCell:
             "tests/data/NaCl_lattice.csv"
         )
 
-        assert UnitCell.validate_crystal_parameters(CsCl_basis, CsCl_lattice) is None
-        assert UnitCell.validate_crystal_parameters(Cu_basis, Cu_lattice) is None
-        assert UnitCell.validate_crystal_parameters(Na_basis, Na_lattice) is None
-        assert UnitCell.validate_crystal_parameters(NaCl_basis, NaCl_lattice) is None
+        # pylint: disable=W0212
+        assert UnitCell._validate_crystal_parameters(CsCl_basis, CsCl_lattice) is None
+        assert UnitCell._validate_crystal_parameters(Cu_basis, Cu_lattice) is None
+        assert UnitCell._validate_crystal_parameters(Na_basis, Na_lattice) is None
+        assert UnitCell._validate_crystal_parameters(NaCl_basis, NaCl_lattice) is None
+        # pylint: enable=W0212
 
     @staticmethod
-    def test_get_unit_cell_normal_operation():
+    def test_new_unit_cell_normal_operation():
         """
         A unit test for the crystal_parameters_to_unit_cell function. This unit test tests
         normal operation of the function.
@@ -108,7 +110,7 @@ class TestUnitCell:
         CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
             "tests/data/CsCl_lattice.csv"
         )
-        unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
+        unit_cell = UnitCell.new_unit_cell(CsCl_basis, CsCl_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "CsCl"
         assert unit_cell.lattice_constants == (0.4119, 0.4119, 0.4119)
@@ -122,7 +124,7 @@ class TestUnitCell:
         Cu_lattice = file_reading.read_lattice(  # pylint: disable=C0103
             "tests/data/Cu_lattice.csv"
         )
-        unit_cell = UnitCell.get_unit_cell(Cu_basis, Cu_lattice)
+        unit_cell = UnitCell.new_unit_cell(Cu_basis, Cu_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "Cu"
         assert unit_cell.lattice_constants == (0.3615, 0.3615, 0.3615)
@@ -142,7 +144,7 @@ class TestUnitCell:
         Na_lattice = file_reading.read_lattice(  # pylint: disable=C0103
             "tests/data/Na_lattice.csv"
         )
-        unit_cell = UnitCell.get_unit_cell(Na_basis, Na_lattice)
+        unit_cell = UnitCell.new_unit_cell(Na_basis, Na_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "Na"
         assert unit_cell.lattice_constants == (0.4287, 0.4287, 0.4287)
@@ -156,7 +158,7 @@ class TestUnitCell:
         NaCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
             "tests/data/NaCl_lattice.csv"
         )
-        unit_cell = UnitCell.get_unit_cell(NaCl_basis, NaCl_lattice)
+        unit_cell = UnitCell.new_unit_cell(NaCl_basis, NaCl_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "NaCl"
         assert unit_cell.lattice_constants == (0.5640, 0.5640, 0.5640)
@@ -192,7 +194,7 @@ class TestReciprocalLatticeVector:
         CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
             "tests/data/CsCl_lattice.csv"
         )
-        unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
+        unit_cell = UnitCell.new_unit_cell(CsCl_basis, CsCl_lattice)
         assert unit_cell is not None
 
         reciprocal_lattice_vector = ReciprocalLatticeVector(
@@ -202,9 +204,9 @@ class TestReciprocalLatticeVector:
         assert reciprocal_lattice_vector.lattice_constants == (0.4119, 0.4119, 0.4119)
 
     @staticmethod
-    def test_get_components_normal_operation():
+    def test_components_normal_operation():
         """
-        A unit test for the get_components function. This unit test tests normal operation
+        A unit test for the components function. This unit test tests normal operation
         of the function.
         """
         CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
@@ -213,13 +215,13 @@ class TestReciprocalLatticeVector:
         CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
             "tests/data/CsCl_lattice.csv"
         )
-        unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
+        unit_cell = UnitCell.new_unit_cell(CsCl_basis, CsCl_lattice)
         assert unit_cell is not None
 
         reciprocal_lattice_vector = ReciprocalLatticeVector(
             (1, 2, 3), unit_cell.lattice_constants
         )
-        components = reciprocal_lattice_vector.get_components()
+        components = reciprocal_lattice_vector.components()
 
         a, b, c = reciprocal_lattice_vector.lattice_constants
         expected_components = (2 * np.pi / a, 4 * np.pi / b, 6 * np.pi / c)
@@ -229,10 +231,10 @@ class TestReciprocalLatticeVector:
         assert np.isclose(components[2], expected_components[2], rtol=1e-6)
 
     @staticmethod
-    def test_get_magnitude_normal_operation():
+    def test_magnitude_normal_operation():
         """
-        A unit test for the get_magnitude function. This unit test tests normal
-        operation of the function.
+        A unit test for the magnitude function. This unit test tests normal operation
+        of the function.
         """
         CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
             "tests/data/CsCl_basis.csv"
@@ -240,7 +242,7 @@ class TestReciprocalLatticeVector:
         CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
             "tests/data/CsCl_lattice.csv"
         )
-        unit_cell = UnitCell.get_unit_cell(CsCl_basis, CsCl_lattice)
+        unit_cell = UnitCell.new_unit_cell(CsCl_basis, CsCl_lattice)
         assert unit_cell is not None
 
         reciprocal_lattice_vector = ReciprocalLatticeVector(
@@ -251,7 +253,7 @@ class TestReciprocalLatticeVector:
         expected_components = (2 * np.pi / a, 4 * np.pi / b, 6 * np.pi / c)
 
         assert np.isclose(
-            reciprocal_lattice_vector.get_magnitude(),
+            reciprocal_lattice_vector.magnitude(),
             np.sqrt(utils.dot_product_tuples(expected_components, expected_components)),
             rtol=1e-6,
         )
@@ -264,7 +266,7 @@ class TestReciprocalLatticeVector:
         """
         basis = file_reading.read_basis("tests/data/test_basis.csv")
         lattice = file_reading.read_lattice("tests/data/test_lattice.csv")
-        unit_cell = UnitCell.get_unit_cell(basis, lattice)
+        unit_cell = UnitCell.new_unit_cell(basis, lattice)
 
         reciprocal_lattice_vectors = (
             ReciprocalLatticeVector.get_reciprocal_lattice_vectors(

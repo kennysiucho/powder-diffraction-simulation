@@ -83,7 +83,7 @@ class UnitCell:
     -------
         - _validate_crystal_parameters: Takes lattice and basis parameters as inputs,
         and raises an error if the parameters are invalid. This function has no returns.
-        - get_unit_cell: Converts lattice and basis parameters to an instance
+        - new_unit_cell: Converts lattice and basis parameters to an instance
         of `UnitCell`.
     """
 
@@ -156,13 +156,13 @@ class UnitCell:
                 )
 
     @classmethod
-    def get_unit_cell(
+    def new_unit_cell(
         cls,
         basis: tuple[list[int], list[tuple[float, float, float]]],
         lattice: tuple[str, int, tuple[float, float, float]],
     ):
         """
-        Get unit cell
+        New unit cell
         =============
 
         Returns an instance of `UnitCell` given the parameters of the lattice and the
@@ -281,11 +281,11 @@ class ReciprocalLatticeVector:
 
     Methods
     -------
-        - get_components: Returns the components of a reciprocal lattice vector, in
+        - components: Returns the components of a reciprocal lattice vector, in
         units of inverse nanometers (nm^-1). For miller indices (h, k, l) and lattice
         constants (a, b, c), the components of a reciprocal lattice vector are
         (2π/a, 2π/b, 2π/c).
-        - get_magnitude: Returns the magnitude of a reciprocal lattice vector, in
+        - magnitude: Returns the magnitude of a reciprocal lattice vector, in
         units of inverse nanometers (nm^-1).
         - get_reciprocal_lattice_vectors: Returns a list of `ReciprocalLatticeVectors`
         with magnitude in between a specified minimum and maximum magnitude (i.e.
@@ -296,10 +296,10 @@ class ReciprocalLatticeVector:
     miller_indices: tuple[int, int, int]
     lattice_constants: tuple[float, float, float]
 
-    def get_components(self) -> tuple[float, float, float]:
+    def components(self) -> tuple[float, float, float]:
         """
-        Get components
-        ==============
+        Components
+        ==========
 
         Returns the components of the reciprocal lattice vector associated with an
         instance of `ReciprocalLatticeVector`.
@@ -310,17 +310,15 @@ class ReciprocalLatticeVector:
             2 * np.pi * self.miller_indices[2] / self.lattice_constants[2],
         )
 
-    def get_magnitude(self) -> float:
+    def magnitude(self) -> float:
         """
-        Get magnitude
-        =============
+        Magnitude
+        =========
 
         Returns the magnitude of the reciprocal lattice vector associated with an
         instance  of `ReciprocalLatticeVector`.
         """
-        return np.sqrt(
-            utils.dot_product_tuples(self.get_components(), self.get_components())
-        )
+        return np.sqrt(utils.dot_product_tuples(self.components(), self.components()))
 
     @classmethod
     def get_reciprocal_lattice_vectors(
@@ -367,8 +365,8 @@ class ReciprocalLatticeVector:
                     # If reciprocal_lattice_vector has a valid magnitude, append it to
                     # the list
                     if (
-                        reciprocal_lattice_vector.get_magnitude() >= min_magnitude
-                        and reciprocal_lattice_vector.get_magnitude() <= max_magnitude
+                        reciprocal_lattice_vector.magnitude() >= min_magnitude
+                        and reciprocal_lattice_vector.magnitude() <= max_magnitude
                     ):
                         reciprocal_lattice_vectors.append(reciprocal_lattice_vector)
 

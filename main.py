@@ -14,7 +14,7 @@ neutron_form_factors = file_reading.read_neutron_scattering_lengths(
 )
 
 # Calculate the unit cell
-unit_cell = crystal.UnitCell.get_unit_cell(basis, lattice)
+unit_cell = crystal.UnitCell.new_unit_cell(basis, lattice)
 
 # Plot the diffraction pattern
 print(
