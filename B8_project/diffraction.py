@@ -188,13 +188,15 @@ def plot_diffraction_pattern(
     min_deflection_angle: float,
     max_deflection_angle: float,
     peak_width: float,
-) -> str:
+    plot: bool,
+) -> tuple[list[float], list[float]]:
     """
     Plot diffraction pattern
     ========================
 
     Plots the diffraction pattern for a given crystal and saves the plot as a .pdf
-    file in the `results` directory.
+    file in the `results` directory if desired. Returns the x coordinates and y
+    coordinates of the plotted points.
 
     Name of .pdf file
     -----------------
@@ -219,10 +221,13 @@ def plot_diffraction_pattern(
         - peak_width (float): The width of the intensity peaks. This parameter is
         only used for plotting. A value should be chosen so that all diffraction
         peaks can be observed.
+        - plot (bool): True -> plot the diffraction pattern, and save as a .pdf file;
+        False -> don't plot the diffraction pattern.
 
     Returns
     -------
-        - (str): The path to the plot.
+        - (tuple[list[float], list[float]]): A list of x coordinates and a list of y
+        coordinates of the plotted points.
     """
     try:
         diffraction_peaks = get_diffraction_peaks(
@@ -260,56 +265,59 @@ def plot_diffraction_pattern(
     max_intensity = np.max(y_values)
     y_values = y_values / max_intensity
 
-    # Get today's date and format as a string.
-    today = datetime.today()
-    date_string = today.strftime("%d-%m-%Y")
+    if plot is True:
+        # Get today's date and format as a string.
+        today = datetime.today()
+        date_string = today.strftime("%d-%m-%Y")
 
-    # Figure out the diffraction type and correct filename from form_factors.
-    if isinstance(form_factors, Mapping) and all(
-        isinstance(v, NeutronFormFactor) for v in form_factors.values()
-    ):
-        diffraction_type = "neutron "
-        filename = f"{unit_cell.material}_NDP_{date_string}"
-    elif isinstance(form_factors, Mapping) and all(
-        isinstance(v, XRayFormFactor) for v in form_factors.values()
-    ):
-        diffraction_type = "X-ray "
-        filename = f"{unit_cell.material}_XRDP_{date_string}"
-    else:
-        diffraction_type = ""
-        filename = f"{unit_cell.material}_DP_{date_string}"
+        # Figure out the diffraction type and correct filename from form_factors.
+        if isinstance(form_factors, Mapping) and all(
+            isinstance(v, NeutronFormFactor) for v in form_factors.values()
+        ):
+            diffraction_type = "neutron "
+            filename = f"{unit_cell.material}_NDP_{date_string}"
+        elif isinstance(form_factors, Mapping) and all(
+            isinstance(v, XRayFormFactor) for v in form_factors.values()
+        ):
+            diffraction_type = "X-ray "
+            filename = f"{unit_cell.material}_XRDP_{date_string}"
+        else:
+            diffraction_type = ""
+            filename = f"{unit_cell.material}_DP_{date_string}"
 
-    # Create the figure and axis.
-    fig, ax = plt.subplots(figsize=(10, 6))
+        # Create the figure and axis.
+        fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Plot the data.
-    ax.plot(x_values, y_values, color="black")
+        # Plot the data.
+        ax.plot(x_values, y_values, color="black")
 
-    # Set axis labels.
-    ax.set_xlabel("Deflection angle (°)", fontsize=11)
-    ax.set_ylabel("Relative intensity", fontsize=11)
+        # Set axis labels.
+        ax.set_xlabel("Deflection angle (°)", fontsize=11)
+        ax.set_ylabel("Relative intensity", fontsize=11)
 
-    # Set title.
-    ax.set_title(
-        f"{unit_cell.material} {diffraction_type}diffraction pattern for λ = {wavelength}nm.",
-        fontsize=15,
-    )
+        # Set title.
+        ax.set_title(
+            f"{unit_cell.material} {diffraction_type}diffraction pattern for λ = {wavelength}nm.",
+            fontsize=15,
+        )
 
-    # Add grid lines.
-    ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
+        # Add grid lines.
+        ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
 
-    # Customize the tick marks.
-    ax.tick_params(axis="both", which="major", labelsize=10)
-    ax.tick_params(axis="both", which="minor", length=4, color="gray")
+        # Customize the tick marks.
+        ax.tick_params(axis="both", which="major", labelsize=10)
+        ax.tick_params(axis="both", which="minor", length=4, color="gray")
 
-    # Add minor ticks.
-    ax.minorticks_on()
+        # Add minor ticks.
+        ax.minorticks_on()
 
-    # Adjust layout to prevent clipping.
-    fig.tight_layout()
+        # Adjust layout to prevent clipping.
+        fig.tight_layout()
 
-    # Save the figure.
-    fig.savefig(f"results/{filename}.pdf", format="pdf")
+        # Save the figure.
+        fig.savefig(f"results/{filename}.pdf", format="pdf")
 
-    # Return the path to the .pdf file.
-    return f"results/{filename}.pdf"
+        # Print the path to the .pdf file.
+        print(f"Plot created at results/{filename}.pdf")
+
+    return x_values.tolist(), y_values.tolist()

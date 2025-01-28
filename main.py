@@ -32,8 +32,6 @@ AlSb_unit_cell = crystal.UnitCell.new_unit_cell(AlSb_basis, AlSb_lattice)
 
 # Make a list of the unit cells.
 unit_cells = [
-    GaAs_unit_cell,
-    InAs_unit_cell,
     AlAs_unit_cell,
     AlP_unit_cell,
     AlSb_unit_cell,
@@ -41,17 +39,11 @@ unit_cells = [
 
 # Plot the XRD and ND patterns.
 for unit_cell in unit_cells:
-    print(
-        diffraction.plot_diffraction_pattern(
-            unit_cell,
-            neutron_form_factors,
-            0.1,
-            10,
-            90,
-            0.1,
-        )
-        + "\n"
-        + diffraction.plot_diffraction_pattern(
-            unit_cell, x_ray_form_factors, 0.1, 10, 90, 0.1
-        )
+    # Pick wavelength such that peaks all occur at the same position.
+    wavelength = (
+        0.1 * unit_cell.lattice_constants[0] / AlAs_unit_cell.lattice_constants[0]
+    )
+
+    diffraction.plot_diffraction_pattern(
+        unit_cell, x_ray_form_factors, wavelength, 10, 90, 0.1, plot=True
     )
