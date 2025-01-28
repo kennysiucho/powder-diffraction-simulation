@@ -30,20 +30,21 @@ AlAs_unit_cell = crystal.UnitCell.new_unit_cell(AlAs_basis, AlAs_lattice)
 AlP_unit_cell = crystal.UnitCell.new_unit_cell(AlP_basis, AlP_lattice)
 AlSb_unit_cell = crystal.UnitCell.new_unit_cell(AlSb_basis, AlSb_lattice)
 
-# Make a list of the unit cells.
-unit_cells = [
-    AlAs_unit_cell,
-    AlP_unit_cell,
-    AlSb_unit_cell,
+# Make a list of the unit cells and desired diffraction types.
+unit_cells_with_diffraction_types = [
+    (AlP_unit_cell, "XRD"),
+    (AlAs_unit_cell, "XRD"),
+    (AlSb_unit_cell, "XRD"),
 ]
 
-# Plot the XRD and ND patterns.
-for unit_cell in unit_cells:
-    # Pick wavelength such that peaks all occur at the same position.
-    wavelength = (
-        0.1 * unit_cell.lattice_constants[0] / AlAs_unit_cell.lattice_constants[0]
-    )
-
-    diffraction.plot_diffraction_pattern(
-        unit_cell, x_ray_form_factors, wavelength, 10, 90, 0.1, plot=True
-    )
+# Plot the XRD patterns
+diffraction.plot_superimposed_diffraction_patterns(
+    unit_cells_with_diffraction_types,
+    neutron_form_factors,
+    x_ray_form_factors,
+    0.1,
+    min_deflection_angle=20,
+    max_deflection_angle=60,
+    peak_width=0.1,
+    variable_wavelength=True,
+)
