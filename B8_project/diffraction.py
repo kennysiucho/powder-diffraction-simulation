@@ -331,22 +331,22 @@ class NeutronDiffractionMonteCarloRunStats:
 
     Attributes
     ----------
-        - accepted_data_points (int): Number of accepted trials so far
-        - avg_intensity_cnt_ (int): Number of trials that goes into calculation of `avg_intensity`, i.e. all trials
+        - `accepted_data_points` (`int`): Number of accepted trials so far
+        - `avg_intensity_cnt_` (`int`): Number of trials that goes into calculation of `avg_intensity`, i.e. all trials
         within angle range of interest
-        - avg_intensity (float): Average intensities of all trials within angle range of interest
-        - total_trials (int): Total number of trials attempted, regardless of their angles and intensities
-        - start_time_ (float): Start time of calculation, in seconds since the Epoch
-        - prev_print_time_ (float): Previous time stamp when the run stats are printed; keeps track so that the run
+        - `avg_intensity` (`float`): Average intensities of all trials within angle range of interest
+        - `total_trials` (`int`): Total number of trials attempted, regardless of their angles and intensities
+        - `start_time_` (`float`): Start time of calculation, in seconds since the Epoch
+        - `prev_print_time_` (`float`): Previous time stamp when the run stats are printed; keeps track so that the run
         stats are printed in regular intervals.
-        - microseconds_per_trial (float): Microseconds spent to calculate each trial; includes all trials, accepted
+        - `microseconds_per_trial` (`float`): Microseconds spent to calculate each trial; includes all trials, accepted
         or not.
 
     Methods
     -------
-        - calculate_diffraction_pattern: Returns two NumPy arrays: two_thetas and intensities, each containing
-        at least N_trials elements representing individual scattering trials. Intensities need to be aggregated
-        in bins of two_theta to obtain the diffraction spectrum.
+        - `update_avg_intensity`: Given intensity of new trial, update running average of intensity.
+        - `recalculate_microseconds_per_trial`: Recalculate average `microseconds_per_trial`.
+        - `__str__`: Returns a formatted string containing all attributes that don't end in `_`.
     """
 
     accepted_data_points: int = 0
@@ -362,12 +362,12 @@ class NeutronDiffractionMonteCarloRunStats:
                               (self.avg_intensity_cnt_ + 1))
         self.avg_intensity_cnt_ += 1
 
-    def update(self):
+    def recalculate_microseconds_per_trial(self):
         if self.total_trials == 0: return
         self.microseconds_per_trial = (time.time() - self.start_time_) / self.total_trials * 1000000
 
     def __str__(self):
-        self.update()
+        self.recalculate_microseconds_per_trial()
         return "".join([f"{key}={val:.1f} | " if key[-1] != '_' else "" for key, val in self.__dict__.items()])
 
 
@@ -380,26 +380,26 @@ class NeutronDiffractionMonteCarlo:
 
     Attributes
     ----------
-        - unit_cell (UnitCell): The UnitCell of the crystal
-        - wavelength (float): The wavelength of the incident neutrons (in nm)
+        - `unit_cell` (`UnitCell`): The unit cell of the crystal
+        - `wavelength` (`float`): The wavelength of the incident neutrons (in nm)
 
     Methods
     -------
-        - calculate_diffraction_pattern: Returns two NumPy arrays: two_thetas and intensities, each containing
-        at least N_trials elements representing individual scattering trials. Intensities need to be aggregated
-        in bins of two_theta to obtain the diffraction spectrum.
+        - `calculate_diffraction_pattern`: Returns two NumPy arrays: `two_thetas` and `intensities`, each containing
+        at least `target_accepted_trials` elements representing individual scattering trials. Intensities need to be
+        aggregated in bins of two_theta to obtain the diffraction spectrum.
     """
     def __init__(self, unit_cell: UnitCell, wavelength: float):
         self.unit_cell = unit_cell
         self.wavelength = wavelength
 
-    def calculate_diffraction_pattern(self, N_trials: int = 5000):
+    def calculate_diffraction_pattern(self, target_accepted_trials: int = 5000):
         """
         Calculate diffraction pattern
         =============================
 
-        Returns two NumPy arrays: two_thetas and intensities of the accepted Monte Carlo scattering *trials*. To obtain
-        the diffraction pattern, the intensities within each bin of two_theta need to be aggregated.
+        Returns two NumPy arrays: `two_thetas` and `intensities` of the accepted Monte Carlo scattering *trials*.
+        To obtain the diffraction pattern, the intensities within each bin of `two_theta` need to be aggregated.
 
         For each Monte Carlo trial, randomly choose the incident and scattered k-vectors. Sum over all atoms to
         calculate the structure factor and hence scattering angle and intensity of this trial. If the scattering angle
@@ -408,14 +408,12 @@ class NeutronDiffractionMonteCarlo:
 
         Parameters
         ----------
-            - lattice (tuple[str, int, tuple[float, float, float]]): The lattice parameters,
-            stored as a tuple (material, lattice_type, lattice_constants).
-            - basis (tuple[list[int], list[tuple[float, float, float]]]): The basis
-            parameters, stored as a tuple (atomic_numbers, atomic_positions).
+            - `target_accepted_trials` (`int`): Target number of accepted trials. `two_thetas` and `intensities` will
+            each have at least `target_accepted_trials` elements.
         """
         k = 2 * np.pi / self.wavelength
-        two_thetas = np.zeros(N_trials)
-        intensities = np.zeros(N_trials)
+        two_thetas = np.zeros(target_accepted_trials)
+        intensities = np.zeros(target_accepted_trials)
 
         # read relevant neutron scattering lengths
         all_scattering_lengths = read_neutron_scattering_lengths("data/neutron_scattering_lengths.csv")
@@ -432,7 +430,7 @@ class NeutronDiffractionMonteCarlo:
         stats = NeutronDiffractionMonteCarloRunStats()
 
         batch_trials = 10000
-        while stats.accepted_data_points < N_trials:
+        while stats.accepted_data_points < target_accepted_trials:
 
             if time.time() - stats.prev_print_time_ > 5:
                 stats.prev_print_time_ = time.time()
@@ -465,7 +463,7 @@ class NeutronDiffractionMonteCarlo:
 
             intensities_accept = np.where(intensity_batch > 50 * stats.avg_intensity)
             for i in intensities_accept[0]:
-                if stats.accepted_data_points == N_trials: break
+                if stats.accepted_data_points == target_accepted_trials: break
                 two_thetas[stats.accepted_data_points] = np.degrees(two_theta_batch[i])
                 intensities[stats.accepted_data_points] = intensity_batch[i]
                 stats.accepted_data_points += 1
