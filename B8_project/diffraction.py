@@ -28,6 +28,7 @@ import B8_project.utils as utils
 from B8_project.file_reading import *
 from B8_project.crystal import UnitCell, ReciprocalLatticeVector
 from B8_project.form_factor import FormFactorProtocol, NeutronFormFactor, XRayFormFactor
+from dataclasses import dataclass
 
 
 def _reciprocal_lattice_vector_magnitude(deflection_angle: float, wavelength: float):
@@ -318,7 +319,7 @@ def plot_diffraction_pattern(
 
 
 
-
+@dataclass
 class NeutronDiffractionMonteCarloRunStats:
     """
     Neutron Diffraction Monte Carlo Run Stats
@@ -347,14 +348,14 @@ class NeutronDiffractionMonteCarloRunStats:
         at least N_trials elements representing individual scattering trials. Intensities need to be aggregated
         in bins of two_theta to obtain the diffraction spectrum.
     """
-    def __init__(self):
-        self.accepted_data_points = 0
-        self.avg_intensity_cnt_ = 0
-        self.avg_intensity = 0.0
-        self.total_trials = 0
-        self.start_time_ = time.time()
-        self.prev_print_time_ = 0.0
-        self.microseconds_per_trial = 0.0
+
+    accepted_data_points: int = 0
+    avg_intensity_cnt_: int = 0
+    avg_intensity: float = 0.0
+    total_trials: int = 0
+    start_time_: float = time.time()
+    prev_print_time_: float = 0.0
+    microseconds_per_trial: float = 0.0
 
     def update_avg_intensity(self, intensity: float):
         self.avg_intensity = ((self.avg_intensity * self.avg_intensity_cnt_ + intensity) /
