@@ -141,6 +141,7 @@ for unit_cells in groups_of_unit_cells:
         x_ray_form_factors,
         min_deflection_angle=20,
         max_deflection_angle=60,
+        variable_wavelength=True,
         file_path="results/type_3_5_semiconductors/",
     )
 
