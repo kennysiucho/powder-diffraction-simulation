@@ -193,6 +193,7 @@ def plot_diffraction_pattern(
     peak_width: float = 0.1,
     plot: bool = True,
     line_width: float = 1.0,
+    file_path: str = "results/",
 ) -> tuple[list[float], list[float]]:
     """
     Plot diffraction pattern
@@ -332,10 +333,10 @@ def plot_diffraction_pattern(
         fig.tight_layout()
 
         # Save the figure.
-        fig.savefig(f"results/{filename}.pdf", format="pdf")
+        fig.savefig(f"{file_path}{filename}.pdf", format="pdf")
 
         # Print the path to the .pdf file.
-        print(f"Plot created at results/{filename}.pdf")
+        print(f"Plot created at {file_path}{filename}.pdf")
 
     return x_values.tolist(), y_values.tolist()
 
@@ -351,6 +352,7 @@ def plot_superimposed_diffraction_patterns(
     variable_wavelength: bool = True,
     line_width: float = 1.0,
     opacity: float = 0.5,
+    file_path: str = "results/",
 ):
     """
     Plot diffraction patterns
@@ -464,7 +466,7 @@ def plot_superimposed_diffraction_patterns(
     fig.tight_layout()
 
     # Save the figure.
-    fig.savefig(f"results/{filename}.pdf", format="pdf")
+    fig.savefig(f"{file_path}{filename}.pdf", format="pdf")
 
     # Print the path to the .pdf file.
-    print(f"Plot created at results/{filename}.pdf")
+    print(f"Plot created at {file_path}{filename}.pdf")
