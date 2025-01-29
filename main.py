@@ -6,7 +6,7 @@ instance.
 
 from B8_project import file_reading
 import B8_project.crystal as unit_cell
-from B8_project.neutron_diffraction import NeutronDiffraction
+from B8_project.diffraction import NeutronDiffraction
 
 import matplotlib.pyplot as plt
 import numpy as np
