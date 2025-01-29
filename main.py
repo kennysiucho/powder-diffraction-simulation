@@ -46,7 +46,11 @@ for i in range(two_thetas.size):
     intensities_binned[bin_i] += intensities[i]
 intensities_binned /= np.max(intensities_binned)
 
-plt.scatter(two_thetas, intensities, s=2)
-plt.plot(two_theta_bins, intensities_binned, color='k')
+plt.scatter(two_thetas, intensities, s=2, label="Scattering trials")
+plt.plot(two_theta_bins, intensities_binned, color='k', label="Aggregated intensities")
+plt.xlabel("Scattering angle (2θ) (deg)")
+plt.ylabel("Normalized intensity")
+plt.title("PrO2 Neutron Diffraction Spectrum")
+plt.legend()
 plt.show()
 print(f"{my_cell}")
