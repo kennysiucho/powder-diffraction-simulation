@@ -1,12 +1,8 @@
 from B8_project.crystal import UnitCell
+from B8_project.file_reading import read_neutron_scattering_lengths
 from B8_project.utils import *
 import numpy as np
 import time
-
-scattering_lengths = {
-    8: 5.803,
-    59: 4.58
-}
 
 class NeutronDiffractionRunStats:
     def __init__(self):
@@ -40,6 +36,13 @@ class NeutronDiffraction:
         k = 2 * np.pi / self.wavelength
         two_thetas = np.zeros(N_trials)
         intensities = np.zeros(N_trials)
+
+        # read relevant neutron scattering lengths
+        all_scattering_lengths = read_neutron_scattering_lengths("data/neutron_scattering_lengths.csv")
+        scattering_lengths = {}
+        for atom in self.unit_cell.atoms:
+            scattering_lengths[atom.atomic_number] = all_scattering_lengths[atom.atomic_number].neutron_scattering_length
+        print(scattering_lengths)
 
         expand_N = 9
         expanded_pos = np.vstack(np.mgrid[0:expand_N, 0:expand_N, 0:expand_N].astype(np.float64)).reshape(3, -1).T
