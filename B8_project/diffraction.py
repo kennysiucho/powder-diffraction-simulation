@@ -319,14 +319,14 @@ def plot_diffraction_pattern(
 
 
 
-class NeutronDiffractionRunStats:
+class NeutronDiffractionMonteCarloRunStats:
     def __init__(self):
         self.accepted_data_points = 0
         self.avg_intensity_cnt_ = 0
         self.avg_intensity = 0.0
         self.total_trials = 0
         self.start_time_ = time.time()
-        self.prev_print_time_ = 0
+        self.prev_print_time_ = 0.0
         self.microseconds_per_trial = 0.0
 
     def update_avg_intensity(self, intensity: float):
@@ -365,7 +365,7 @@ class NeutronDiffractionMonteCarlo:
         np.multiply(expanded_pos, self.unit_cell.lattice_constants, out=expanded_pos)
         print(expanded_pos)
 
-        stats = NeutronDiffractionRunStats()
+        stats = NeutronDiffractionMonteCarloRunStats()
 
         batch_trials = 10000
         while stats.accepted_data_points < N_trials:
