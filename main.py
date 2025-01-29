@@ -18,7 +18,7 @@ lattice = file_reading.read_lattice(LATTICE_FILE)
 
 basis = file_reading.read_basis(BASIS_FILE)
 
-my_cell = unit_cell.UnitCell.get_unit_cell(basis, lattice)
+my_cell = unit_cell.UnitCell.new_unit_cell(basis, lattice)
 nd = NeutronDiffraction(my_cell, 0.123)
 
 # TODO: better handling of whether to calculate or read from file
