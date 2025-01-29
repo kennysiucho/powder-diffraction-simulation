@@ -1,5 +1,5 @@
 """
-This module plots the diffraction patterns for a range of type 3-5 semiconductors.
+This module plots diffraction patterns for a range of type 3-5 semiconductors.
 """
 
 from B8_project import file_reading

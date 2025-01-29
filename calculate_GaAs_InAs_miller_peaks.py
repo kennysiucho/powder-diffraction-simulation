@@ -1,3 +1,8 @@
+"""
+This module calculates the diffraction peaks for GaAs and InAs, and prints the 
+deflection angle, miller indices and relative intensity of each peak.
+"""
+
 from B8_project import file_reading
 from B8_project import crystal, diffraction
 
