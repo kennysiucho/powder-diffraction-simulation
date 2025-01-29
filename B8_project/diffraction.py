@@ -320,6 +320,33 @@ def plot_diffraction_pattern(
 
 
 class NeutronDiffractionMonteCarloRunStats:
+    """
+    Neutron Diffraction Monte Carlo Run Stats
+    =========================================
+
+    A class to store statistics associated with each run of `NeutronDiffractionMonteCarlo.calculate_diffraction_pattern`.
+
+    Attributes that end with `_` denote attributes that are not returned in `__str__`.
+
+    Attributes
+    ----------
+        - accepted_data_points (int): Number of accepted trials so far
+        - avg_intensity_cnt_ (int): Number of trials that goes into calculation of `avg_intensity`, i.e. all trials
+        within angle range of interest
+        - avg_intensity (float): Average intensities of all trials within angle range of interest
+        - total_trials (int): Total number of trials attempted, regardless of their angles and intensities
+        - start_time_ (float): Start time of calculation, in seconds since the Epoch
+        - prev_print_time_ (float): Previous time stamp when the run stats are printed; keeps track so that the run
+        stats are printed in regular intervals.
+        - microseconds_per_trial (float): Microseconds spent to calculate each trial; includes all trials, accepted
+        or not.
+
+    Methods
+    -------
+        - calculate_diffraction_pattern: Returns two NumPy arrays: two_thetas and intensities, each containing
+        at least N_trials elements representing individual scattering trials. Intensities need to be aggregated
+        in bins of two_theta to obtain the diffraction spectrum.
+    """
     def __init__(self):
         self.accepted_data_points = 0
         self.avg_intensity_cnt_ = 0
@@ -344,11 +371,47 @@ class NeutronDiffractionMonteCarloRunStats:
 
 
 class NeutronDiffractionMonteCarlo:
+    """
+    Neutron Diffraction Monte Carlo
+    ===============================
+
+    A class to calculate neutron diffraction patterns via a Monte Carlo method.
+
+    Attributes
+    ----------
+        - unit_cell (UnitCell): The UnitCell of the crystal
+        - wavelength (float): The wavelength of the incident neutrons (in nm)
+
+    Methods
+    -------
+        - calculate_diffraction_pattern: Returns two NumPy arrays: two_thetas and intensities, each containing
+        at least N_trials elements representing individual scattering trials. Intensities need to be aggregated
+        in bins of two_theta to obtain the diffraction spectrum.
+    """
     def __init__(self, unit_cell: UnitCell, wavelength: float):
         self.unit_cell = unit_cell
         self.wavelength = wavelength
 
     def calculate_diffraction_pattern(self, N_trials: int = 5000):
+        """
+        Calculate diffraction pattern
+        =============================
+
+        Returns two NumPy arrays: two_thetas and intensities of the accepted Monte Carlo scattering *trials*. To obtain
+        the diffraction pattern, the intensities within each bin of two_theta need to be aggregated.
+
+        For each Monte Carlo trial, randomly choose the incident and scattered k-vectors. Sum over all atoms to
+        calculate the structure factor and hence scattering angle and intensity of this trial. If the scattering angle
+        is within the range specified and the intensity is above the acceptance threshold, then add this trial to the
+        final result.
+
+        Parameters
+        ----------
+            - lattice (tuple[str, int, tuple[float, float, float]]): The lattice parameters,
+            stored as a tuple (material, lattice_type, lattice_constants).
+            - basis (tuple[list[int], list[tuple[float, float, float]]]): The basis
+            parameters, stored as a tuple (atomic_numbers, atomic_positions).
+        """
         k = 2 * np.pi / self.wavelength
         two_thetas = np.zeros(N_trials)
         intensities = np.zeros(N_trials)

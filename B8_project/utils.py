@@ -85,11 +85,24 @@ def gaussian(x, mean, width, amplitude):
     return amplitude * np.exp(-0.5 * ((x - mean) / width) ** 2)
 
 def random_uniform_unit_vector(dims: int):
+    """
+    Random uniform unit vector
+    ==========================
+
+    Returns a list of length `dims` representing a unit vector uniformly and randomly selected from the unit sphere.
+    """
     vec = [random.gauss(0, 1) for i in range(dims)]
     mag = sum(x ** 2 for x in vec) ** .5
     return [x / mag for x in vec]
 
 def random_uniform_unit_vectors(n: int, dims: int):
+    """
+    Random uniform unit vectors
+    ===========================
+
+    Returns a NumPy array of shape `(n, dims)` consisting of `n` unit vectors, each uniformly and randomly selected
+    from the unit sphere.
+    """
     vecs = np.random.normal(size=(n, dims))
     mag = np.linalg.norm(vecs, axis=1, keepdims=True)
     return vecs / mag
