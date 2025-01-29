@@ -6,7 +6,7 @@ instance.
 
 from B8_project import file_reading
 import B8_project.crystal as unit_cell
-from B8_project.diffraction import NeutronDiffraction
+from B8_project.diffraction import NeutronDiffractionMonteCarlo
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,7 +19,7 @@ lattice = file_reading.read_lattice(LATTICE_FILE)
 basis = file_reading.read_basis(BASIS_FILE)
 
 my_cell = unit_cell.UnitCell.new_unit_cell(basis, lattice)
-nd = NeutronDiffraction(my_cell, 0.123)
+nd = NeutronDiffractionMonteCarlo(my_cell, 0.123)
 
 # TODO: better handling of whether to calculate or read from file
 two_thetas, intensities = nd.calculate_diffraction_pattern(200)

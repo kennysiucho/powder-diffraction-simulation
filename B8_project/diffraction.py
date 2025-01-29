@@ -342,7 +342,8 @@ class NeutronDiffractionRunStats:
         self.update()
         return "".join([f"{key}={val:.1f} | " if key[-1] != '_' else "" for key, val in self.__dict__.items()])
 
-class NeutronDiffraction:
+
+class NeutronDiffractionMonteCarlo:
     def __init__(self, unit_cell: UnitCell, wavelength: float):
         self.unit_cell = unit_cell
         self.wavelength = wavelength
