@@ -28,9 +28,9 @@ InAs_unit_cell = crystal.UnitCell.new_unit_cell(InAs_basis, InAs_lattice)
 WAVELENGTH = 0.1541838
 MIN_DEFLECTION_ANGLE = 27
 MAX_DEFLECTION_ANGLE = 84
-INTENSITY_CUTOFF = 0.1
+INTENSITY_CUTOFF = 0.001
 
-# Calculate diffraction peaks for GaAs.
+# Calculate miller peaks for GaAs.
 GaAs_hkl_peaks = diffraction.calculate_miller_peaks(
     GaAs_unit_cell,
     "XRD",
@@ -42,13 +42,25 @@ GaAs_hkl_peaks = diffraction.calculate_miller_peaks(
     INTENSITY_CUTOFF,
 )
 
+# Plot the GaAs diffraction pattern.
+diffraction.plot_diffraction_pattern(
+    GaAs_unit_cell,
+    "XRD",
+    neutron_form_factors,
+    x_ray_form_factors,
+    WAVELENGTH,
+    MIN_DEFLECTION_ANGLE,
+    MAX_DEFLECTION_ANGLE,
+    file_path="results/type_3_5_semiconductors/",
+)
+
 # Specify the InAs diffraction parameters.
 WAVELENGTH = 0.1541838
 MIN_DEFLECTION_ANGLE = 25
 MAX_DEFLECTION_ANGLE = 84
 INTENSITY_CUTOFF = 0.001
 
-# Calculate diffraction peaks for InAs.
+# Calculate miller peaks for InAs.
 InAs_hkl_peaks = diffraction.calculate_miller_peaks(
     InAs_unit_cell,
     "XRD",
@@ -60,13 +72,25 @@ InAs_hkl_peaks = diffraction.calculate_miller_peaks(
     INTENSITY_CUTOFF,
 )
 
+# Plot the InAs diffraction pattern.
+diffraction.plot_diffraction_pattern(
+    InAs_unit_cell,
+    "XRD",
+    neutron_form_factors,
+    x_ray_form_factors,
+    WAVELENGTH,
+    MIN_DEFLECTION_ANGLE,
+    MAX_DEFLECTION_ANGLE,
+    file_path="results/type_3_5_semiconductors/",
+)
+
 # Print the miller peaks for GaAs.
-print("GaAs diffraction peaks.")
+print("\nGaAs diffraction peaks.")
 for i, peak in enumerate(GaAs_hkl_peaks):
     print(
         f"Peak {i+1}: "
-        f"Deflection angle = {round(peak[0], 2)}°; (h, k, l) = {peak[1]}; "
-        f"relative intensity = {round(peak[2], 3)}"
+        f"(h, k, l) = {peak[1]}; deflection angle = {round(peak[0], 2)}°; "
+        f"relative intensity = {round(peak[2], 4)}"
     )
 
 # Print the miller peaks for InAs.
@@ -74,6 +98,6 @@ print("\nInAs diffraction peaks.")
 for i, peak in enumerate(InAs_hkl_peaks):
     print(
         f"Peak {i+1}: "
-        f"Deflection angle = {round(peak[0], 2)}°; (h, k, l) = {peak[1]}; "
-        f"relative intensity = {round(peak[2], 3)}"
+        f"(h, k, l) = {peak[1]}; deflection angle = {round(peak[0], 2)}°; "
+        f"relative intensity = {round(peak[2], 4)}"
     )

@@ -61,19 +61,9 @@ groups_of_unit_cells = [
         (BSb_unit_cell, "XRD"),
     ],
     [
-        (BP_unit_cell, "ND"),
-        (BAs_unit_cell, "ND"),
-        (BSb_unit_cell, "ND"),
-    ],
-    [
         (AlP_unit_cell, "XRD"),
         (AlAs_unit_cell, "XRD"),
         (AlSb_unit_cell, "XRD"),
-    ],
-    [
-        (AlP_unit_cell, "ND"),
-        (AlAs_unit_cell, "ND"),
-        (AlSb_unit_cell, "ND"),
     ],
     [
         (GaP_unit_cell, "XRD"),
@@ -81,19 +71,9 @@ groups_of_unit_cells = [
         (GaSb_unit_cell, "XRD"),
     ],
     [
-        (GaP_unit_cell, "ND"),
-        (GaAs_unit_cell, "ND"),
-        (GaSb_unit_cell, "ND"),
-    ],
-    [
         (InP_unit_cell, "XRD"),
         (InAs_unit_cell, "XRD"),
         (InSb_unit_cell, "XRD"),
-    ],
-    [
-        (InP_unit_cell, "ND"),
-        (InAs_unit_cell, "ND"),
-        (InSb_unit_cell, "ND"),
     ],
     [
         (BP_unit_cell, "XRD"),
@@ -102,34 +82,16 @@ groups_of_unit_cells = [
         (InP_unit_cell, "XRD"),
     ],
     [
-        (BP_unit_cell, "ND"),
-        (AlP_unit_cell, "ND"),
-        (GaP_unit_cell, "ND"),
-        (InP_unit_cell, "ND"),
-    ],
-    [
         (BAs_unit_cell, "XRD"),
         (AlAs_unit_cell, "XRD"),
         (GaAs_unit_cell, "XRD"),
         (InAs_unit_cell, "XRD"),
     ],
     [
-        (BAs_unit_cell, "ND"),
-        (AlAs_unit_cell, "ND"),
-        (GaAs_unit_cell, "ND"),
-        (InAs_unit_cell, "ND"),
-    ],
-    [
         (BSb_unit_cell, "XRD"),
         (AlSb_unit_cell, "XRD"),
         (GaSb_unit_cell, "XRD"),
         (InSb_unit_cell, "XRD"),
-    ],
-    [
-        (BSb_unit_cell, "ND"),
-        (AlSb_unit_cell, "ND"),
-        (GaSb_unit_cell, "ND"),
-        (InSb_unit_cell, "ND"),
     ],
 ]
 
@@ -142,48 +104,7 @@ for unit_cells in groups_of_unit_cells:
         x_ray_form_factors,
         min_deflection_angle=20,
         max_deflection_angle=60,
+        peak_width=0.2,
         variable_wavelength=True,
         file_path="results/type_3_5_semiconductors/",
     )
-
-# Plot the ND and XRD pattern for GaAs
-diffraction.plot_diffraction_pattern(
-    GaAs_unit_cell,
-    "ND",
-    neutron_form_factors,
-    x_ray_form_factors,
-    0.1,
-    20,
-    60,
-    file_path="results/type_3_5_semiconductors/",
-)
-diffraction.plot_diffraction_pattern(
-    GaAs_unit_cell,
-    "XRD",
-    neutron_form_factors,
-    x_ray_form_factors,
-    0.1,
-    20,
-    60,
-    file_path="results/type_3_5_semiconductors/",
-)
-diffraction.plot_diffraction_pattern(
-    InAs_unit_cell,
-    "ND",
-    neutron_form_factors,
-    x_ray_form_factors,
-    0.1,
-    20,
-    60,
-    file_path="results/type_3_5_semiconductors/",
-)
-diffraction.plot_diffraction_pattern(
-    InAs_unit_cell,
-    "XRD",
-    neutron_form_factors,
-    x_ray_form_factors,
-    0.1,
-    20,
-    60,
-    file_path="results/type_3_5_semiconductors/",
-)

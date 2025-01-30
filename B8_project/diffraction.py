@@ -387,7 +387,8 @@ def plot_diffraction_pattern(
         ax.plot(
             x_values,
             y_values,
-            label=f"{unit_cell.material}, {diffraction_type}, λ = {wavelength}nm",
+            label=f"{unit_cell.material}, {diffraction_type}, "
+            f"λ = {round(wavelength, 4)}nm",
             linewidth=line_width,
         )
 
@@ -538,7 +539,8 @@ def plot_superimposed_diffraction_patterns(
             ax.plot(
                 x_values,
                 y_values,
-                label=f"{unit_cell.material}, {diffraction_type}, λ = {current_wavelength}nm",
+                label=f"{unit_cell.material}, {diffraction_type}"
+                f"λ = {round(current_wavelength, 4)}nm",
                 linewidth=line_width,
                 alpha=opacity,
             )
