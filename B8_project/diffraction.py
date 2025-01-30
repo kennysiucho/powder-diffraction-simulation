@@ -16,7 +16,6 @@ Functions
     with each reciprocal lattice vector.
     - plot_diffraction_pattern: Plots the diffraction pattern for a given crystal and 
     saves the plot as a .pdf file.
-
 """
 
 from datetime import datetime
@@ -171,6 +170,7 @@ def calculate_miller_peaks(
     wavelength: float,
     min_deflection_angle: float = 10,
     max_deflection_angle: float = 170,
+    intensity_cutoff: float = 0.01,
 ) -> list[tuple[float, tuple[int, int, int], float]]:
     """
     Calculate Miller peaks
@@ -192,6 +192,8 @@ def calculate_miller_peaks(
         nanometers (nm).
         - min_deflection_angle (float), max_deflection_angle (float): these
         parameters specify the range of deflection angles to be plotted.
+        - intensity_cutoff (float): The minimum intensity needed for a peak to be
+        recorded.
 
     Returns
     -------
@@ -227,8 +229,8 @@ def calculate_miller_peaks(
         deflection_angle = _deflection_angle(reciprocal_lattice_vector, wavelength)
         miller_indices = reciprocal_lattice_vector.miller_indices
 
-        # Only add intensities which are greater than an arbitrary cutoff
-        if intensity > 1e-10:
+        # Only add intensities which are greater than the cutoff
+        if intensity > intensity_cutoff:
             miller_peaks.append((deflection_angle, miller_indices, intensity))
 
     # Sort miller_peaks based on the deflection angle
@@ -445,6 +447,13 @@ def plot_superimposed_diffraction_patterns(
     is represented as an instance of `UnitCell`, and the diffraction type (neutron or
     X-ray) should be specified for each crystal.
 
+    Name of .pdf file
+    -----------------
+    The filename consists of the chemical formula of each crystal followed by the
+    diffraction type. For instance, suppose that we wanted to plot the ND pattern of
+    NaCl and the XRD pattern of CsCl. The filename would then be
+    "NaCl_ND_CsCl_XRD_<date>".
+
     Parameters
     ----------
         - unit_cells_with_diffraction_types (list[tuple[UnitCell, str]]): Each element
@@ -459,7 +468,8 @@ def plot_superimposed_diffraction_patterns(
         - wavelength (float): the wavelength of incident particles, given in
         nanometers (nm). Default value is 0.1nm.
         - min_deflection_angle (float), max_deflection_angle (float): these
-        parameters specify the range of deflection angles to be plotted. Default values are 10°, 170° respectively.
+        parameters specify the range of deflection angles to be plotted. Default values
+        are 10°, 170° respectively.
         - peak_width (float): The width of the intensity peaks. This parameter is
         only used for plotting. A value should be chosen so that all diffraction
         peaks can be observed. The default value is 0.1°.

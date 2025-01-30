@@ -1,5 +1,6 @@
+# pylint: disable=invalid-name
 """
-This module plots diffraction patterns for a range of type 3-5 semiconductors.
+This script plots diffraction patterns for a range of type 3-5 semiconductors.
 """
 
 from B8_project import file_reading
