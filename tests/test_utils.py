@@ -77,36 +77,46 @@ def test_gaussian_normal_operation():
         rtol=1e-6,
     )
 
-# TODO: more rigorous way to test this? currently just visual test
+def test_random_uniform_unit_vector_is_unit_vector():
+    N = 500
+    for dim in range(2, 5):
+        vectors = [random_uniform_unit_vector(dim) for _ in range(N)]
+        for vector in vectors:
+            mag_squared = 0.0
+            for e in vector:
+                mag_squared += e**2
+            nptest.assert_allclose(mag_squared, 1.0)
+
+def test_random_uniform_unit_vectors_are_unit_vectors():
+    N = 500
+    for dim in range(2, 5):
+        vectors = random_uniform_unit_vectors(N, dim)
+        for vector in vectors:
+            mag_squared = 0.0
+            for e in vector:
+                mag_squared += e**2
+            nptest.assert_allclose(mag_squared, 1.0)
+
+def plot_3d_unit_vectors(vectors, title):
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    xs, ys, zs = vectors[:, 0], vectors[:, 1], vectors[:, 2]
+    ax.scatter(xs, ys, zs)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
+    plt.title(title)
+    plt.show()
+
+# These two tests are merely visual tests - check if the generated random unit vectors seem spherically uniform
 def test_random_uniform_3d_unit_vector():
     N = 500
     vectors = [random_uniform_unit_vector(3) for _ in range(N)]
     vectors = np.array(vectors)
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
-
-    xs, ys, zs = vectors[:, 0], vectors[:, 1], vectors[:, 2]
-    ax.scatter(xs, ys, zs)
-
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
-
-    plt.show()
+    plot_3d_unit_vectors(vectors, "Visual check for spherical uniformity: random_uniform_unit_vector")
 
 def test_random_uniform_3d_unit_vectors():
     N = 500
     vectors = random_uniform_unit_vectors(N, 3)
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
-
-    xs, ys, zs = vectors[:, 0], vectors[:, 1], vectors[:, 2]
-    ax.scatter(xs, ys, zs)
-
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
-
-    plt.show()
+    plot_3d_unit_vectors(vectors, "Visual check for spherical uniformity: random_uniform_unit_vectors")
