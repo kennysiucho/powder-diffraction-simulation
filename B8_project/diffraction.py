@@ -393,7 +393,7 @@ class NeutronDiffractionMonteCarlo:
         self.unit_cell = unit_cell
         self.wavelength = wavelength
 
-    def calculate_diffraction_pattern(self, target_accepted_trials: int = 5000):
+    def calculate_diffraction_pattern(self, target_accepted_trials: int = 5000, trials_per_batch: int = 10000):
         """
         Calculate diffraction pattern
         =============================
@@ -410,6 +410,7 @@ class NeutronDiffractionMonteCarlo:
         ----------
             - `target_accepted_trials` (`int`): Target number of accepted trials. `two_thetas` and `intensities` will
             each have at least `target_accepted_trials` elements.
+            - `trials_per_batch` (`int`): Number of trials calculated at once using NumPy methods
         """
         k = 2 * np.pi / self.wavelength
         two_thetas = np.zeros(target_accepted_trials)
@@ -429,16 +430,15 @@ class NeutronDiffractionMonteCarlo:
 
         stats = NeutronDiffractionMonteCarloRunStats()
 
-        batch_trials = 10000
         while stats.accepted_data_points < target_accepted_trials:
 
             if time.time() - stats.prev_print_time_ > 5:
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            structure_factors = np.zeros(batch_trials, dtype=np.complex128)
-            k_vecs = k * utils.random_uniform_unit_vectors(batch_trials, 3)
-            k_primes = k * utils.random_uniform_unit_vectors(batch_trials, 3)
+            structure_factors = np.zeros(trials_per_batch, dtype=np.complex128)
+            k_vecs = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
+            k_primes = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
             scattering_vecs = k_primes - k_vecs
 
             for atom in self.unit_cell.atoms:
@@ -452,7 +452,7 @@ class NeutronDiffractionMonteCarlo:
             two_theta_batch = np.arccos(dot_products / k**2)
             intensity_batch = np.abs(structure_factors)**2
 
-            stats.total_trials += batch_trials
+            stats.total_trials += trials_per_batch
 
             angles_accepted = np.where(np.logical_and(two_theta_batch > np.radians(15), two_theta_batch < np.radians(60)))
             two_theta_batch = two_theta_batch[angles_accepted]
