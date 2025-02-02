@@ -1,4 +1,3 @@
-import pytest
 import numpy.testing as nptest
 
 from B8_project.utils import *
