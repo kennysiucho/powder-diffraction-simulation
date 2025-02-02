@@ -393,7 +393,13 @@ class NeutronDiffractionMonteCarlo:
         self.unit_cell = unit_cell
         self.wavelength = wavelength
 
-    def calculate_diffraction_pattern(self, target_accepted_trials: int = 5000, trials_per_batch: int = 10000):
+    def calculate_diffraction_pattern(self,
+                                      target_accepted_trials: int = 5000,
+                                      trials_per_batch: int = 10000,
+                                      unit_cells_in_crystal: tuple[int, int, int] = (8, 8, 8),
+                                      min_angle_rad: float = 0.0,
+                                      max_angle_rad: float = np.pi,
+                                      intensity_threshold_factor: float = 30.0):
         """
         Calculate diffraction pattern
         =============================
@@ -411,6 +417,13 @@ class NeutronDiffractionMonteCarlo:
             - `target_accepted_trials` (`int`): Target number of accepted trials. `two_thetas` and `intensities` will
             each have at least `target_accepted_trials` elements.
             - `trials_per_batch` (`int`): Number of trials calculated at once using NumPy methods
+            - `unit_cells_in_crystal` (`tuple[int, int, int]`): How many times to repeat the unit cell in x, y, z
+            directions, forming the crystal powder for diffraction.
+            - `min_angle_rad`, `max_angle_rad` (`float`): Minimum/maximum scattering angle in radians for a scattering
+            trial to be accepted
+            - `intensity_threshold_factor` (`float`): `intensity_threshold_factor` * (average intensity of all trials
+            after angle filtering) is the minimum intensity for a scattering trial to be accepted. Higher threshold
+            means fewer unhelpful trials resulting in destructive interference are accepted.
         """
         k = 2 * np.pi / self.wavelength
         two_thetas = np.zeros(target_accepted_trials)
@@ -423,8 +436,9 @@ class NeutronDiffractionMonteCarlo:
             scattering_lengths[atom.atomic_number] = all_scattering_lengths[atom.atomic_number].neutron_scattering_length
         print(scattering_lengths)
 
-        expand_N = 9
-        expanded_pos = np.vstack(np.mgrid[0:expand_N, 0:expand_N, 0:expand_N].astype(np.float64)).reshape(3, -1).T
+        expanded_pos = np.vstack(
+            np.mgrid[0:unit_cells_in_crystal[0], 0:unit_cells_in_crystal[1], 0:unit_cells_in_crystal[2]]
+            .astype(np.float64)).reshape(3, -1).T
         np.multiply(expanded_pos, self.unit_cell.lattice_constants, out=expanded_pos)
         print(expanded_pos)
 
@@ -454,14 +468,14 @@ class NeutronDiffractionMonteCarlo:
 
             stats.total_trials += trials_per_batch
 
-            angles_accepted = np.where(np.logical_and(two_theta_batch > np.radians(15), two_theta_batch < np.radians(60)))
+            angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_rad, two_theta_batch < max_angle_rad))
             two_theta_batch = two_theta_batch[angles_accepted]
             intensity_batch = intensity_batch[angles_accepted]
 
-            for i in range(0, two_theta_batch.size, two_theta_batch.size // 50):
+            for i in range(0, two_theta_batch.size, max(1, two_theta_batch.size // 50)):
                 stats.update_avg_intensity(intensity_batch[i])
 
-            intensities_accept = np.where(intensity_batch > 50 * stats.avg_intensity)
+            intensities_accept = np.where(intensity_batch > intensity_threshold_factor * stats.avg_intensity)
             for i in intensities_accept[0]:
                 if stats.accepted_data_points == target_accepted_trials: break
                 two_thetas[stats.accepted_data_points] = np.degrees(two_theta_batch[i])
