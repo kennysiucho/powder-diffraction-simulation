@@ -1,9 +1,10 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
 from B8_project import file_reading
 import B8_project.crystal as unit_cell
 from B8_project.diffraction_monte_carlo import NeutronDiffractionMonteCarlo
 
-import matplotlib.pyplot as plt
-import numpy as np
 
 LATTICE_FILE = "data/PrO2_lattice.csv"
 BASIS_FILE = "data/PrO2_basis.csv"
@@ -28,20 +29,23 @@ two_thetas = two_thetas[indices]
 intensities = intensities[indices]
 intensities = intensities / np.max(intensities)
 
-num_bins = 60
+NUM_BINS = 60
 min_theta = np.min(two_thetas)
 max_theta = np.max(two_thetas)
-bin_size = (max_theta - min_theta) / num_bins
-two_theta_bins = np.linspace(min_theta + bin_size / 2, max_theta - bin_size / 2, num_bins)
-intensities_binned = np.zeros(num_bins)
+bin_size = (max_theta - min_theta) / NUM_BINS
+two_theta_bins = np.linspace(min_theta + bin_size / 2, max_theta - bin_size / 2,
+                             NUM_BINS)
+intensities_binned = np.zeros(NUM_BINS)
 for i in range(two_thetas.size):
     bin_i = int((two_thetas[i] - min_theta) // bin_size)
-    if bin_i == num_bins: continue
+    if bin_i == NUM_BINS:
+        continue
     intensities_binned[bin_i] += intensities[i]
 intensities_binned /= np.max(intensities_binned)
 
 plt.scatter(two_thetas, intensities, s=2, label="Scattering trials")
-plt.plot(two_theta_bins, intensities_binned, color='k', label="Aggregated intensities")
+plt.plot(two_theta_bins, intensities_binned, color='k',
+         label="Aggregated intensities")
 plt.xlabel("Scattering angle (2θ) (deg)")
 plt.ylabel("Normalized intensity")
 plt.title("PrO2 Neutron Diffraction Spectrum")

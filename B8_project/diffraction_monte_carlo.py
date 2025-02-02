@@ -2,7 +2,7 @@ import time
 from dataclasses import dataclass
 import numpy as np
 from B8_project.file_reading import read_neutron_scattering_lengths
-import B8_project.utils as utils
+from B8_project import utils
 from B8_project.crystal import UnitCell
 
 @dataclass
