@@ -765,4 +765,3 @@ class NeutronDiffractionMonteCarlo:
         intensities /= np.max(intensities)
 
         return two_thetas, intensities
-main
