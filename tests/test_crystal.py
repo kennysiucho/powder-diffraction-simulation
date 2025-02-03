@@ -32,8 +32,8 @@ class TestAtom:
     @staticmethod
     def test_atom_shift_position_normal_operation():
         """
-        A unit test that tests the shift_position method of the Atom class. This unit test
-        verifies the normal operation of the shift_position method.
+        A unit test that tests the shift_position method of the Atom class. This unit
+        test verifies the normal operation of the shift_position method.
         """
         atom = Atom(11, (0, 0, 0))
         assert atom.shift_position((0, 0, 0)) == atom
@@ -41,6 +41,16 @@ class TestAtom:
 
         atom = Atom(17, (0.5, 0.25, 0.25))
         assert atom.shift_position((0.1, 0.2, 0.3)) == Atom(17, (0.6, 0.45, 0.55))
+
+    @staticmethod
+    def test_atom_scale_position_normal_operation():
+        """
+        A unit test that tests the scale_position method of the Atom class. This unit
+        test verifies the normal operation of the scale_position method.
+        """
+        atom = Atom(1, (0.5, 0.5, 0.5))
+        assert atom.scale_position((2, 2, 2)) == Atom(1, (1, 1, 1))
+        assert atom.scale_position((0.5, 0.5, 0.5)) == Atom(1, (0.25, 0.25, 0.25))
 
 
 class TestUnitCell:
