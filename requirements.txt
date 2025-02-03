@@ -1,5 +1,5 @@
 alabaster==0.7.16
--e git+https://github.com/joeEndacott/B8_project.git@399f1f1ec4cf1c6babc4de9915f43c9da58aaaaa#egg=B8_project
+-e git+https://github.com/joeEndacott/B8_project.git@303f9c7898ebbc511c19147b68b7e5402f40e789#egg=B8_project
 babel==2.16.0
 certifi==2024.12.14
 charset-normalizer==3.4.1
@@ -25,6 +25,7 @@ pluggy==1.5.0
 Pygments==2.19.1
 pyparsing==3.2.1
 pytest==8.3.4
+pytest-mock==3.14.0
 python-dateutil==2.9.0.post0
 pytz==2024.2
 requests==2.32.3
@@ -40,5 +41,3 @@ tomli==2.2.1
 tzdata==2024.2
 urllib3==2.3.0
 zipp==3.21.0
-pytest-mock~=3.14.0
-setuptools~=68.2.0

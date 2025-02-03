@@ -38,7 +38,7 @@ class TestSuperCell:
         lattice = file_reading.read_lattice("tests/data/CsCl_lattice.csv")
         unit_cell = UnitCell.new_unit_cell(basis, lattice)
 
-        super_cell = SuperCell.new(unit_cell, (2, 2, 2))
+        super_cell = SuperCell.new_super_cell(unit_cell, (2, 2, 2))
 
         assert super_cell.unit_cell == unit_cell
         assert super_cell.side_lengths == (2, 2, 2)
@@ -53,10 +53,10 @@ class TestSuperCell:
         lattice = file_reading.read_lattice("tests/data/CsCl_lattice.csv")
         unit_cell = UnitCell.new_unit_cell(basis, lattice)
 
-        super_cell = SuperCell.new(unit_cell, (1, 1, 1))
+        super_cell = SuperCell.new_super_cell(unit_cell, (1, 1, 1))
         assert super_cell.lattice_vectors() == [(0, 0, 0)]
 
-        super_cell = SuperCell.new(unit_cell, (2, 2, 2))
+        super_cell = SuperCell.new_super_cell(unit_cell, (2, 2, 2))
         assert (
             super_cell.lattice_vectors().sort()
             == [
@@ -81,14 +81,14 @@ class TestSuperCell:
         lattice = file_reading.read_lattice("tests/data/CsCl_lattice.csv")
         unit_cell = UnitCell.new_unit_cell(basis, lattice)
 
-        super_cell = SuperCell.new(unit_cell, (1, 1, 1))
+        super_cell = SuperCell.new_super_cell(unit_cell, (1, 1, 1))
         assert super_cell.to_unit_cell() == unit_cell
 
         basis = file_reading.read_basis("tests/data/Na_basis.csv")
         lattice = file_reading.read_lattice("tests/data/Na_lattice.csv")
         unit_cell = UnitCell.new_unit_cell(basis, lattice)
 
-        super_cell = SuperCell.new(unit_cell, (2, 1, 1))
+        super_cell = SuperCell.new_super_cell(unit_cell, (2, 1, 1))
 
         assert super_cell.to_unit_cell().lattice_constants == (
             2 * unit_cell.lattice_constants[0],

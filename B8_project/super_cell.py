@@ -35,7 +35,7 @@ class SuperCell:
     side_lengths: tuple[int, int, int]
 
     @classmethod
-    def new(cls, unit_cell: UnitCell, side_lengths: tuple[int, int, int]):
+    def new_super_cell(cls, unit_cell: UnitCell, side_lengths: tuple[int, int, int]):
         """
         New super cell
         ==============
