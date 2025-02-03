@@ -2,6 +2,7 @@
 This module contains unit tests for the utils.py module.
 """
 
+from typing import cast
 import numpy as np
 import numpy.testing as nptest
 import matplotlib.pyplot as plt
@@ -12,7 +13,7 @@ from B8_project.utils import (
     dot_product_tuples,
     gaussian,
     random_uniform_unit_vector,
-    random_uniform_unit_vectors
+    random_uniform_unit_vectors,
 )
 
 
@@ -78,9 +79,13 @@ def test_gaussian_normal_operation():
 
 
 def test_random_uniform_unit_vector_is_unit_vector():
-    N = 500
+    """
+    Add test docstring here.
+    """
+
+    n = 500
     for dim in range(2, 5):
-        vectors = [random_uniform_unit_vector(dim) for _ in range(N)]
+        vectors = [random_uniform_unit_vector(dim) for _ in range(n)]
         for vector in vectors:
             mag_squared = 0.0
             for e in vector:
@@ -89,9 +94,13 @@ def test_random_uniform_unit_vector_is_unit_vector():
 
 
 def test_random_uniform_unit_vectors_are_unit_vectors():
-    N = 500
+    """
+    Add test docstring here.
+    """
+
+    n = 500
     for dim in range(2, 5):
-        vectors = random_uniform_unit_vectors(N, dim)
+        vectors = random_uniform_unit_vectors(n, dim)
         for vector in vectors:
             mag_squared = 0.0
             for e in vector:
@@ -100,22 +109,34 @@ def test_random_uniform_unit_vectors_are_unit_vectors():
 
 
 def plot_3d_unit_vectors(vectors, title):
+    """
+    Plots 3D unit vectors using matplotlib.
+
+    Parameters:
+    vectors (np.ndarray): Array of 3D vectors to plot.
+    title (str): Title of the plot.
+    """
+
     fig = plt.figure()
-    ax: Axes3D = fig.add_subplot(projection="3d")
+    ax = cast(Axes3D, fig.add_subplot(projection="3d"))
     xs, ys, zs = vectors[:, 0], vectors[:, 1], vectors[:, 2]
     ax.scatter(xs, ys, zs)
     ax.set_xlabel("x")
     ax.set_ylabel("y")
-    ax.set_zlabel("z")
-    ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
+    ax.set_zlabel("z", fontsize=12)
+    ax.set_aspect("auto")
     plt.title(title)
     plt.show()
+
 
 # These two tests are merely visual tests - check if the generated random unit
 # vectors seem spherically uniform
 def test_random_uniform_3d_unit_vector():
-    N = 500
-    vectors = [random_uniform_unit_vector(3) for _ in range(N)]
+    """
+    Add test docstring here.
+    """
+    n = 500
+    vectors = [random_uniform_unit_vector(3) for _ in range(n)]
     vectors = np.array(vectors)
     plot_3d_unit_vectors(
         vectors, "Visual check for spherical uniformity: random_uniform_unit_vector"
@@ -123,8 +144,11 @@ def test_random_uniform_3d_unit_vector():
 
 
 def test_random_uniform_3d_unit_vectors():
-    N = 500
-    vectors = random_uniform_unit_vectors(N, 3)
+    """
+    Add test docstring here.
+    """
+    n = 500
+    vectors = random_uniform_unit_vectors(n, 3)
     plot_3d_unit_vectors(
         vectors, "Visual check for spherical uniformity: random_uniform_unit_vectors"
     )

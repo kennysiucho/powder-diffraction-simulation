@@ -1,5 +1,10 @@
+"""
+Add module docstring here.
+"""
+
 import pytest
-import pytest_mock
+
+# import pytest_mock
 import numpy as np
 import numpy.testing as nptest
 from B8_project.file_reading import read_lattice, read_basis
@@ -9,6 +14,9 @@ from B8_project.diffraction_monte_carlo import NeutronDiffractionMonteCarlo
 
 @pytest.fixture
 def nd_monte_carlo():
+    """
+    Add test docstring here.
+    """
     nacl_lattice = read_lattice("tests/data/NaCl_lattice.csv")
     nacl_basis = read_basis("tests/data/NaCl_basis.csv")
     unit_cell = UnitCell.new_unit_cell(nacl_basis, nacl_lattice)
@@ -48,8 +56,10 @@ random_unit_vectors_2 = np.array(
 
 
 def test_monte_carlo_calculate_diffraction_pattern(nd_monte_carlo, mocker):
-    # Mocks the `random_uniform_unit_vectors` method to return the same random
-    # vectors for consistent result
+    """
+    Mocks the `random_uniform_unit_vectors` method to return the same random
+    vectors for consistent result.
+    """
     mocker.patch(
         "B8_project.utils.random_uniform_unit_vectors",
         side_effect=[random_unit_vectors_1, random_unit_vectors_2],
