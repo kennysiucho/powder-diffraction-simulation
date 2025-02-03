@@ -42,20 +42,10 @@ class NeutronDiffractionMonteCarloRunStats:
     """
 
     accepted_data_points: int = 0
-    avg_intensity_cnt_: int = 0
-    avg_intensity: float = 0.0
     total_trials: int = 0
     start_time_: float = time.time()
     prev_print_time_: float = 0.0
     microseconds_per_trial: float = 0.0
-
-    def update_avg_intensity(self, intensity: float):
-        """
-        Given intensity of new trial, update running average of intensity.
-        """
-        self.avg_intensity = (self.avg_intensity * self.avg_intensity_cnt_ +
-                              intensity) / (self.avg_intensity_cnt_ + 1)
-        self.avg_intensity_cnt_ += 1
 
     def recalculate_microseconds_per_trial(self):
         """
@@ -102,7 +92,7 @@ class NeutronDiffractionMonteCarlo:
                                       8, 8, 8),
                                       min_angle_rad: float = 0.0,
                                       max_angle_rad: float = np.pi,
-                                      intensity_threshold_factor: float = 30.0):
+                                      angle_bins: int = 100):
         """
         Calculate diffraction pattern
         =============================
@@ -135,8 +125,8 @@ class NeutronDiffractionMonteCarlo:
             fewer unhelpful trials resulting in destructive interference are accepted.
         """
         k = 2 * np.pi / self.wavelength
-        two_thetas = np.zeros(target_accepted_trials)
-        intensities = np.zeros(target_accepted_trials)
+        two_thetas = np.linspace(min_angle_rad, max_angle_rad, angle_bins)
+        intensities = np.zeros(angle_bins)
 
         # read relevant neutron scattering lengths
         all_scattering_lengths = read_neutron_scattering_lengths(
@@ -187,18 +177,12 @@ class NeutronDiffractionMonteCarlo:
             two_theta_batch = two_theta_batch[angles_accepted]
             intensity_batch = intensity_batch[angles_accepted]
 
-            for i in range(0, two_theta_batch.size, max(1, two_theta_batch.size // 50)):
-                stats.update_avg_intensity(intensity_batch[i])
+            bins = np.searchsorted(two_thetas, two_theta_batch)
+            intensities[bins] += intensity_batch
 
-            intensities_accept = np.where(
-                intensity_batch > intensity_threshold_factor * stats.avg_intensity)
-            for i in intensities_accept[0]:
-                if stats.accepted_data_points == target_accepted_trials:
-                    break
-                two_thetas[stats.accepted_data_points] = np.degrees(two_theta_batch[i])
-                intensities[stats.accepted_data_points] = intensity_batch[i]
-                stats.accepted_data_points += 1
+            stats.accepted_data_points += two_theta_batch.shape[0]
 
         intensities /= np.max(intensities)
+        two_thetas = np.degrees(two_thetas)
 
         return two_thetas, intensities
