@@ -2,19 +2,16 @@
 This module contains unit tests for the utils.py module.
 """
 
-import numpy.testing as nptest
 import numpy as np
+import numpy.testing as nptest
 import matplotlib.pyplot as plt
-
-# from B8_project.utils import *
-
 from B8_project.utils import (
     duplicate_elements,
     add_tuples,
     dot_product_tuples,
     gaussian,
     random_uniform_unit_vector,
-    random_uniform_unit_vectors,
+    random_uniform_unit_vectors
 )
 
 
@@ -115,6 +112,8 @@ def plot_3d_unit_vectors(vectors, title):
 
 
 # These two tests are merely visual tests - check if the generated random unit vectors seem spherically uniform
+# These two tests are merely visual tests - check if the generated random unit
+# vectors seem spherically uniform
 def test_random_uniform_3d_unit_vector():
     N = 500
     vectors = [random_uniform_unit_vector(3) for _ in range(N)]

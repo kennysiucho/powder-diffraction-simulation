@@ -5,8 +5,8 @@ Functions:
 TODO: add functions.
 """
 
-import numpy as np
 import random
+import numpy as np
 
 def duplicate_elements(original_list: list, num_duplicates: int) -> list:
     """
@@ -89,7 +89,8 @@ def random_uniform_unit_vector(dims: int):
     Random uniform unit vector
     ==========================
 
-    Returns a list of length `dims` representing a unit vector uniformly and randomly selected from the unit sphere.
+    Returns a list of length `dims` representing a unit vector uniformly and randomly
+    selected from the unit sphere.
     """
     vec = [random.gauss(0, 1) for i in range(dims)]
     mag = sum(x ** 2 for x in vec) ** .5
@@ -100,7 +101,8 @@ def random_uniform_unit_vectors(n: int, dims: int):
     Random uniform unit vectors
     ===========================
 
-    Returns a NumPy array of shape `(n, dims)` consisting of `n` unit vectors, each uniformly and randomly selected
+    Returns a NumPy array of shape `(n, dims)` consisting of `n` unit vectors,
+    each uniformly and randomly selected
     from the unit sphere.
     """
     vecs = np.random.normal(size=(n, dims))
