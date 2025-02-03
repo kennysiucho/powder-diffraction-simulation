@@ -84,16 +84,22 @@ class SuperCell:
         unit_cell = self.unit_cell
         lattice_vectors = self.lattice_vectors()
 
-        atoms = []
-
-        for lattice_vector in lattice_vectors:
-            for atom in unit_cell.atoms:
-                atoms.append(atom.shift_position(lattice_vector))
-
         lattice_constants = (
             self.side_lengths[0] * unit_cell.lattice_constants[0],
             self.side_lengths[1] * unit_cell.lattice_constants[1],
             self.side_lengths[2] * unit_cell.lattice_constants[2],
         )
+
+        x_side_length, y_side_length, z_side_length = self.side_lengths
+
+        atoms = []
+
+        for lattice_vector in lattice_vectors:
+            for atom in unit_cell.atoms:
+                atoms.append(
+                    atom.shift_position(lattice_vector).scale_position(
+                        (1 / x_side_length, 1 / y_side_length, 1 / z_side_length)
+                    )
+                )
 
         return UnitCell(unit_cell.material, lattice_constants, atoms)

@@ -7,8 +7,7 @@ The purpose of this script is ensure that the super cell implementation is valid
 miller peaks for all of the cells should be identical.
 """
 
-from B8_project import file_reading, crystal, diffraction
-import B8_project.super_cell as super_cell
+from B8_project import file_reading, crystal, diffraction, super_cell
 
 # Get basis and lattice parameters from CSV files.
 CRYSTAL_PATH = "data/type_3_5_semiconductors/"

@@ -36,6 +36,8 @@ class Atom:
     -------
         - shift_position: shifts the `position` of an `Atom` instance by a specified
         amount.
+        - scale_position: scales the x, y, z coordinates of an atom by a specified
+        amount.
     """
 
     atomic_number: int
@@ -59,6 +61,22 @@ class Atom:
             - (Atom): an `Atom` instance.
         """
         return Atom(self.atomic_number, utils.add_tuples(self.position, shift))
+
+    def scale_position(self, scale_factor: tuple[float, float, float]) -> "Atom":
+        """
+        Scale position
+        ==============
+
+        Scales the x, y, z coordinates of an atom by a specified amount.
+        """
+        return Atom(
+            self.atomic_number,
+            (
+                self.position[0] * scale_factor[0],
+                self.position[1] * scale_factor[1],
+                self.position[2] * scale_factor[2],
+            ),
+        )
 
 
 @dataclass

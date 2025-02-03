@@ -88,18 +88,35 @@ class TestSuperCell:
         lattice = file_reading.read_lattice("tests/data/Na_lattice.csv")
         unit_cell = UnitCell.new_unit_cell(basis, lattice)
 
-        super_cell = SuperCell.new_super_cell(unit_cell, (2, 1, 1))
+        super_cell = SuperCell.new_super_cell(unit_cell, (2, 2, 2))
+
+        assert super_cell.to_unit_cell().material == "Na"
 
         assert super_cell.to_unit_cell().lattice_constants == (
             2 * unit_cell.lattice_constants[0],
-            unit_cell.lattice_constants[1],
-            unit_cell.lattice_constants[2],
+            2 * unit_cell.lattice_constants[1],
+            2 * unit_cell.lattice_constants[2],
         )
 
         atomic_positions = [atom.position for atom in super_cell.to_unit_cell().atoms]
-        assert atomic_positions == [
-            (0, 0, 0),
-            (0.5, 0.5, 0.5),
-            (1, 0, 0),
-            (1.5, 0.5, 0.5),
-        ]
+        assert (
+            atomic_positions.sort()
+            == [
+                (0, 0, 0),
+                (0.25, 0.25, 0.25),
+                (0.5, 0, 0),
+                (0.75, 0.25, 0.25),
+                (0, 0.5, 0),
+                (0.25, 0.75, 0.25),
+                (0, 0, 0.5),
+                (0.25, 0.25, 0.75),
+                (0.5, 0.5, 0),
+                (0.75, 0.75, 0.25),
+                (0.5, 0, 0.5),
+                (0.75, 0.25, 0.75),
+                (0, 0.5, 0.5),
+                (0.25, 0.75, 0.75),
+                (0.5, 0.5, 0.5),
+                (0.75, 0.75, 0.75),
+            ].sort()
+        )
