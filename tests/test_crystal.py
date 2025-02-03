@@ -32,8 +32,7 @@ class TestAtom:
     @staticmethod
     def test_atom_shift_position_normal_operation():
         """
-        A unit test that tests the shift_position method of the Atom class. This unit test
-        verifies the normal operation of the shift_position method.
+        A unit test that tests the shift_position method of the Atom class. This unit test verifies the normal operation of the shift_position method.
         """
         atom = Atom(11, (0, 0, 0))
         assert atom.shift_position((0, 0, 0)) == atom
