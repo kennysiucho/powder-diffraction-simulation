@@ -90,8 +90,8 @@ class NeutronDiffractionMonteCarlo:
                                       trials_per_batch: int = 10000,
                                       unit_cells_in_crystal: tuple[int, int, int] = (
                                       8, 8, 8),
-                                      min_angle_rad: float = 0.0,
-                                      max_angle_rad: float = np.pi,
+                                      min_angle_deg: float = 0.0,
+                                      max_angle_deg: float = 180.0,
                                       angle_bins: int = 100):
         """
         Calculate diffraction pattern
@@ -125,7 +125,7 @@ class NeutronDiffractionMonteCarlo:
             fewer unhelpful trials resulting in destructive interference are accepted.
         """
         k = 2 * np.pi / self.wavelength
-        two_thetas = np.linspace(min_angle_rad, max_angle_rad, angle_bins)
+        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
         intensities = np.zeros(angle_bins)
 
         # read relevant neutron scattering lengths
@@ -167,13 +167,13 @@ class NeutronDiffractionMonteCarlo:
                     np.exp(1j * scattering_vecs @ r.T), axis=1)
 
             dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
-            two_theta_batch = np.arccos(dot_products / k**2)
+            two_theta_batch = np.degrees(np.arccos(dot_products / k**2))
             intensity_batch = np.abs(structure_factors)**2
 
             stats.total_trials += trials_per_batch
 
-            angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_rad,
-                                                      two_theta_batch < max_angle_rad))
+            angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_deg,
+                                                      two_theta_batch < max_angle_deg))
             two_theta_batch = two_theta_batch[angles_accepted]
             intensity_batch = intensity_batch[angles_accepted]
 
@@ -183,6 +183,5 @@ class NeutronDiffractionMonteCarlo:
             stats.accepted_data_points += two_theta_batch.shape[0]
 
         intensities /= np.max(intensities)
-        two_thetas = np.degrees(two_thetas)
 
         return two_thetas, intensities

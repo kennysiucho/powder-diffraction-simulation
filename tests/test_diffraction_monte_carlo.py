@@ -70,8 +70,8 @@ def test_monte_carlo_calculate_diffraction_pattern(nd_monte_carlo, mocker):
         target_accepted_trials=10,
         trials_per_batch=10,
         unit_cells_in_crystal=(8, 8, 8),
-        min_angle_rad=0,
-        max_angle_rad=180,
+        min_angle_deg=0,
+        max_angle_deg=180,
         intensity_threshold_factor=0.0,
     )
 

@@ -18,8 +18,8 @@ nd = NeutronDiffractionMonteCarlo(my_cell, 0.123)
 # TODO: better handling of whether to calculate or read from file
 two_thetas, intensities = (
     nd.calculate_diffraction_pattern(300000,
-                                     min_angle_rad=np.radians(18),
-                                     max_angle_rad=np.radians(57)))
+                                     min_angle_deg=18,
+                                     max_angle_deg=57))
 np.savetxt('two_thetas.txt', two_thetas)
 np.savetxt('intensities.txt', intensities)
 
