@@ -5,6 +5,7 @@ This module contains unit tests for the utils.py module.
 import numpy as np
 import numpy.testing as nptest
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from B8_project.utils import (
     duplicate_elements,
     add_tuples,
@@ -100,7 +101,7 @@ def test_random_uniform_unit_vectors_are_unit_vectors():
 
 def plot_3d_unit_vectors(vectors, title):
     fig = plt.figure()
-    ax = fig.add_subplot(projection="3d")
+    ax: Axes3D = fig.add_subplot(projection="3d")
     xs, ys, zs = vectors[:, 0], vectors[:, 1], vectors[:, 2]
     ax.scatter(xs, ys, zs)
     ax.set_xlabel("x")
@@ -110,8 +111,6 @@ def plot_3d_unit_vectors(vectors, title):
     plt.title(title)
     plt.show()
 
-
-# These two tests are merely visual tests - check if the generated random unit vectors seem spherically uniform
 # These two tests are merely visual tests - check if the generated random unit
 # vectors seem spherically uniform
 def test_random_uniform_3d_unit_vector():
