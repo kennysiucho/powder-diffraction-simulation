@@ -29,20 +29,20 @@ MIN_DEFLECTION_ANGLE = 27
 MAX_DEFLECTION_ANGLE = 84
 INTENSITY_CUTOFF = 0.001
 
-# Calculate miller peaks for GaAs.
-# GaAs_hkl_peaks = diffraction.calculate_miller_peaks(
-#     GaAs_unit_cell,
-#     "XRD",
-#     neutron_form_factors,
-#     x_ray_form_factors,
-#     WAVELENGTH,
-#     MIN_DEFLECTION_ANGLE,
-#     MAX_DEFLECTION_ANGLE,
-#     INTENSITY_CUTOFF,
-# )
+# Print the miller peaks for GaAs
+diffraction.get_miller_peaks(
+    GaAs_unit_cell,
+    "XRD",
+    neutron_form_factors,
+    x_ray_form_factors,
+    WAVELENGTH,
+    MIN_DEFLECTION_ANGLE,
+    MAX_DEFLECTION_ANGLE,
+    print_peak_data=True,
+)
 
 # Plot the GaAs diffraction pattern.
-diffraction.Plotting.plot_diffraction_pattern(
+diffraction.plot_diffraction_pattern(
     GaAs_unit_cell,
     "XRD",
     neutron_form_factors,
@@ -59,20 +59,21 @@ MIN_DEFLECTION_ANGLE = 25
 MAX_DEFLECTION_ANGLE = 84
 INTENSITY_CUTOFF = 0.001
 
-# Calculate miller peaks for InAs.
-# InAs_hkl_peaks = diffraction.calculate_miller_peaks(
-#     InAs_unit_cell,
-#     "XRD",
-#     neutron_form_factors,
-#     x_ray_form_factors,
-#     WAVELENGTH,
-#     MIN_DEFLECTION_ANGLE,
-#     MAX_DEFLECTION_ANGLE,
-#     INTENSITY_CUTOFF,
-# )
+# Print the miller peaks for InAs
+diffraction.get_miller_peaks(
+    InAs_unit_cell,
+    "XRD",
+    neutron_form_factors,
+    x_ray_form_factors,
+    WAVELENGTH,
+    MIN_DEFLECTION_ANGLE,
+    MAX_DEFLECTION_ANGLE,
+    print_peak_data=True,
+)
+
 
 # Plot the InAs diffraction pattern.
-diffraction.Plotting.plot_diffraction_pattern(
+diffraction.plot_diffraction_pattern(
     InAs_unit_cell,
     "XRD",
     neutron_form_factors,
@@ -82,21 +83,3 @@ diffraction.Plotting.plot_diffraction_pattern(
     MAX_DEFLECTION_ANGLE,
     file_path="results/",
 )
-
-# Print the miller peaks for GaAs.
-# print("\nGaAs diffraction peaks.")
-# for i, peak in enumerate(GaAs_hkl_peaks):
-#     print(
-#         f"Peak {i+1}: "
-#         f"(h, k, l) = {peak[1]}; deflection angle = {round(peak[0], 2)}°; "
-#         f"relative intensity = {round(peak[2], 4)}"
-# )
-
-# Print the miller peaks for InAs.
-# print("\nInAs diffraction peaks.")
-# for i, peak in enumerate(InAs_hkl_peaks):
-#     print(
-#         f"Peak {i+1}: "
-#         f"(h, k, l) = {peak[1]}; deflection angle = {round(peak[0], 2)}°; "
-#         f"relative intensity = {round(peak[2], 4)}"
-#     )

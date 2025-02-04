@@ -272,7 +272,7 @@ def get_miller_peaks(
         for i, peak in enumerate(diffraction_peaks):
             print(
                 f"Peak {i+1}: "
-                f"(h, k, l) = {peak[1]}; deflection angle = {round(peak[0], 2)}°; "
+                f"[h k l] = {peak[0]}; deflection angle = {np.round(peak[1], 2)}°; "
                 f"relative intensity = {round(peak[2], 4)}"
             )
 
