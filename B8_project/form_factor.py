@@ -16,7 +16,6 @@ Classes
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 import numpy as np
-from B8_project.crystal import ReciprocalLatticeVector
 
 
 @runtime_checkable
@@ -29,9 +28,7 @@ class FormFactorProtocol(Protocol):
     Form factor classes must implement the `evaluate_form_factor` method.
     """
 
-    def evaluate_form_factor(
-        self, reciprocal_lattice_vector: ReciprocalLatticeVector
-    ) -> float:
+    def evaluate_form_factor(self, reciprocal_lattice_vector_magnitude: float) -> float:
         """
         Evaluate form factor
         ====================
@@ -68,7 +65,7 @@ class NeutronFormFactor:
 
     def evaluate_form_factor(
         self,
-        reciprocal_lattice_vector: ReciprocalLatticeVector,  # pylint: disable=W0613
+        reciprocal_lattice_vector_magnitude: float,  # pylint: disable=W0613
     ) -> float:
         """
         Evaluate neutron form factor
@@ -121,16 +118,13 @@ class XRayFormFactor:
     b4: float
     c: float
 
-    def evaluate_form_factor(
-        self, reciprocal_lattice_vector: ReciprocalLatticeVector
-    ) -> float:
+    def evaluate_form_factor(self, reciprocal_lattice_vector_magnitude: float) -> float:
         """
         Evaluate X-ray form factor
         ==========================
 
         Returns the form factor associated with an instance of `XRayFormFactor`.
         """
-        reciprocal_lattice_vector_magnitude = reciprocal_lattice_vector.magnitude()
 
         a = [self.a1, self.a2, self.a3, self.a4]
         b = [self.b1, self.b2, self.b3, self.b4]
