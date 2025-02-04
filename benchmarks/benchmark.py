@@ -6,7 +6,7 @@ import statistics
 import time
 
 
-def benchmark_function(function, *args, number_of_runs):
+def benchmark_function(function, *args, number_of_runs=5, **kwargs):
     """
     Benchmark function
     ==================
@@ -23,7 +23,7 @@ def benchmark_function(function, *args, number_of_runs):
         start_time = time.perf_counter()
 
         # Execute the function.
-        result = function(*args)
+        result = function(*args, **kwargs)
 
         # Stop the timer.
         stop_time = time.perf_counter()
