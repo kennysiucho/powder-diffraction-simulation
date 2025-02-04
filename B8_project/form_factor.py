@@ -30,7 +30,7 @@ class FormFactorProtocol(Protocol):
     Form factor classes must implement the `evaluate_form_factor` method.
     """
 
-    def evaluate_form_factor(
+    def evaluate_form_factors(
         self, reciprocal_lattice_vector_magnitudes: np.ndarray
     ) -> np.ndarray:
         """
@@ -66,7 +66,7 @@ class NeutronFormFactor:
 
     neutron_scattering_length: float
 
-    def evaluate_form_factor(
+    def evaluate_form_factors(
         self,
         reciprocal_lattice_vector_magnitudes: np.ndarray,  # pylint: disable=W0613
     ) -> np.ndarray:
@@ -74,9 +74,7 @@ class NeutronFormFactor:
         Evaluate neutron form factor
         ============================
 
-        Returns the neutron scattering length of an instance of `NeutronFormFactor`.
-        The neutron scattering length of an atom is proportional to the neutron form
-        factor.
+        Evaluates a neutron form factor.
         """
         # Create a NumPy array to store the neutron form factors.
         form_factors = self.neutron_scattering_length * np.ones(
@@ -125,16 +123,15 @@ class XRayFormFactor:
     b4: float
     c: float
 
-    def evaluate_form_factor(
+    def evaluate_form_factors(
         self, reciprocal_lattice_vector_magnitudes: np.ndarray
     ) -> np.ndarray:
         """
         Evaluate X-ray form factor
         ==========================
 
-        Returns the form factor associated with an instance of `XRayFormFactor`.
+        Evaluates an X-ray form factor.
         """
-
         a = [self.a1, self.a2, self.a3, self.a4]
         b = [self.b1, self.b2, self.b3, self.b4]
         c = self.c
