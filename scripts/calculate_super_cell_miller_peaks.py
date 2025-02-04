@@ -36,6 +36,10 @@ GaAs_super_cell_3 = super_cell.SuperCell.new_super_cell(
     GaAs_unit_cell, (3, 3, 3)
 ).to_unit_cell()
 
+GaAs_super_cell_5 = super_cell.SuperCell.new_super_cell(
+    GaAs_unit_cell, (5, 5, 5)
+).to_unit_cell()
+
 # Diffraction parameters
 WAVELENGTH = 0.1
 MIN_DEFLECTION_ANGLE = 20
@@ -43,7 +47,7 @@ MAX_DEFLECTION_ANGLE = 60
 INTENSITY_CUTOFF = 0.001
 
 # Calculate the miller peaks for the cells
-GaAs_unit_cell_hkl_peaks = diffraction.calculate_miller_peaks(
+GaAs_unit_cell_hkl_peaks = diffraction.get_miller_peaks(
     GaAs_unit_cell,
     "XRD",
     neutron_form_factors,
@@ -52,31 +56,34 @@ GaAs_unit_cell_hkl_peaks = diffraction.calculate_miller_peaks(
     MIN_DEFLECTION_ANGLE,
     MAX_DEFLECTION_ANGLE,
     INTENSITY_CUTOFF,
+    print_peak_data=True,
 )
 
-GaAs_super_cell_1_hkl_peaks = diffraction.calculate_miller_peaks(
-    GaAs_super_cell_1,
-    "XRD",
-    neutron_form_factors,
-    x_ray_form_factors,
-    WAVELENGTH,
-    MIN_DEFLECTION_ANGLE,
-    MAX_DEFLECTION_ANGLE,
-    INTENSITY_CUTOFF,
-)
+# GaAs_super_cell_1_hkl_peaks = diffraction.get_miller_peaks(
+#     GaAs_super_cell_1,
+#     "XRD",
+#     neutron_form_factors,
+#     x_ray_form_factors,
+#     WAVELENGTH,
+#     MIN_DEFLECTION_ANGLE,
+#     MAX_DEFLECTION_ANGLE,
+#     INTENSITY_CUTOFF,
+#     print_peak_data=True,
+# )
 
-GaAs_super_cell_2_hkl_peaks = diffraction.calculate_miller_peaks(
-    GaAs_super_cell_2,
-    "XRD",
-    neutron_form_factors,
-    x_ray_form_factors,
-    WAVELENGTH,
-    MIN_DEFLECTION_ANGLE,
-    MAX_DEFLECTION_ANGLE,
-    INTENSITY_CUTOFF,
-)
+# GaAs_super_cell_2_hkl_peaks = diffraction.get_miller_peaks(
+#     GaAs_super_cell_2,
+#     "XRD",
+#     neutron_form_factors,
+#     x_ray_form_factors,
+#     WAVELENGTH,
+#     MIN_DEFLECTION_ANGLE,
+#     MAX_DEFLECTION_ANGLE,
+#     INTENSITY_CUTOFF,
+#     print_peak_data=True,
+# )
 
-# GaAs_super_cell_3_hkl_peaks = diffraction.calculate_miller_peaks(
+# GaAs_super_cell_3_hkl_peaks = diffraction.get_miller_peaks(
 #     GaAs_super_cell_3,
 #     "XRD",
 #     neutron_form_factors,
@@ -85,37 +92,17 @@ GaAs_super_cell_2_hkl_peaks = diffraction.calculate_miller_peaks(
 #     MIN_DEFLECTION_ANGLE,
 #     MAX_DEFLECTION_ANGLE,
 #     INTENSITY_CUTOFF,
+#     print_peak_data=True,
 # )
 
-# Print the miller peaks for the different cells.
-print("GaAs unit cell diffraction peaks.")
-for i, peak in enumerate(GaAs_unit_cell_hkl_peaks):
-    print(
-        f"Peak {i+1}: "
-        f"(h, k, l) = {peak[1]}; deflection angle = {round(peak[0], 2)}°; "
-        f"relative intensity = {round(peak[2], 4)}"
-    )
-
-print("\nGaAs super cell (1*1*1) diffraction peaks.")
-for i, peak in enumerate(GaAs_super_cell_1_hkl_peaks):
-    print(
-        f"Peak {i+1}: "
-        f"(h, k, l) = {peak[1]}; deflection angle = {round(peak[0], 2)}°; "
-        f"relative intensity = {round(peak[2], 4)}"
-    )
-
-print("\nGaAs super cell (2*2*2) diffraction peaks.")
-for i, peak in enumerate(GaAs_super_cell_2_hkl_peaks):
-    print(
-        f"Peak {i+1}: "
-        f"(h, k, l) = {peak[1]}; deflection angle = {round(peak[0], 2)}°; "
-        f"relative intensity = {round(peak[2], 4)}"
-    )
-
-# print("\nGaAs super cell (3*3*3) diffraction peaks.")
-# for i, peak in enumerate(GaAs_super_cell_3_hkl_peaks):
-#     print(
-#         f"Peak {i+1}: "
-#         f"(h, k, l) = {peak[1]}; deflection angle = {round(peak[0], 2)}°; "
-#         f"relative intensity = {round(peak[2], 4)}"
-#     )
+GaAs_super_cell_5_hkl_peaks = diffraction.get_miller_peaks(
+    GaAs_super_cell_5,
+    "XRD",
+    neutron_form_factors,
+    x_ray_form_factors,
+    WAVELENGTH,
+    MIN_DEFLECTION_ANGLE,
+    MAX_DEFLECTION_ANGLE,
+    INTENSITY_CUTOFF,
+    print_peak_data=True,
+)
