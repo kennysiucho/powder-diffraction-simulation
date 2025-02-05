@@ -7,7 +7,7 @@ TODO: Add documentation.
 
 from dataclasses import dataclass
 
-from B8_project.crystal import UnitCell
+from B8_project.archive.crystal import UnitCell
 
 
 @dataclass

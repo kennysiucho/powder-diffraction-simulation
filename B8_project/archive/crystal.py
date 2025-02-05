@@ -10,12 +10,13 @@ Classes
     - Atom: A class to represent an atom in a unit cell.
     - UnitCell: A class to represent a unit cell. This class can only represent unit 
     cells where all of the angles are 90 degrees.
+    - ReciprocalLatticeVector: A class to represent a reciprocal lattice vector.
 """
 
 from dataclasses import dataclass
 import numpy as np
 
-import B8_project.utils as utils
+import B8_project.archive.utils as utils
 
 
 @dataclass
@@ -282,130 +283,163 @@ class UnitCell:
             )
 
 
-class ReciprocalSpace:
+@dataclass
+class ReciprocalLatticeVector:
     """
-    A class to group functions related to reciprocal space, reciprocal lattice vectors
-    and scattering vectors.
+    Reciprocal lattice vector
+    =========================
+
+    A class to represent a reciprocal lattice vector.
+
+    Attributes
+    ----------
+        - miller_indices (tuple[float, float, float]): The miller indices (h, k, l)
+        associated with a reciprocal lattice vector.
+        - lattice_constants (tuple[float, float, float]): The side lengths (a, b, c) of
+        the unit cell in the x, y and z directions respectively.
+
+    Methods
+    -------
+        - components: Returns the components of a reciprocal lattice vector, in
+        units of inverse nanometers (nm^-1). For miller indices (h, k, l) and lattice
+        constants (a, b, c), the components of a reciprocal lattice vector are
+        (2π/a, 2π/b, 2π/c).
+        - magnitude: Returns the magnitude of a reciprocal lattice vector, in
+        units of inverse nanometers (nm^-1).
+        - get_reciprocal_lattice_vectors: Returns a list of `ReciprocalLatticeVectors`
+        with magnitude in between a specified minimum and maximum magnitude (i.e.
+        returns a list of all reciprocal lattice vectors that lie within a spherical
+        shell in k-space).
     """
 
-    @staticmethod
+    miller_indices: tuple[int, int, int]
+    lattice_constants: tuple[float, float, float]
+
+    def components(self) -> tuple[float, float, float]:
+        """
+        Components
+        ==========
+
+        Returns the components of the reciprocal lattice vector associated with an
+        instance of `ReciprocalLatticeVector`.
+        """
+        return (
+            2 * np.pi * self.miller_indices[0] / self.lattice_constants[0],
+            2 * np.pi * self.miller_indices[1] / self.lattice_constants[1],
+            2 * np.pi * self.miller_indices[2] / self.lattice_constants[2],
+        )
+
+    def magnitude(self) -> float:
+        """
+        Magnitude
+        =========
+
+        Returns the magnitude of the reciprocal lattice vector associated with an
+        instance  of `ReciprocalLatticeVector`.
+        """
+        return np.sqrt(utils.dot_product_tuples(self.components(), self.components()))
+
+    @classmethod
     def get_reciprocal_lattice_vectors(
-        min_magnitude: float,
-        max_magnitude: float,
-        lattice_constants: np.ndarray,
-    ):
+        cls, min_magnitude: float, max_magnitude: float, unit_cell: UnitCell
+    ) -> list["ReciprocalLatticeVector"]:
         """
         Get reciprocal lattice vectors
         ==============================
 
-        Finds all the reciprocal lattice vectors with a magnitude in between a specified
-        minimum and maximum magnitude. Returns a structured NumPy array representing the
-        valid reciprocal lattice vectors.
-
-        Array format
-        ------------
-        The structured NumPy array has the following fields:
-            - 'miller_indices': An ndarray representing the Miller indices (h, k, l).
-            - 'magnitude': A float representing the magnitude of the reciprocal lattice
-            vector.
-            - 'components': An ndarray representing the components of the reciprocal
-            lattice vector.
-
-        TODO: review documentation.
+        Returns a list of all reciprocal lattice vectors with `magnitude` in between
+        `min_magnitude` and `max_magnitude`.
         """
-        # Error handling.
+        # Validate that max_magnitude and min_magnitude are greater than 0.
         if not (max_magnitude > 0 and min_magnitude >= 0):
             raise ValueError(
                 "max_magnitude and min_magnitude should be greater than or equal to 0."
             )
+
+        # Validate that max_magnitude is greater than min_magnitude
         if not max_magnitude > min_magnitude:
             raise ValueError("max_magnitude must be greater than min_magnitude.")
-        if not (
-            isinstance(lattice_constants, np.ndarray)
-            and lattice_constants.shape == (3,)
-        ):
-            raise ValueError("lattice_constants must be a numpy array of length 3.")
-        if not np.issubdtype(lattice_constants.dtype, np.floating):
-            raise ValueError("lattice_constants must contain only floats.")
+
+        a, b, c = unit_cell.lattice_constants
 
         # Upper bounds on Miller indices.
-        max_hkl = np.ceil((lattice_constants * max_magnitude) / (2 * np.pi)).astype(int)
+        max_h = np.ceil((a * max_magnitude) / (2 * np.pi)).astype(int)
+        max_k = np.ceil((b * max_magnitude) / (2 * np.pi)).astype(int)
+        max_l = np.ceil((c * max_magnitude) / (2 * np.pi)).astype(int)
 
-        # Generate all possible Miller indices within the bounds.
-        miller_indices = (
-            np.vstack(
-                np.meshgrid(
-                    np.arange(-max_hkl[0], max_hkl[0] + 1),
-                    np.arange(-max_hkl[1], max_hkl[1] + 1),
-                    np.arange(-max_hkl[2], max_hkl[2] + 1),
-                    indexing="ij",
-                )
-            )
-            .reshape(3, -1)
-            .T
-        )
+        # List to store reciprocal lattice vectors.
+        reciprocal_lattice_vectors = []
 
-        # Compute reciprocal lattice vector components and magnitudes.
-        components = (2 * np.pi * miller_indices) / lattice_constants
-        magnitudes = np.linalg.norm(components, axis=1)
+        # Iterate through all the Miller indices, and add all reciprocal lattice vectors
+        # with magnitude greater than min_magnitude and less than max_magnitude.
+        for h in range(-max_h, max_h + 1, 1):
+            for k in range(-max_k, max_k + 1, 1):
+                for l in range(-max_l, max_l + 1, 1):
+                    # Define an instance of `ReciprocalLatticeVector` associated with
+                    # the Miller indices (hkl)
+                    reciprocal_lattice_vector = cls(
+                        (h, k, l), unit_cell.lattice_constants
+                    )
 
-        # Filter the reciprocal lattice vectors based on their magnitude.
-        mask = (magnitudes >= min_magnitude) & (magnitudes <= max_magnitude)
-        valid_miller_indices = miller_indices[mask]
-        valid_magnitudes = magnitudes[mask]
-
-        # Define a custom datatype to represent reciprocal lattice vectors.
-        dtype = np.dtype(
-            [("miller_indices", "3i4"), ("magnitudes", "f8"), ("components", "3f8")]
-        )
-
-        # Create a structured NumPy array to store the valid reciprocal lattice vectors.
-        reciprocal_lattice_vectors = np.empty(
-            valid_miller_indices.shape[0], dtype=dtype
-        )
-        reciprocal_lattice_vectors["miller_indices"] = valid_miller_indices
-        reciprocal_lattice_vectors["magnitudes"] = valid_magnitudes
-        reciprocal_lattice_vectors["components"] = (
-            2 * np.pi * valid_miller_indices
-        ) / lattice_constants
+                    # If reciprocal_lattice_vector has a valid magnitude, append it to
+                    # the list
+                    if (
+                        reciprocal_lattice_vector.magnitude() >= min_magnitude
+                        and reciprocal_lattice_vector.magnitude() <= max_magnitude
+                    ):
+                        reciprocal_lattice_vectors.append(reciprocal_lattice_vector)
 
         return reciprocal_lattice_vectors
 
-    @staticmethod
-    def rlv_magnitudes_from_deflection_angles(
-        deflection_angles: np.ndarray, wavelength: float
-    ):
+    @classmethod
+    def get_magnitudes_and_multiplicities(
+        cls, min_magnitude: float, max_magnitude: float, unit_cell: UnitCell
+    ) -> list[tuple["ReciprocalLatticeVector", float, int]]:
         """
-        Reciprocal lattice vector magnitude from deflection angle
-        =========================================================
+        Get reciprocal lattice vector magnitudes and multiplicities
+        ===========================================================
 
-        Calculates the magnitudes of the reciprocal lattice vectors associated with a
-        range of given deflection angles.
+        Returns a list of all reciprocal lattice vectors with a unique magnitude in
+        between `min_magnitude` and `max_magnitude` and the corresponding
+        magnitudes and multiplicities of these reciprocal lattice vectors.
 
-        TODO: review documentation.
+        The format of the list is
+        `list[(ReciprocalLatticeVector, magnitude, multiplicity)]`.
         """
-        if deflection_angles.min() < 0 or deflection_angles.max() > 180:
-            raise ValueError("Invalid deflection angle.")
+        # Get a list of all valid reciprocal lattice vectors.
+        reciprocal_lattice_vectors = (
+            ReciprocalLatticeVector.get_reciprocal_lattice_vectors(
+                min_magnitude, max_magnitude, unit_cell
+            )
+        )
 
-        angles = deflection_angles * np.pi / 360
-        return 4 * np.pi * np.sin(angles) / wavelength
+        # Store the reciprocal lattice vectors, magnitudes and multiplicities in the
+        # same list, and sort the list by magnitude.
+        magnitudes = [x.magnitude() for x in reciprocal_lattice_vectors]
+        multiplicities = [1 for x in reciprocal_lattice_vectors]
+        reciprocal_lattice_vectors = list(
+            zip(reciprocal_lattice_vectors, magnitudes, multiplicities)
+        )
+        reciprocal_lattice_vectors.sort(key=lambda x: x[1])
 
-    @staticmethod
-    def deflection_angles_from_rlv_magnitudes(
-        reciprocal_lattice_vector_magnitudes: np.ndarray, wavelength: float
-    ):
-        """
-        Deflection angle from reciprocal lattice vector magnitude
-        =========================================================
+        # Remove any reciprocal lattice vectors with the same magnitudes and update
+        # multiplicities.
+        i = 0
+        while i < len(reciprocal_lattice_vectors) - 1:
+            reciprocal_lattice_vector = reciprocal_lattice_vectors[i][0]
+            magnitude = reciprocal_lattice_vectors[i][1]
 
-        Calculates the deflection angle associated with a reciprocal lattice vector of
-        a given magnitude.
+            while i < len(reciprocal_lattice_vectors) - 1 and np.isclose(
+                magnitude, reciprocal_lattice_vectors[i + 1][1], rtol=1e-6
+            ):
+                reciprocal_lattice_vectors[i] = (
+                    reciprocal_lattice_vector,
+                    magnitude,
+                    reciprocal_lattice_vectors[i][2]
+                    + reciprocal_lattice_vectors[i + 1][2],
+                )
+                del reciprocal_lattice_vectors[i + 1]
 
-        TODO: review documentation.
-        """
-        sin_angles = (wavelength * reciprocal_lattice_vector_magnitudes) / (4 * np.pi)
+            i += 1
 
-        if sin_angles.max() > 1 or sin_angles.min() < 0:
-            raise ValueError("Invalid reciprocal lattice vector magnitude(s)")
-
-        return np.arcsin(sin_angles) * 360 / np.pi
+        return reciprocal_lattice_vectors
