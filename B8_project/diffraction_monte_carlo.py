@@ -19,10 +19,6 @@ class NeutronDiffractionMonteCarloRunStats:
     Attributes
     ----------
         - `accepted_data_points` (`int`): Number of accepted trials so far
-        - `avg_intensity_cnt_` (`int`): Number of trials that goes into calculation of
-        `avg_intensity`, i.e. all trials within angle range of interest
-        - `avg_intensity` (`float`): Average intensities of all trials within angle
-        range of interest
         - `total_trials` (`int`): Total number of trials attempted, regardless of their
         angles and intensities
         - `start_time_` (`float`): Start time of calculation, in seconds since the Epoch
@@ -33,8 +29,6 @@ class NeutronDiffractionMonteCarloRunStats:
 
     Methods
     -------
-        - `update_avg_intensity`: Given intensity of new trial, update running average
-        of intensity.
         - `recalculate_microseconds_per_trial`: Recalculate average `microseconds_per
         _trial`.
         - `__str__`: Returns a formatted string containing all attributes that don't
@@ -77,9 +71,7 @@ class NeutronDiffractionMonteCarlo:
     Methods
     -------
         - `calculate_diffraction_pattern`: Returns two NumPy arrays: `two_thetas` and
-        `intensities`, each containing at least `target_accepted_trials` elements
-        representing individual scattering trials. Intensities need to be aggregated
-        in bins of two_theta to obtain the diffraction spectrum.
+        `intensities`, representing the diffraction spectrum
     """
     def __init__(self, unit_cell: UnitCell, wavelength: float):
         self.unit_cell = unit_cell
@@ -97,21 +89,16 @@ class NeutronDiffractionMonteCarlo:
         Calculate diffraction pattern
         =============================
 
-        Returns two NumPy arrays: `two_thetas` and `intensities` of the accepted Monte
-        Carlo scattering *trials*. To obtain the diffraction pattern, the intensities
-        within each bin of `two_theta` need to be aggregated.
+        Calculates the neutron diffraction spectrum using a Monte Carlo method.
 
         For each Monte Carlo trial, randomly choose the incident and scattered k-
         vectors. Sum over all atoms to calculate the structure factor and hence
-        scattering angle and intensity of this trial. If the scattering angle is
-        within the range specified and the intensity is above the acceptance threshold,
-        then add this trial to the final result.
+        intensity of this trial. If the scattering angle is within the range
+        specified then add this trial to the final result.
 
         Parameters
         ----------
             - `target_accepted_trials` (`int`): Target number of accepted trials.
-            `two_thetas` and `intensities` will each have at least
-            `target_accepted_trials` elements.
             - `trials_per_batch` (`int`): Number of trials calculated at once using
             NumPy methods
             - `unit_cells_in_crystal` (`tuple[int, int, int]`): How many times to
@@ -119,10 +106,14 @@ class NeutronDiffractionMonteCarlo:
             for diffraction.
             - `min_angle_rad`, `max_angle_rad` (`float`): Minimum/maximum scattering
             angle in radians for a scattering trial to be accepted
-            - `intensity_threshold_factor` (`float`): `intensity_threshold_factor` *
-            (average intensity of all trials after angle filtering) is the minimum
-            intensity for a scattering trial to be accepted. Higher threshold means
-            fewer unhelpful trials resulting in destructive interference are accepted.
+            - `angle_bins` (`int`): Number of bins for scattering angles
+
+        Returns
+        -------
+            - `two_thetas` ((`target_accepted_trials`,) ndarray): representing the
+            left edges of the bins, evenly spaced within angle range specified
+            - `intensities` ((`target_accepted_trials`,) ndarray): intensity
+            calculated for each bin
         """
         k = 2 * np.pi / self.wavelength
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
