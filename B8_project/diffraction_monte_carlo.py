@@ -1,3 +1,17 @@
+"""
+Diffraction Monte Carlo
+===========
+
+This module contains classes to calculate diffraction spectra using Monte Carlo methods.
+
+Classes
+-------
+    - `NeutronDiffractionMonteCarloRunStats`: A class to store statistics associated
+    with each run of `calculate_diffraction_pattern`.
+    - `NeutronDiffractionMonteCarlo`: A class to calculate neutron diffraction
+    patterns, with different optimizations based on the type of crystal
+"""
+
 import time
 from dataclasses import dataclass
 import numpy as np
@@ -168,7 +182,6 @@ class NeutronDiffractionMonteCarlo:
 
             # dot_products.shape = (batch_trials, n_atoms)
             dot_products = np.einsum("ik,jk", scattering_vecs, all_atom_pos)
-            t4 = time.time()
 
             # exp_terms.shape = (batch_trials, n_atoms)
             exps = np.exp(1j * dot_products)
