@@ -3,8 +3,6 @@ Add module docstring here.
 """
 
 import pytest
-
-# import pytest_mock
 import numpy as np
 import numpy.testing as nptest
 from B8_project.file_reading import read_lattice, read_basis
@@ -72,37 +70,15 @@ def test_monte_carlo_calculate_diffraction_pattern(nd_monte_carlo, mocker):
         unit_cells_in_crystal=(8, 8, 8),
         min_angle_deg=0,
         max_angle_deg=180,
-        intensity_threshold_factor=0.0,
+        angle_bins=10
     )
 
-    expected_two_thetas = np.array(
-        [
-            162.63819148,
-            65.67386965,
-            16.90391563,
-            83.593794,
-            83.70605006,
-            90.91048647,
-            7.53356425,
-            44.00035372,
-            79.02876523,
-            158.61472377,
-        ]
-    )
-    expected_intensities = np.array(
-        [
-            2.489788e-05,
-            3.136013e-02,
-            7.809854e-02,
-            2.148601e-06,
-            3.446430e-02,
-            6.286620e-06,
-            8.349908e-05,
-            2.231075e-04,
-            7.179199e-06,
-            1.000000e00,
-        ]
-    )
+    expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
+                                    180.])
+    expected_intensities = np.array([0.000000e+00, 8.349908e-05, 0.000000e+00,
+                                     2.231075e-04, 7.179199e-06, 6.286620e-06,
+                                     0.000000e+00, 0.000000e+00, 1.000000e+00,
+                                     2.489788e-05])
 
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
     nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)

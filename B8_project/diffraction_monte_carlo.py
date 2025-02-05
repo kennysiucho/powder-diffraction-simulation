@@ -87,7 +87,7 @@ class NeutronDiffractionMonteCarlo:
 
     def calculate_diffraction_pattern(self,
                                       target_accepted_trials: int = 5000,
-                                      trials_per_batch: int = 10000,
+                                      trials_per_batch: int = 1000,
                                       unit_cells_in_crystal: tuple[int, int, int] = (
                                       8, 8, 8),
                                       min_angle_deg: float = 0.0,
@@ -135,14 +135,27 @@ class NeutronDiffractionMonteCarlo:
         for atom in self.unit_cell.atoms:
             scattering_lengths[atom.atomic_number] = all_scattering_lengths[
                 atom.atomic_number].neutron_scattering_length
-        print(scattering_lengths)
 
-        expanded_pos = np.vstack(
+        unit_cell_pos = np.vstack(
             np.mgrid[0:unit_cells_in_crystal[0], 0:unit_cells_in_crystal[1],
             0:unit_cells_in_crystal[2]]).reshape(3, -1).T
-        expanded_pos = expanded_pos.astype(np.float64)
-        np.multiply(expanded_pos, self.unit_cell.lattice_constants, out=expanded_pos)
-        print(expanded_pos)
+        unit_cell_pos = unit_cell_pos.astype(np.float64)
+        np.multiply(unit_cell_pos, self.unit_cell.lattice_constants, out=unit_cell_pos)
+
+        atom_pos_in_uc = []
+        scattering_lengths_in_uc = []
+        for atom in self.unit_cell.atoms:
+            atom_pos_in_uc.append(np.multiply(atom.position,
+                                              self.unit_cell.lattice_constants))
+            scattering_lengths_in_uc.append(scattering_lengths[atom.atomic_number])
+        atom_pos_in_uc = np.array(atom_pos_in_uc)
+        scattering_lengths_in_uc = np.array(scattering_lengths_in_uc)
+
+        n_unit_cells = unit_cell_pos.shape[0]
+        n_atoms_per_uc = atom_pos_in_uc.shape[0]
+        all_atom_pos = np.repeat(unit_cell_pos, n_atoms_per_uc, axis=0) + np.tile(
+            atom_pos_in_uc, (n_unit_cells, 1))
+        all_scattering_lengths = np.tile(scattering_lengths_in_uc, n_unit_cells)
 
         stats = NeutronDiffractionMonteCarloRunStats()
 
@@ -152,19 +165,26 @@ class NeutronDiffractionMonteCarlo:
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            structure_factors = np.zeros(trials_per_batch, dtype=np.complex128)
             k_vecs = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
             k_primes = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
             scattering_vecs = k_primes - k_vecs
 
-            for atom in self.unit_cell.atoms:
-                r = np.multiply(atom.position,
-                                self.unit_cell.lattice_constants) + expanded_pos
-                # r.shape = (expand_N^3, 3)
-                # scattering_vec.shape = (batch_trials, 3)
-                # structure_factor.shape = (batch_trials, )
-                structure_factors += scattering_lengths[atom.atomic_number] * np.sum(
-                    np.exp(1j * scattering_vecs @ r.T), axis=1)
+            # all_atom_pos.shape = (n_atoms, 3)
+            # all_scattering_lengths = (n_atoms,)
+            # scattering_vec.shape = (batch_trials, 3)
+            # structure_factors.shape = (batch_trials, )
+            # k•r[i, j] = scattering_vec[i][k] • all_atom_pos[j][k]
+
+            # dot_products.shape = (batch_trials, n_atoms)
+            dot_products = np.einsum("ik,jk", scattering_vecs, all_atom_pos)
+            t4 = time.time()
+
+            # exp_terms.shape = (batch_trials, n_atoms)
+            exps = np.exp(1j * dot_products)
+            exp_terms = all_scattering_lengths * exps
+
+            # structure_factors.shape = (batch_trials, )
+            structure_factors = np.sum(exp_terms, axis=1)
 
             dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
             two_theta_batch = np.degrees(np.arccos(dot_products / k**2))
