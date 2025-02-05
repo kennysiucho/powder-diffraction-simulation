@@ -50,7 +50,7 @@ diffraction.plot_diffraction_pattern(
     WAVELENGTH,
     MIN_DEFLECTION_ANGLE,
     MAX_DEFLECTION_ANGLE,
-    file_path="results/",
+    file_path="results/type_3_5_semiconductors/",
 )
 
 # Specify the InAs diffraction parameters.
@@ -81,5 +81,5 @@ diffraction.plot_diffraction_pattern(
     WAVELENGTH,
     MIN_DEFLECTION_ANGLE,
     MAX_DEFLECTION_ANGLE,
-    file_path="results/",
+    file_path="results/type_3_5_semiconductors/",
 )

@@ -282,7 +282,7 @@ def get_miller_peaks(
     return diffraction_peaks
 
 
-def plot_diffraction_pattern(
+def get_diffraction_pattern(
     unit_cell: UnitCell,
     diffraction_type: str,
     neutron_form_factors: Mapping[int, NeutronFormFactor],
@@ -291,24 +291,13 @@ def plot_diffraction_pattern(
     min_deflection_angle: float = 10,
     max_deflection_angle: float = 170,
     peak_width: float = 0.1,
-    plot: bool = True,
-    line_width: float = 1.0,
-    file_path: str = "results/",
-) -> tuple[list[float], list[float]]:
+) -> np.ndarray:
     """
     Plot diffraction pattern
     ========================
 
-    Plots the diffraction pattern for a given crystal and saves the plot as a .pdf
-    file in a specified directory if desired. Returns the x coordinates and y
-    coordinates of the plotted points.
-
-    Name of .pdf file
-    -----------------
-        - For neutron diffraction, the .pdf file has the following name:
-        "<material>_<ND>_<date>.pdf", where "ND" stands for Neutron Diffraction.
-        - For X-ray diffraction, the .pdf file has the following name:
-        "<material>_<XRD>_<date>.pdf", where "XRD" stands for X-Ray Diffraction.
+    Calculates the diffraction pattern for a crystal, and returns a structured NumPy
+    array containing deflection angles and intensities.
 
     Parameters
     ----------
@@ -326,16 +315,13 @@ def plot_diffraction_pattern(
         - peak_width (float): The width of the intensity peaks. This parameter is
         only used for plotting. A value should be chosen so that all diffraction
         peaks can be observed. The default value is 0.1°.
-        - plot (bool): True -> plot the diffraction pattern, and save as a .pdf file;
-        False -> don't plot the diffraction pattern. The default value is True.
-        - line_width (float): The linewidth of the plot. Default value is 1.
-        - file_path (str): The path to the directory where the plot will be stored.
-        Default value is `results/`.
 
     Returns
     -------
-        - (tuple[list[float], list[float]]): A list of x coordinates and a list of y
-        coordinates of the plotted points.
+        - (ndarray): A structured NumPy array that contains the diffraction pattern
+        data. The array has the following fields:
+            - 'deflection_angles': A list of all sampled deflection angles.
+            - 'intensities': The intensity at the deflection angle.
     """
     # Find the diffraction peaks.
     if diffraction_type == "ND":
@@ -385,59 +371,133 @@ def plot_diffraction_pattern(
 
     y_values += np.sum(gaussian_peaks, axis=1)
 
-    if plot is True:
-        # Get today's date and format as a string.
-        today = datetime.today()
-        date_string = today.strftime("%d-%m-%Y")
+    # Define a custom datatype to represent the diffraction data.
+    dtype = np.dtype(
+        [
+            ("deflection_angles", "f8"),
+            ("intensities", "f8"),
+        ]
+    )
 
-        # Filename
-        filename = f"{unit_cell.material}_{diffraction_type}_{date_string}"
+    # Create a structured NumPy array to store the diffraction pattern.
+    diffraction_pattern = np.empty(x_values.shape[0], dtype=dtype)
+    diffraction_pattern["deflection_angles"] = x_values
+    diffraction_pattern["intensities"] = y_values
 
-        # Create the figure and axis.
-        fig, ax = plt.subplots(figsize=(10, 6))
+    return diffraction_pattern
 
-        # Plot the data.
-        ax.plot(
-            x_values,
-            y_values,
-            label=f"{unit_cell.material}, {diffraction_type}, "
-            f"λ = {round(wavelength, 4)}nm",
-            linewidth=line_width,
+
+def plot_diffraction_pattern(
+    unit_cell: UnitCell,
+    diffraction_type: str,
+    neutron_form_factors: Mapping[int, NeutronFormFactor],
+    x_ray_form_factors: Mapping[int, XRayFormFactor],
+    wavelength: float = 0.1,
+    min_deflection_angle: float = 10,
+    max_deflection_angle: float = 170,
+    peak_width: float = 0.1,
+    line_width: float = 1.0,
+    file_path: str = "results/",
+):
+    """
+    Plot diffraction pattern
+    ========================
+
+    Plots the diffraction pattern for a given crystal and saves the plot as a .pdf
+    file in a specified directory.
+
+    Name of .pdf file
+    -----------------
+        - For neutron diffraction, the .pdf file has the following name:
+        "<material>_<ND>_<date>.pdf", where "ND" stands for Neutron Diffraction.
+        - For X-ray diffraction, the .pdf file has the following name:
+        "<material>_<XRD>_<date>.pdf", where "XRD" stands for X-Ray Diffraction.
+
+    Parameters
+    ----------
+        - unit_cell (UnitCell): the unit cell of the chosen crystal.
+        - diffraction_type (str): the type of diffraction desired. Should be either
+        `"ND"` for neutron diffraction, or `"XRD"` for X-ray diffraction.
+        - neutron_form_factors (Mapping[int, NeutronFormFactor]): a mapping from atomic
+        numbers to a class which represents a neutron form factor.
+        - x_ray_form_factors (Mapping[int, XRayFormFactor]): a mapping from atomic
+        numbers to a class which represents an X-ray form factor.
+        - wavelength (float): the wavelength of incident particles, given in
+        nanometers (nm).
+        - min_deflection_angle (float), max_deflection_angle (float): these
+        parameters specify the range of deflection angles to be plotted.
+        - peak_width (float): The width of the intensity peaks. This parameter is
+        only used for plotting. A value should be chosen so that all diffraction
+        peaks can be observed. The default value is 0.1°.
+        - line_width (float): The linewidth of the plot. Default value is 1.
+        - file_path (str): The path to the directory where the plot will be stored.
+        Default value is `results/`.
+    """
+    # Get the diffraction pattern.
+    try:
+        diffraction_pattern = get_diffraction_pattern(
+            unit_cell,
+            diffraction_type,
+            neutron_form_factors,
+            x_ray_form_factors,
+            wavelength,
+            min_deflection_angle,
+            max_deflection_angle,
+            peak_width,
         )
+    except Exception as exc:
+        raise ValueError(f"Error getting diffraction pattern: {exc}") from exc
 
-        # Set axis labels.
-        ax.set_xlabel("Deflection angle (°)", fontsize=11)
-        ax.set_ylabel("Relative intensity", fontsize=11)
+    # Get today's date and format as a string.
+    today = datetime.today()
+    date_string = today.strftime("%d-%m-%Y")
 
-        # Set title.
-        ax.set_title(
-            f"Diffraction pattern for {unit_cell.material} ({diffraction_type}).",
-            fontsize=15,
-        )
+    # Filename
+    filename = f"{unit_cell.material}_{diffraction_type}_{date_string}"
 
-        # Add legend.
-        ax.legend()
+    # Create the figure and axis.
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-        # Add grid lines.
-        ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
+    # Plot the data.
+    ax.plot(
+        diffraction_pattern["deflection_angles"],
+        diffraction_pattern["intensities"],
+        label=f"{unit_cell.material}, {diffraction_type}, "
+        f"λ = {round(wavelength, 4)}nm",
+        linewidth=line_width,
+    )
 
-        # Customize the tick marks.
-        ax.tick_params(axis="both", which="major", labelsize=10)
-        ax.tick_params(axis="both", which="minor", length=4, color="gray")
+    # Set axis labels.
+    ax.set_xlabel("Deflection angle (°)", fontsize=11)
+    ax.set_ylabel("Relative intensity", fontsize=11)
 
-        # Add minor ticks.
-        ax.minorticks_on()
+    # Set title.
+    ax.set_title(
+        f"Diffraction pattern for {unit_cell.material} ({diffraction_type}).",
+        fontsize=15,
+    )
 
-        # Adjust layout to prevent clipping.
-        fig.tight_layout()
+    # Add legend.
+    ax.legend()
 
-        # Save the figure.
-        fig.savefig(f"{file_path}{filename}.pdf", format="pdf")
+    # Add grid lines.
+    ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
 
-        # Print the path to the .pdf file.
-        print(f"Plot created at {file_path}{filename}.pdf")
+    # Customize the tick marks.
+    ax.tick_params(axis="both", which="major", labelsize=10)
+    ax.tick_params(axis="both", which="minor", length=4, color="gray")
 
-    return x_values.tolist(), y_values.tolist()
+    # Add minor ticks.
+    ax.minorticks_on()
+
+    # Adjust layout to prevent clipping.
+    fig.tight_layout()
+
+    # Save the figure.
+    fig.savefig(f"{file_path}{filename}.pdf", format="pdf")
+
+    # Print the path to the .pdf file.
+    print(f"Plot created at {file_path}{filename}.pdf")
 
 
 def plot_superimposed_diffraction_patterns(
@@ -514,7 +574,7 @@ def plot_superimposed_diffraction_patterns(
         # Get points to plot for ND.
         if diffraction_type == "ND":
             try:
-                x_values, y_values = plot_diffraction_pattern(
+                diffraction_pattern = get_diffraction_pattern(
                     unit_cell,
                     diffraction_type,
                     neutron_form_factors,
@@ -523,7 +583,6 @@ def plot_superimposed_diffraction_patterns(
                     min_deflection_angle,
                     max_deflection_angle,
                     peak_width,
-                    plot=False,
                 )
             except Exception as exc:
                 raise ValueError(f"Error getting points to plot: {exc}") from exc
@@ -531,7 +590,7 @@ def plot_superimposed_diffraction_patterns(
         # Get points to plot for XRD
         elif diffraction_type == "XRD":
             try:
-                x_values, y_values = plot_diffraction_pattern(
+                diffraction_pattern = get_diffraction_pattern(
                     unit_cell,
                     diffraction_type,
                     neutron_form_factors,
@@ -540,7 +599,6 @@ def plot_superimposed_diffraction_patterns(
                     min_deflection_angle,
                     max_deflection_angle,
                     peak_width,
-                    plot=False,
                 )
             except Exception as exc:
                 raise ValueError(f"Error getting points to plot: {exc}") from exc
@@ -550,8 +608,8 @@ def plot_superimposed_diffraction_patterns(
         # Plot the points.
         try:
             ax.plot(
-                x_values,
-                y_values,
+                diffraction_pattern["deflection_angles"],
+                diffraction_pattern["intensities"],
                 label=f"{unit_cell.material}, {diffraction_type}"
                 f"λ = {round(current_wavelength, 4)}nm",
                 linewidth=line_width,

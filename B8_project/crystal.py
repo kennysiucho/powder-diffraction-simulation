@@ -331,15 +331,18 @@ class ReciprocalSpace:
         max_hkl = np.ceil((lattice_constants * max_magnitude) / (2 * np.pi)).astype(int)
 
         # Generate all possible Miller indices within the bounds.
-        miller_indices = np.stack(
-            np.meshgrid(
-                np.arange(-max_hkl[0], max_hkl[0] + 1),
-                np.arange(-max_hkl[1], max_hkl[1] + 1),
-                np.arange(-max_hkl[2], max_hkl[2] + 1),
-                indexing="ij",
-            ),
-            axis=-1,
-        ).reshape(-1, 3)
+        miller_indices = (
+            np.vstack(
+                np.meshgrid(
+                    np.arange(-max_hkl[0], max_hkl[0] + 1),
+                    np.arange(-max_hkl[1], max_hkl[1] + 1),
+                    np.arange(-max_hkl[2], max_hkl[2] + 1),
+                    indexing="ij",
+                )
+            )
+            .reshape(3, -1)
+            .T
+        )
 
         # Compute reciprocal lattice vector components and magnitudes.
         components = (2 * np.pi * miller_indices) / lattice_constants
