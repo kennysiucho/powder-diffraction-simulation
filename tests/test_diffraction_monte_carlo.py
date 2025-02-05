@@ -1,5 +1,5 @@
 """
-Add module docstring here.
+This module contains unit tests for the diffraction_monte_carlo.py module.
 """
 
 import pytest
@@ -13,7 +13,8 @@ from B8_project.diffraction_monte_carlo import NeutronDiffractionMonteCarlo
 @pytest.fixture
 def nd_monte_carlo():
     """
-    Add test docstring here.
+    Returns instance of `NeutronDiffractionMonteCarlo`, containing data for NaCl and
+    wavelength of 0.123nm
     """
     nacl_lattice = read_lattice("tests/data/NaCl_lattice.csv")
     nacl_basis = read_basis("tests/data/NaCl_basis.csv")
@@ -55,9 +56,11 @@ random_unit_vectors_2 = np.array(
 
 def test_monte_carlo_calculate_diffraction_pattern(nd_monte_carlo, mocker):
     """
-    Mocks the `random_uniform_unit_vectors` method to return the same random
-    vectors for consistent result.
+    A unit test for the Monte Carlo calculate_diffraction_pattern function. This unit
+    test tests normal operation of the function.
     """
+    # Mocks the `random_uniform_unit_vectors` method to return the same random
+    # vectors for consistent result.
     mocker.patch(
         "B8_project.utils.random_uniform_unit_vectors",
         side_effect=[random_unit_vectors_1, random_unit_vectors_2],
