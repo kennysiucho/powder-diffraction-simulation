@@ -310,8 +310,6 @@ class ReciprocalSpace:
             vector.
             - 'components': An ndarray representing the components of the reciprocal
             lattice vector.
-
-        TODO: review documentation.
         """
         # Error handling.
         if not (max_magnitude > 0 and min_magnitude >= 0):

@@ -5,8 +5,11 @@ Functions:
 TODO: add functions.
 """
 
+import statistics
+import time
 import random
 import numpy as np
+
 
 def duplicate_elements(original_list: list, num_duplicates: int) -> list:
     """
@@ -84,6 +87,7 @@ def gaussian(x, mean, width, amplitude):
     """
     return amplitude * np.exp(-0.5 * ((x - mean) / width) ** 2)
 
+
 def random_uniform_unit_vector(dims: int):
     """
     Random uniform unit vector
@@ -93,8 +97,9 @@ def random_uniform_unit_vector(dims: int):
     selected from the unit sphere.
     """
     vec = [random.gauss(0, 1) for i in range(dims)]
-    mag = sum(x ** 2 for x in vec) ** .5
+    mag = sum(x**2 for x in vec) ** 0.5
     return [x / mag for x in vec]
+
 
 def random_uniform_unit_vectors(n: int, dims: int):
     """
@@ -108,3 +113,28 @@ def random_uniform_unit_vectors(n: int, dims: int):
     vecs = np.random.normal(size=(n, dims))
     mag = np.linalg.norm(vecs, axis=1, keepdims=True)
     return vecs / mag
+
+
+def benchmark_function(function, *args, number_of_runs=5, **kwargs):
+    """
+    Benchmark function
+    ==================
+
+    Calls a specified function, and times how long it takes for the function to finish
+    execution. Repeats this process a specified number of times, and returns the output
+    from the function, the average execution time and the standard deviation in the execution times.
+    """
+    times = []
+
+    for _ in range(number_of_runs):
+        # Start the timer.
+        start_time = time.perf_counter()
+
+        # Execute the function.
+        result = function(*args, **kwargs)
+
+        # Stop the timer.
+        stop_time = time.perf_counter()
+        times.append(stop_time - start_time)
+
+    return result, statistics.mean(times), statistics.stdev(times)

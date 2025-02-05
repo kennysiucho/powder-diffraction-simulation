@@ -4,7 +4,8 @@ This module contains code which benchmarks the get_reciprocal_lattice_vectors fu
 
 import numpy as np
 
-from B8_project import crystal, file_reading, super_cell, utils
+from B8_project import file_reading, utils
+from B8_project.archive import crystal, diffraction, super_cell
 
 # Get a GaAs unit cell.
 basis = file_reading.read_basis("data/GaAs_basis.csv")
@@ -23,12 +24,8 @@ for side_length in range(1, MAX_SIDE_LENGTH + 1):
     GaAs_super_cells.append(GaAs_super_cell)
 
 # Parameters for the benchmark.
-min_magnitude = float(
-    crystal.ReciprocalSpace.rlv_magnitudes_from_deflection_angles(np.array(20), 0.1)
-)
-max_magnitude = float(
-    crystal.ReciprocalSpace.rlv_magnitudes_from_deflection_angles(np.array(60), 0.1)
-)
+min_magnitude = float(diffraction._reciprocal_lattice_vector_magnitude(20, 0.1))
+max_magnitude = float(diffraction._reciprocal_lattice_vector_magnitude(60, 0.1))
 
 # Run a benchmark for each super cell.
 benchmark_data = []
@@ -37,10 +34,10 @@ for i, GaAs_super_cell in enumerate(GaAs_super_cells):
     lattice_constants = np.array(GaAs_super_cell.lattice_constants)
 
     reciprocal_lattice_vectors, average_time, std_dev_time = utils.benchmark_function(
-        crystal.ReciprocalSpace.get_reciprocal_lattice_vectors,
+        crystal.ReciprocalLatticeVector.get_reciprocal_lattice_vectors,
         min_magnitude,
         max_magnitude,
-        lattice_constants,
+        GaAs_super_cell,
     )
     benchmark_data.append(
         (i + 1, len(reciprocal_lattice_vectors), average_time, std_dev_time)
@@ -48,7 +45,7 @@ for i, GaAs_super_cell in enumerate(GaAs_super_cells):
 
 # Print the benchmark data.
 print(
-    "get_reciprocal_lattice_vectors benchmark. "
+    "get_reciprocal_lattice_vectors (old version) benchmark. "
     "For this benchmark, a GaAs super cell was used. "
     "A list of all reciprocal lattice vectors associated with deflection angles in "
     "the range [20°, 60°] was generated."
