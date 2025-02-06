@@ -11,7 +11,7 @@ import numpy as np
 from B8_project.crystal import ReciprocalLatticeVector
 from B8_project.diffraction import (
     _reciprocal_lattice_vector_magnitude,
-    _deflection_angle
+    _deflection_angle,
 )
 
 

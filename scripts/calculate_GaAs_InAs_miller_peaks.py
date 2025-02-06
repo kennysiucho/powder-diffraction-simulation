@@ -4,7 +4,7 @@ This script calculates the diffraction peaks for GaAs and InAs, and prints the
 deflection angle, miller indices and relative intensity of each peak.
 """
 
-from B8_project import file_reading, crystal, diffraction
+from B8_project import crystal, file_reading, diffraction
 
 # Get basis and lattice parameters from CSV files.
 CRYSTAL_PATH = "data/type_3_5_semiconductors/"
