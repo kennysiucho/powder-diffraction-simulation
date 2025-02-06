@@ -173,11 +173,15 @@ class NeutronDiffractionMonteCarlo:
             k_primes = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
             scattering_vecs = k_primes - k_vecs
 
-            # all_atom_pos.shape = (n_atoms, 3)
-            # all_scattering_lengths = (n_atoms,)
-            # scattering_vec.shape = (batch_trials, 3)
-            # structure_factors.shape = (batch_trials, )
-            # k•r[i, j] = scattering_vec[i][k] • pos[j][k]
+            # Compute scattering angle
+            dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
+            two_theta_batch = np.degrees(np.arccos(dot_products / k ** 2))
+
+            # Discard trials with scattering angle out of range of interest
+            angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_deg,
+                                                      two_theta_batch < max_angle_deg))
+            two_theta_batch = two_theta_batch[angles_accepted]
+            scattering_vecs = scattering_vecs[angles_accepted]
 
             # Compute lattice portion of structure factors
             # scattering_vecs.shape = (batch_trials, 3)
@@ -206,21 +210,12 @@ class NeutronDiffractionMonteCarlo:
 
             structure_factors = np.multiply(structure_factors_lattice,
                                             structure_factors_basis)
-
-            dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
-            two_theta_batch = np.degrees(np.arccos(dot_products / k ** 2))
             intensity_batch = np.abs(structure_factors) ** 2
-
-            stats.total_trials += trials_per_batch
-
-            angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_deg,
-                                                      two_theta_batch < max_angle_deg))
-            two_theta_batch = two_theta_batch[angles_accepted]
-            intensity_batch = intensity_batch[angles_accepted]
 
             bins = np.searchsorted(two_thetas, two_theta_batch)
             intensities[bins] += intensity_batch
 
+            stats.total_trials += two_theta_batch.shape[0]
             stats.accepted_data_points += two_theta_batch.shape[0]
 
         intensities /= np.max(intensities)
