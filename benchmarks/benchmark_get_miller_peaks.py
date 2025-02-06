@@ -9,7 +9,7 @@ from B8_project import crystal, file_reading, super_cell, utils, diffraction
 # Get a GaAs unit cell.
 basis = file_reading.read_basis("data/GaAs_basis.csv")
 lattice = file_reading.read_lattice("data/GaAs_lattice.csv")
-GaAs_unit_cell = crystal.UnitCell.new_unit_cell(basis, lattice)
+GaAs_unit_cell = crystal.UnitCellV2.new_unit_cell(basis, lattice)
 
 # Read X-ray form factors.
 x_ray_form_factors = file_reading.read_xray_form_factors("data/x_ray_form_factors.csv")
@@ -23,8 +23,8 @@ GaAs_super_cells = []
 
 MAX_SIDE_LENGTH = 5
 for side_length in range(1, MAX_SIDE_LENGTH + 1):
-    GaAs_super_cell = super_cell.SuperCell.new_super_cell(
-        GaAs_unit_cell, (side_length, side_length, side_length)
+    GaAs_super_cell = super_cell.SuperCellV2.new_super_cell(
+        GaAs_unit_cell, (side_length, side_length, side_length), "GaAs"
     ).to_unit_cell()
 
     GaAs_super_cells.append(GaAs_super_cell)

@@ -20,8 +20,8 @@ neutron_form_factors = file_reading.read_neutron_scattering_lengths(
 x_ray_form_factors = file_reading.read_xray_form_factors("data/x_ray_form_factors.csv")
 
 # Calculate the unit cells.
-GaAs_unit_cell = crystal.UnitCell.new_unit_cell(GaAs_basis, GaAs_lattice)
-InAs_unit_cell = crystal.UnitCell.new_unit_cell(InAs_basis, InAs_lattice)
+GaAs_unit_cell = crystal.UnitCellV2.new_unit_cell(GaAs_basis, GaAs_lattice)
+InAs_unit_cell = crystal.UnitCellV2.new_unit_cell(InAs_basis, InAs_lattice)
 
 # Specify the GaAs diffraction parameters.
 WAVELENGTH = 0.1541838
