@@ -34,12 +34,12 @@ class FormFactorProtocol(Protocol):
         self, reciprocal_lattice_vector_magnitudes: np.ndarray
     ) -> np.ndarray:
         """
-                Evaluate form factor
-                ====================
+        Evaluate form factor
+        ====================
 
-                Calculates the form factors for a range of reciprocal lattice vectors The
+        Calculates the form factors for a range of reciprocal lattice vectors. The
         method used to calculate the form varies depending on the class that implements
-                the form factor interface.
+        the form factor interface.
         """
         ...  # pylint: disable=W2301
 
@@ -58,10 +58,14 @@ class NeutronFormFactor:
 
     Attributes
     ----------
-        - neutron_scattering_length (float): The neutron scattering length of an atom.
+    neutron_scattering_length : float
+        The neutron scattering length of an atom.
 
     Methods
     -------
+    evaluate_form_factors
+        Evaluates the neutron form factor of an atom for a range of reciprocal lattice
+        vectors.
     """
 
     neutron_scattering_length: float
@@ -74,7 +78,8 @@ class NeutronFormFactor:
         Evaluate neutron form factor
         ============================
 
-        Evaluates a neutron form factor.
+        Evaluates the neutron form factor of an tom for a specified range of reciprocal
+        lattice vectors.
         """
         # Create a NumPy array to store the neutron form factors.
         form_factors = self.neutron_scattering_length * np.ones(
@@ -93,24 +98,26 @@ class XRayFormFactor:
     A class to represent the X-ray form factor of an atom.
 
     The X-ray form factor of an atom can be approximated by a sum of four Gaussian
-    functions and a constant term.
-    Each Gaussian has a height and a width, which gives us nine total parameters.
-    An instance of `XRayFormFactor` stores these nine parameters, allowing the form
-    factor to be calculated.
-
-    For more information, see this website:
-    TODO: add link.
+    functions and a constant term. Each Gaussian has a height and a width, which gives
+    us nine total quantities. An instance of `XRayFormFactor` stores nine parameters
+    related to these quantities, and can use these parameters to calculate the X-ray
+    form factor of an atom for a given reciprocal lattice vector.
 
     Attributes
     ----------
-        - a1, a2, a3, a4 (float): The height of Gaussian 1, 2, 3, 4 respectively.
-        - b1, b2, b3, b4 (float): Inversely proportional to the to the squared width of
-        Gaussian 1, 2, 3, 4 respectively.
-        - c (float): The constant term.
+    a1, a2, a3, a4 : float
+        The height of Gaussian 1, 2, 3, 4 respectively.
+    b1, b2, b3, b4 : float
+        Inversely proportional to the to the squared width of Gaussian 1, 2, 3, 4
+        respectively.
+    c : float
+        The constant term.
 
     Methods
     -------
-        - evaluate_form_factor:
+    evaluate_form_factor
+        Evaluates the X-ray form factor of an atom for a range of reciprocal lattice
+        vectors.
     """
 
     a1: float
@@ -130,7 +137,8 @@ class XRayFormFactor:
         Evaluate X-ray form factor
         ==========================
 
-        Evaluates an X-ray form factor.
+        Evaluates an X-ray form factor of an atom for a specified range of reciprocal
+        lattice vectors.
         """
         a = [self.a1, self.a2, self.a3, self.a4]
         b = [self.b1, self.b2, self.b3, self.b4]
