@@ -37,7 +37,7 @@ if CALCULATE_SPECTRUM:
     nd = NeutronDiffractionMonteCarlo(unit_cell, 0.123)
 
     two_thetas, intensities = (
-        nd.calculate_diffraction_pattern(30000,
+        nd.calculate_diffraction_pattern_ideal_crystal(3000000,
                                          min_angle_deg=18,
                                          max_angle_deg=57,
                                          angle_bins=200))
