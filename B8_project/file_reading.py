@@ -25,7 +25,7 @@ from B8_project.form_factor import NeutronFormFactor, XRayFormFactor
 
 
 def read_basis(
-    filename: str,
+    filename: str = "data/basis.csv",
 ) -> tuple[list[int], list[tuple[float, float, float]]]:
     """
     Read basis parameters from a .csv file
@@ -43,6 +43,12 @@ def read_basis(
         the lattice constants. E.g., (x, y, z) = (0.5, 0.5, 0.5) corresponds to a
         position (0.5*a, 0.5*b. 0.5*c), where a, b, c are the side lengths of the unit
         cell in the x, y, z directions respectively.
+
+    Parameters
+    ----------
+    filename : str
+        Filename of the .csv file containing the basis parameters. Default value is
+        `"data/basis.csv"`
     """
     try:
         # Read the CSV file containing the lattice parameters into a DataFrame.
@@ -80,7 +86,7 @@ def read_basis(
 
 
 def read_lattice(
-    filename: str,
+    filename: str = "data/lattice.csv",
 ) -> tuple[str, int, tuple[float, float, float]]:
     """
     Read lattice parameters from a .csv file
@@ -103,6 +109,12 @@ def read_lattice(
             - 4 -> Base centred.
         - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
         directions respectively in nanometers (nm).
+
+    Parameters
+    ----------
+    filename : str
+        Filename of the .csv file containing the lattice parameters. Default value is
+        `"data/lattice.csv"`
     """
     try:
         # Read the CSV file containing the lattice parameters into a DataFrame.
@@ -133,7 +145,7 @@ def read_lattice(
 
 
 def read_neutron_scattering_lengths(
-    filename: str,
+    filename: str = "data/neutron_scattering_lengths.csv",
 ) -> Mapping[int, NeutronFormFactor]:
     """
     Read neutron scattering lengths from a .csv file
@@ -152,6 +164,11 @@ def read_neutron_scattering_lengths(
         - atomic_number (int): The atomic number of the atom.
         - neutron_scattering_length (float): The neutron scattering length of the
         atom, in femtometers (fm).
+
+    Parameters
+    ----------
+    filename : str
+        Filename of the .csv file containing the neutron scattering lengths. Default value is `"data/neutron_scattering_lengths.csv"`
     """
     try:
         # Read the CSV file containing the neutron scattering lengths into a DataFrame.
@@ -192,7 +209,7 @@ def read_neutron_scattering_lengths(
 
 
 def read_xray_form_factors(
-    filename: str,
+    filename: str = "data/x_ray_form_factors.csv",
 ) -> Mapping[int, XRayFormFactor]:
     """
     Read X-ray form factors from a .csv file
@@ -212,6 +229,12 @@ def read_xray_form_factors(
         - "a1", "b1", "a2", "b2", "a3", "b3", "a4", "b4", "c" (float): Parameters which
         specify the X-ray form factor of the atom. These correspond to the attributes
         of the `XRayFormFactor` class.
+
+    Parameters
+    ----------
+    filename : str
+        Filename of the .csv file containing the X-ray form factors. Default value is
+        `"data/x_ray_form_factors.csv"`
     """
     try:
         # Read the CSV file containing the X-ray form factors into a DataFrame.
