@@ -4,7 +4,7 @@ This module contains unit tests for the super_cell.py module.
 
 from B8_project.crystal import UnitCell
 from B8_project import file_reading
-from B8_project.disordered_alloy import SuperCell
+from B8_project.alloy import SuperCell
 
 
 class TestSuperCell:

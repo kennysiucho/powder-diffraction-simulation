@@ -5,8 +5,8 @@ This module contains code which benchmarks the get_reciprocal_lattice_vectors fu
 import numpy as np
 
 from B8_project import (
+    alloy,
     crystal,
-    disordered_alloy,
     file_reading,
     utils,
     diffraction,
@@ -29,7 +29,7 @@ GaAs_super_cells = []
 
 MAX_SIDE_LENGTH = 5
 for side_length in range(1, MAX_SIDE_LENGTH + 1):
-    GaAs_super_cell = disordered_alloy.SuperCellV2.new_super_cell(
+    GaAs_super_cell = alloy.SuperCellV2.new_super_cell(
         GaAs_unit_cell, (side_length, side_length, side_length), "GaAs"
     ).to_unit_cell()
 

@@ -7,7 +7,7 @@ The purpose of this script is ensure that the super cell implementation is valid
 miller peaks for all of the cells should be identical.
 """
 
-from B8_project import crystal, disordered_alloy, file_reading, diffraction
+from B8_project import alloy, crystal, file_reading, diffraction
 
 # Get basis and lattice parameters from CSV files.
 CRYSTAL_PATH = "data/type_3_5_semiconductors/"
@@ -28,7 +28,7 @@ MAX_SIDE_LENGTH = 5
 
 super_cells = []
 for side_length in range(1, MAX_SIDE_LENGTH + 1):
-    GaAs_super_cell = disordered_alloy.SuperCell.new_super_cell(
+    GaAs_super_cell = alloy.SuperCell.new_super_cell(
         GaAs_unit_cell, (side_length, side_length, side_length)
     ).to_unit_cell()
 
