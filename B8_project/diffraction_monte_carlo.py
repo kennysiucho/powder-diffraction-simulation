@@ -100,16 +100,16 @@ class NeutronDiffractionMonteCarlo:
             max_angle_deg: float = 180.0,
             angle_bins: int = 100):
         """
-        TODO: update docstring
-        Calculate diffraction pattern
+        Calculate diffraction pattern ideal crystal
         =============================
 
-        Calculates the neutron diffraction spectrum using a Monte Carlo method.
+        Calculates the neutron diffraction spectrum using a Monte Carlo method,
+        assuming the crystal consists of the same unit cell throughout (ideal crystal).
 
         For each Monte Carlo trial, randomly choose the incident and scattered k-
-        vectors. Sum over all atoms to calculate the structure factor and hence
-        intensity of this trial. If the scattering angle is within the range
-        specified then add this trial to the final result.
+        vectors. If the scattering angle is within the range specified, compute the
+        lattice and basis structure factors and hence intensity of the trial. Add
+        intensity to final diffraction pattern.
 
         Parameters
         ----------
