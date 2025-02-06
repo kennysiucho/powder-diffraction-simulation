@@ -11,12 +11,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from B8_project import utils
-from B8_project.crystal import UnitCellV2, ReciprocalSpace
+from B8_project.crystal import UnitCell, ReciprocalSpace
 from B8_project.form_factor import FormFactorProtocol, NeutronFormFactor, XRayFormFactor
 
 
 def _calculate_structure_factors(
-    unit_cell: UnitCellV2,
+    unit_cell: UnitCell,
     form_factors: Mapping[int, FormFactorProtocol],
     reciprocal_lattice_vectors: np.ndarray,
 ) -> np.ndarray:
@@ -66,7 +66,7 @@ def _calculate_structure_factors(
 
 
 def _calculate_diffraction_peaks(
-    unit_cell: UnitCellV2,
+    unit_cell: UnitCell,
     form_factors: Mapping[int, FormFactorProtocol],
     wavelength: float,
     min_deflection_angle: float = 10,
@@ -212,7 +212,7 @@ def _merge_peaks(
 
 
 def get_miller_peaks(
-    unit_cell: UnitCellV2,
+    unit_cell: UnitCell,
     diffraction_type: str,
     neutron_form_factors: Mapping[int, NeutronFormFactor],
     x_ray_form_factors: Mapping[int, XRayFormFactor],
@@ -233,7 +233,7 @@ def get_miller_peaks(
 
     Parameters
     ----------
-    unit_cell : UnitCellV2
+    unit_cell : UnitCell
         Represents the desired crystal.
     diffraction_type : str
         Should have a value of "ND" for neutron diffraction, or "XRD" for X-ray
@@ -303,7 +303,7 @@ def get_miller_peaks(
 
 
 def get_diffraction_pattern(
-    unit_cell: UnitCellV2,
+    unit_cell: UnitCell,
     diffraction_type: str,
     neutron_form_factors: Mapping[int, NeutronFormFactor],
     x_ray_form_factors: Mapping[int, XRayFormFactor],
@@ -412,7 +412,7 @@ def get_diffraction_pattern(
 
 
 def plot_diffraction_pattern(
-    unit_cell: UnitCellV2,
+    unit_cell: UnitCell,
     diffraction_type: str,
     neutron_form_factors: Mapping[int, NeutronFormFactor],
     x_ray_form_factors: Mapping[int, XRayFormFactor],
@@ -530,7 +530,7 @@ def plot_diffraction_pattern(
 
 
 def plot_superimposed_diffraction_patterns(
-    unit_cells_with_diffraction_types: list[tuple[UnitCellV2, str]],
+    unit_cells_with_diffraction_types: list[tuple[UnitCell, str]],
     neutron_form_factors: Mapping[int, NeutronFormFactor],
     x_ray_form_factors: Mapping[int, XRayFormFactor],
     wavelength: float = 0.1,
