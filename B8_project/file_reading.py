@@ -43,10 +43,6 @@ def read_basis(
         the lattice constants. E.g., (x, y, z) = (0.5, 0.5, 0.5) corresponds to a
         position (0.5*a, 0.5*b. 0.5*c), where a, b, c are the side lengths of the unit
         cell in the x, y, z directions respectively.
-
-    Example use case
-    ----------------
-    >>> atomic_numbers, atomic_positions = read_basis("example_basis.csv")
     """
     try:
         # Read the CSV file containing the lattice parameters into a DataFrame.
@@ -107,10 +103,6 @@ def read_lattice(
             - 4 -> Base centred.
         - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
         directions respectively in nanometers (nm).
-
-    Example use case
-    ----------------
-    >>> material, lattice_type, lattice_constants = read_lattice("example_lattice.csv")
     """
     try:
         # Read the CSV file containing the lattice parameters into a DataFrame.
@@ -160,10 +152,6 @@ def read_neutron_scattering_lengths(
         - atomic_number (int): The atomic number of the atom.
         - neutron_scattering_length (float): The neutron scattering length of the
         atom, in femtometers (fm).
-
-    Example use case
-    ----------------
-    >>> neutron_scattering_lengths = read_neutron_scattering_lengths("example_neutron_data.csv")
     """
     try:
         # Read the CSV file containing the neutron scattering lengths into a DataFrame.
@@ -224,10 +212,6 @@ def read_xray_form_factors(
         - "a1", "b1", "a2", "b2", "a3", "b3", "a4", "b4", "c" (float): Parameters which
         specify the X-ray form factor of the atom. These correspond to the attributes
         of the `XRayFormFactor` class.
-
-    Example use case
-    ----------------
-    >>> xray_form_factors = read_xray_form_factors("example_xray_data.csv")
     """
     try:
         # Read the CSV file containing the X-ray form factors into a DataFrame.

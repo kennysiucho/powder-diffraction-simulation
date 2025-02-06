@@ -11,12 +11,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from B8_project import utils
-from B8_project.crystal import UnitCell, ReciprocalSpace
+from B8_project.crystal import UnitCellV2, ReciprocalSpace
 from B8_project.form_factor import FormFactorProtocol, NeutronFormFactor, XRayFormFactor
 
 
 def _calculate_structure_factors(
-    unit_cell: UnitCell,
+    unit_cell: UnitCellV2,
     form_factors: Mapping[int, FormFactorProtocol],
     reciprocal_lattice_vectors: np.ndarray,
 ) -> np.ndarray:
@@ -27,32 +27,46 @@ def _calculate_structure_factors(
     Calculates the structure factor of a crystal for a specified range of
     reciprocal lattice vectors, and returns the structure factors as a NumPy array.
     """
+    # Extract atomic numbers and positions.
+    atomic_numbers = unit_cell.atoms["atomic_numbers"]
+    positions = unit_cell.atoms["positions"]
+
     # Initialize the structure factors array.
     structure_factors = np.zeros(
         reciprocal_lattice_vectors.shape[0], dtype=np.complex128
     )
 
-    # Iterate through every atom in the unit cell and calculate the structure
-    # factors.
-    for atom in unit_cell.atoms:
-        exponents = (2 * np.pi * 1j) * np.dot(
-            reciprocal_lattice_vectors["miller_indices"], atom.position
-        )
-
+    # Iterate over unique atomic numbers to evaluate form factors
+    for atomic_number in np.unique(atomic_numbers):
         try:
-            form_factor = form_factors[atom.atomic_number]
-
-            structure_factors += form_factor.evaluate_form_factors(
-                reciprocal_lattice_vectors["magnitudes"]
-            ) * np.exp(exponents)
-
+            form_factor = form_factors[atomic_number]
         except KeyError as exc:
             raise KeyError(f"Error reading form factor Mapping: {exc}") from exc
+
+        # Evaluate the form factor for all RLVs.
+        form_factor_values = form_factor.evaluate_form_factors(
+            reciprocal_lattice_vectors["magnitudes"]
+        )
+
+        # Get the positions of all of the current atoms
+        mask = atomic_numbers == atomic_number
+        current_positions = positions[mask]
+
+        # Calculate exponents for all current atoms and Miller indices at once
+        exponents = (2 * np.pi * 1j) * np.dot(
+            reciprocal_lattice_vectors["miller_indices"], current_positions.T
+        )
+
+        # Sum the contribution from all atoms in the UC with the current atomic number.
+        structure_factors += np.sum(
+            form_factor_values[:, np.newaxis] * np.exp(exponents), axis=1
+        )
+
     return structure_factors
 
 
 def _calculate_diffraction_peaks(
-    unit_cell: UnitCell,
+    unit_cell: UnitCellV2,
     form_factors: Mapping[int, FormFactorProtocol],
     wavelength: float,
     min_deflection_angle: float = 10,
@@ -64,7 +78,7 @@ def _calculate_diffraction_peaks(
     ===========================
 
     Calculates the miller indices, deflection angle and intensity of every peak in the
-    diffraction pattern of a specified crystal, and returns this data as a structure
+    diffraction pattern of a specified crystal, and returns this data as a structured
     NumPy array.
 
     Array format
@@ -153,10 +167,10 @@ def _merge_peaks(
     ===========
 
     Filters an array of diffraction peaks, and returns the filtered array. The
-    filtering is done in two steps. First, merge all peaks which occur at the same
-    deflection angle, to within a given tolerance. Second, normalize the remaining
-    peaks and remove any peaks which have an intensity smaller than the intensity
-    cutoff.
+    filtering is done in two steps. First, all peaks which occur at the same deflection
+    angle (to within a given tolerance) are merged. Second, the remaining peaks are
+    normalized. Finally, any peaks which have an intensity smaller than the intensity
+    cutoff are removed.
     """
     # Relative tolerance for comparing deflection angles.
     angle_tolerance = 1e-10
@@ -198,7 +212,7 @@ def _merge_peaks(
 
 
 def get_miller_peaks(
-    unit_cell: UnitCell,
+    unit_cell: UnitCellV2,
     diffraction_type: str,
     neutron_form_factors: Mapping[int, NeutronFormFactor],
     x_ray_form_factors: Mapping[int, XRayFormFactor],
@@ -219,32 +233,38 @@ def get_miller_peaks(
 
     Parameters
     ----------
-        - unit_cell (UnitCell): Represents the desired crystal.
-        - diffraction_type (str): Should have a value of "ND" for neutron diffraction,
-        or "XRD" for X-ray diffraction.
-        - neutron_form_factors (Mapping[int, NeutronFormFactor]): a mapping from atomic
-        numbers to a class which represents a neutron form factor.
-        - x_ray_form_factors (Mapping[int, XRayFormFactor]): a mapping from atomic
-        numbers to a class which represents an X-ray form factor.
-        - wavelength (float): the wavelength of incident particles, given in
-        nanometers (nm).
-        - min_deflection_angle (float), max_deflection_angle (float): these
-        parameters specify the range of deflection angles to be plotted.
-        - intensity_cutoff (float): The minimum intensity required for a peak to be
-        tabulated. The default value is 1e-6.
-        - print_peak_data (bool): True -> print the peak data; False -> don't print the
-        peak data. The default value is False.
-        save_to_csv (bool): True -> save the peak data to a .csv file. False -> don't
-        save the peak data. The default value is false.
+    unit_cell : UnitCellV2
+        Represents the desired crystal.
+    diffraction_type : str
+        Should have a value of "ND" for neutron diffraction, or "XRD" for X-ray
+        diffraction.
+    neutron_form_factors : Mapping[int, NeutronFormFactor]
+        A mapping from atomic numbers to a class which represents a neutron form
+        factor.
+    x_ray_form_factors : Mapping[int, XRayFormFactor]
+        A mapping from atomic numbers to a class which represents an X-ray form
+        factor.
+    wavelength : float
+        The wavelength of incident particles, given in nanometers (nm).
+    min_deflection_angle : float, optional
+        The minimum deflection angle to be plotted. Default is 10.
+    max_deflection_angle : float, optional
+        The maximum deflection angle to be plotted. Default is 170.
+    intensity_cutoff : float, optional
+        The minimum intensity required for a peak to be tabulated. Default is 1e-6.
+    print_peak_data : bool, optional
+        If True, print the peak data. Default is False.
+    save_to_csv : bool, optional
+        If True, save the peak data to a .csv file. Default is False.
 
     Returns
     -------
-        - (ndarray): A structured NumPy array that stores the peak data. The array has
-        the following fields:
-            - 'miller_indices': Ndarray representing the Miller indices (h, k, l) of the
-            peak.
-            - 'deflection_angle': Float equal to the deflection angle of the peak.
-            - 'intensities': Float equal to the (normalized) intensity of the peak.
+    np.ndarray
+        A structured NumPy array that stores the peak data. The array has the following fields:
+        - 'miller_indices': An np.ndarray representing the Miller indices (h, k, l) of
+        the peak.
+        - 'deflection_angle': The deflection angle of the peak.
+        - 'intensities': The (normalized) intensity of the peak.
     """
     if diffraction_type == "ND":
         diffraction_peaks = _calculate_diffraction_peaks(
@@ -283,7 +303,7 @@ def get_miller_peaks(
 
 
 def get_diffraction_pattern(
-    unit_cell: UnitCell,
+    unit_cell: UnitCellV2,
     diffraction_type: str,
     neutron_form_factors: Mapping[int, NeutronFormFactor],
     x_ray_form_factors: Mapping[int, XRayFormFactor],
@@ -293,35 +313,39 @@ def get_diffraction_pattern(
     peak_width: float = 0.1,
 ) -> np.ndarray:
     """
-    Plot diffraction pattern
-    ========================
+    Get diffraction pattern
+    =======================
 
     Calculates the diffraction pattern for a crystal, and returns a structured NumPy
     array containing deflection angles and intensities.
 
     Parameters
     ----------
-        - unit_cell (UnitCell): the unit cell of the chosen crystal.
-        - diffraction_type (str): the type of diffraction desired. Should be either
-        `"ND"` for neutron diffraction, or `"XRD"` for X-ray diffraction.
-        - neutron_form_factors (Mapping[int, NeutronFormFactor]): a mapping from atomic
-        numbers to a class which represents a neutron form factor.
-        - x_ray_form_factors (Mapping[int, XRayFormFactor]): a mapping from atomic
-        numbers to a class which represents an X-ray form factor.
-        - wavelength (float): the wavelength of incident particles, given in
-        nanometers (nm).
-        - min_deflection_angle (float), max_deflection_angle (float): these
-        parameters specify the range of deflection angles to be plotted.
-        - peak_width (float): The width of the intensity peaks. This parameter is
-        only used for plotting. A value should be chosen so that all diffraction
-        peaks can be observed. The default value is 0.1°.
+    unit_cell : UnitCell
+        The unit cell of the chosen crystal.
+    diffraction_type : str
+        The type of diffraction desired. Should be either `"ND"` for neutron
+        diffraction, or `"XRD"` for X-ray diffraction.
+    neutron_form_factors : Mapping[int, NeutronFormFactor]
+        A mapping from atomic numbers to a class which represents a neutron form factor.
+    x_ray_form_factors : Mapping[int, XRayFormFactor]
+        A mapping from atomic numbers to a class which represents an X-ray form factor.
+    wavelength : float
+        The wavelength of incident particles, given in nanometers (nm).
+    min_deflection_angle, max_deflection_angle : float
+        These parameters specify the range of deflection angles to be plotted.
+    peak_width : float
+        The width of the intensity peaks. This parameter is only used for plotting. A
+        value should be chosen so that all diffraction peaks can be observed. The
+        default value is 0.1°.
 
     Returns
     -------
-        - (ndarray): A structured NumPy array that contains the diffraction pattern
-        data. The array has the following fields:
+    np.ndarray
+        A structured NumPy array that contains the diffraction pattern data. The array
+        has the following fields:
             - 'deflection_angles': A list of all sampled deflection angles.
-            - 'intensities': The intensity at the deflection angle.
+            - 'intensities': The intensity at each deflection angle.
     """
     # Find the diffraction peaks.
     if diffraction_type == "ND":
@@ -388,7 +412,7 @@ def get_diffraction_pattern(
 
 
 def plot_diffraction_pattern(
-    unit_cell: UnitCell,
+    unit_cell: UnitCellV2,
     diffraction_type: str,
     neutron_form_factors: Mapping[int, NeutronFormFactor],
     x_ray_form_factors: Mapping[int, XRayFormFactor],
@@ -408,30 +432,35 @@ def plot_diffraction_pattern(
 
     Name of .pdf file
     -----------------
-        - For neutron diffraction, the .pdf file has the following name:
-        "<material>_<ND>_<date>.pdf", where "ND" stands for Neutron Diffraction.
-        - For X-ray diffraction, the .pdf file has the following name:
-        "<material>_<XRD>_<date>.pdf", where "XRD" stands for X-Ray Diffraction.
+    For neutron diffraction, the .pdf file has the following name:
+    `"<material>_<ND>_<date>.pdf"`, where `"ND"` stands for Neutron Diffraction. For
+    X-ray  diffraction, the .pdf file has the following name:
+    `"<material>_<XRD>_<date>.pdf"`, where `"XRD"` stands for X-Ray Diffraction.
 
     Parameters
     ----------
-        - unit_cell (UnitCell): the unit cell of the chosen crystal.
-        - diffraction_type (str): the type of diffraction desired. Should be either
-        `"ND"` for neutron diffraction, or `"XRD"` for X-ray diffraction.
-        - neutron_form_factors (Mapping[int, NeutronFormFactor]): a mapping from atomic
-        numbers to a class which represents a neutron form factor.
-        - x_ray_form_factors (Mapping[int, XRayFormFactor]): a mapping from atomic
-        numbers to a class which represents an X-ray form factor.
-        - wavelength (float): the wavelength of incident particles, given in
-        nanometers (nm).
-        - min_deflection_angle (float), max_deflection_angle (float): these
-        parameters specify the range of deflection angles to be plotted.
-        - peak_width (float): The width of the intensity peaks. This parameter is
-        only used for plotting. A value should be chosen so that all diffraction
-        peaks can be observed. The default value is 0.1°.
-        - line_width (float): The linewidth of the plot. Default value is 1.
-        - file_path (str): The path to the directory where the plot will be stored.
-        Default value is `results/`.
+    unit_cell : UnitCell
+        The unit cell of the chosen crystal.
+    diffraction_type : str
+        The type of diffraction desired. Should be either `"ND"` for neutron
+        diffraction, or `"XRD"` for X-ray diffraction.
+    neutron_form_factors : Mapping[int, NeutronFormFactor]
+        A mapping from atomic numbers to a class which represents a neutron form factor.
+    x_ray_form_factors : Mapping[int, XRayFormFactor]
+        A mapping from atomic numbers to a class which represents an X-ray form factor.
+    wavelength : float
+        The wavelength of incident particles, given in nanometers (nm).
+    min_deflection_angle, max_deflection_angle : float
+        These parameters specify the range of deflection angles to be plotted.
+    peak_width : float
+        The width of the intensity peaks. This parameter is only used for plotting. A
+        value should be chosen so that all diffraction peaks can be observed. The
+        default value is 0.1°.
+    line_width : float
+        The linewidth of the plot. Default value is 1.
+    file_path : str
+        The path to the directory where the plot will be stored. Default value is
+        `"results/"`.
     """
     # Get the diffraction pattern.
     try:
@@ -501,7 +530,7 @@ def plot_diffraction_pattern(
 
 
 def plot_superimposed_diffraction_patterns(
-    unit_cells_with_diffraction_types: list[tuple[UnitCell, str]],
+    unit_cells_with_diffraction_types: list[tuple[UnitCellV2, str]],
     neutron_form_factors: Mapping[int, NeutronFormFactor],
     x_ray_form_factors: Mapping[int, XRayFormFactor],
     wavelength: float = 0.1,
@@ -526,35 +555,34 @@ def plot_superimposed_diffraction_patterns(
     The filename consists of the chemical formula of each crystal followed by the
     diffraction type. For instance, suppose that we wanted to plot the ND pattern of
     NaCl and the XRD pattern of CsCl. The filename would then be
-    "NaCl_ND_CsCl_XRD_<date>".
+    `"NaCl_ND_CsCl_XRD_<date>"`.
 
     Parameters
     ----------
-        - unit_cells_with_diffraction_types (list[tuple[UnitCell, str]]): Each element
-        in the list is a tuple (unit_cell, diffraction_type). unit_cell is an instance
-        of `UnitCell`, and represents a crystal. diffraction_type is a string -
-        diffraction_type should be `"ND"` for neutron diffraction or `"XRD"` for X-ray
-        diffraction.
-        - neutron_form_factors (Mapping[int, NeutronFormFactor]): a mapping from atomic
-        numbers to a class which represents a neutron form factor.
-        - x_ray_form_factors (Mapping[int, XRayFormFactor]): a mapping from atomic
-        numbers to a class which represents an X-ray form factor.
-        - wavelength (float): the wavelength of incident particles, given in
-        nanometers (nm). Default value is 0.1nm.
-        - min_deflection_angle (float), max_deflection_angle (float): these
-        parameters specify the range of deflection angles to be plotted. Default values
-        are 10°, 170° respectively.
-        - peak_width (float): The width of the intensity peaks. This parameter is
-        only used for plotting. A value should be chosen so that all diffraction
-        peaks can be observed. The default value is 0.1°.
-        - variable_wavelength (bool): False (default) -> Each plot uses the same
-        wavelength. True -> the first plot uses the wavelength specified when the
-        function is called, and the other plots use different wavelengths, such that
-        the peaks for all of the plots overlap.
-        - line_width (float): The linewidth of each curve. Default value is 1.
-        - opacity (float): The opacity of each curve. Default value is 0.5.
-        - file_path (str): The path to the directory where the plot will be stored.
-        Default value is `results/`.
+    unit_cells_with_diffraction_types : list[tuple[UnitCell, str]]
+        Each element in the list is a tuple (`unit_cell`, `diffraction_type`). `unit_cell` is an instance of `UnitCell`, and represents a crystal. `diffraction_type` is a string. `diffraction_type` should be `"ND"` for neutron diffraction or `"XRD"` for X-ray diffraction.
+    neutron_form_factors : Mapping[int, NeutronFormFactor]
+        A mapping from atomic numbers to a class which represents a neutron form factor.
+    x_ray_form_factors : Mapping[int, XRayFormFactor]
+        A mapping from atomic numbers to a class which represents an X-ray form factor.
+    wavelength : float
+        The wavelength of incident particles, given in nanometers (nm). Default value
+        is 0.1nm.
+    min_deflection_angle, max_deflection_angle : float
+        These parameters specify the range of deflection angles to be plotted. Default
+        values are 10°, 170° respectively.
+    peak_width : float
+        The width of the intensity peaks. This parameter is only used for plotting. A
+        value should be chosen so that all diffraction peaks can be observed. The
+        default value is 0.1°.
+    variable_wavelength : bool
+        False (default) -> Each plot uses the same wavelength. True -> the first plot uses the wavelength specified when the function is called, and the other plots use different wavelengths, such that the peaks for all of the plots overlap.
+    line_width : float
+        The linewidth of each curve. Default value is 1.
+    opacity : float
+        The opacity of each curve. Default value is 0.5.
+    file_path : str
+        The path to the directory where the plot will be stored. Default value is `"results/"`.
     """
     # Create the figure and axis.
     fig, ax = plt.subplots(figsize=(10, 6))
