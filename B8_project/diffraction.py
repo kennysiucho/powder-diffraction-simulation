@@ -171,6 +171,8 @@ def _merge_peaks(
     angle (to within a given tolerance) are merged. Second, the remaining peaks are
     normalized. Finally, any peaks which have an intensity smaller than the intensity
     cutoff are removed.
+
+    TODO: optimize this function. np.delete() is taking a long time to run.
     """
     # Relative tolerance for comparing deflection angles.
     angle_tolerance = 1e-10
