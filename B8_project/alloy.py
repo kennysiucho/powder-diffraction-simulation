@@ -1,8 +1,8 @@
 """
-Super cell
-==========
+Alloy
+=====
 
-TODO: Add documentation.
+This module contains code related to generating and representing alloys.
 """
 
 from dataclasses import dataclass
@@ -23,14 +23,23 @@ class SuperCell:
 
     Attributes
     ----------
-        - unit_cell (UnitCell): The unit cell which is to be copied to produce the
-        super cell.
-        - side_lengths (tuple[int, int, int]): The side lengths of the super cell,
-        specified in terms of the lattice constants of the unit cell.
+    material : str
+        The name of the crystal.
+    unit_cell : UnitCell
+        The unit cell which is to be copied to produce the super cell.
+    side_lengths : np.ndarray
+        The side lengths of the super cell, specified in terms of the lattice constants
+        of the unit cell.
 
     Methods
     -------
-    TODO: Add methods.
+    new_super_cell
+        Generates a new super cell.
+    lattice_vectors
+        Returns the position vector of each unit cell in the super cell.
+    to_unit_cell
+        Converts a super cell into an instance of `UnitCell`, i.e. a list of atoms and
+        atomic positions inside the super cell.
     """
 
     material: str
@@ -58,6 +67,19 @@ class SuperCell:
 
         Creates a new super cell, given a material, a unit cell and the side lengths of
         the super cell.
+
+        Parameters
+        ----------
+        unit_cell : UnitCell
+            Represents the unit cell of the crystal that is to be converted to a super
+            cell. The `UnitCell` object stores a list of atoms and atomic positions in
+            the unit cell of the crystal.
+        side_lengths : tuple[int, int, int]
+            The desired side lengths in the x, y and z directions of the super cell,
+            specified in terms of the lattice constants of the unit cell.
+        material : str
+            The name of the material. The default value is the same name as the original
+            crystal.
         """
         if material == "":
             material = unit_cell.material
@@ -99,7 +121,8 @@ class SuperCell:
         Super cell to unit cell
         =======================
 
-        Creates an instance of `UnitCell` given a super cell.
+        Converts a super cell into an instance of `UnitCell`, i.e. a list of atoms in
+        the super cell and their positions.
         """
         unit_cell = self.unit_cell
         lattice_vectors = self.lattice_vectors()
@@ -109,6 +132,8 @@ class SuperCell:
         atomic_numbers = unit_cell.atoms["atomic_numbers"]
         atomic_positions = unit_cell.atoms["positions"]
 
+        # For each unit cell copy, duplicates all of the atoms and shifts their
+        # positions.
         atomic_numbers = np.repeat(atomic_numbers, len(lattice_vectors))
         atomic_positions = atomic_positions[:, np.newaxis, :] + lattice_vectors
 
