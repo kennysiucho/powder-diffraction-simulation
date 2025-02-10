@@ -168,7 +168,8 @@ def read_neutron_scattering_lengths(
     Parameters
     ----------
     filename : str
-        Filename of the .csv file containing the neutron scattering lengths. Default value is `"data/neutron_scattering_lengths.csv"`
+        Filename of the .csv file containing the neutron scattering lengths. Default
+        value is `"data/neutron_scattering_lengths.csv"`
     """
     try:
         # Read the CSV file containing the neutron scattering lengths into a DataFrame.
