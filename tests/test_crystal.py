@@ -186,113 +186,72 @@ class TestReciprocalSpace:
     Unit tests for the `ReciprocalSpace` class.
     """
 
+    @staticmethod
+    def test_get_reciprocal_lattice_vectors_normal_operation():
+        """
+        A unit test for the get_reciprocal_lattice_vectors function. This unit test
+        tests normal operation of the function.
+        """
+        reciprocal_lattice_vectors = (
+            crystal.ReciprocalSpace.get_reciprocal_lattice_vectors(
+                1, 2 * np.pi + 0.001, np.array([1.0, 1.0, 1.0])
+            )
+        )
 
-# class TestReciprocalLatticeVector:
-#     """
-#     Unit tests for the `ReciprocalLatticeVector` class.
-#     """
+        expected_miller_indices = np.array(
+            [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]
+        )
+        assert np.array_equal(
+            reciprocal_lattice_vectors["miller_indices"][
+                np.lexsort(reciprocal_lattice_vectors["miller_indices"].T)
+            ],
+            expected_miller_indices[np.lexsort(expected_miller_indices.T)],
+        )
 
-#     @staticmethod
-#     def test_reciprocal_lattice_vector_initialization_normal_operation():
-#         """
-#         A unit test that tests the initialization of a `ReciprocalLatticeVector` instance.
-#         This unit test tests initialization with normal attributes.
-#         """
-#         CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
-#             "tests/data/CsCl_basis.csv"
-#         )
-#         CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
-#             "tests/data/CsCl_lattice.csv"
-#         )
-#         unit_cell = UnitCell.new_unit_cell(CsCl_basis, CsCl_lattice)
-#         assert unit_cell is not None
+        expected_magnitudes = np.full(6, 2 * np.pi)
+        assert np.array_equal(
+            reciprocal_lattice_vectors["magnitudes"], expected_magnitudes
+        )
 
-#         reciprocal_lattice_vector = ReciprocalLatticeVector(
-#             (1, 2, 3), unit_cell.lattice_constants
-#         )
-#         assert reciprocal_lattice_vector.miller_indices == (1, 2, 3)
-#         assert reciprocal_lattice_vector.lattice_constants == (0.4119, 0.4119, 0.4119)
+        expected_components = expected_miller_indices * np.full(3, 2 * np.pi)
+        assert np.array_equal(
+            reciprocal_lattice_vectors["components"][
+                np.lexsort(reciprocal_lattice_vectors["components"].T)
+            ],
+            expected_components[np.lexsort(expected_components.T)],
+        )
 
-#     @staticmethod
-#     def test_components_normal_operation():
-#         """
-#         A unit test for the components function. This unit test tests normal operation
-#         of the function.
-#         """
-#         CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
-#             "tests/data/CsCl_basis.csv"
-#         )
-#         CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
-#             "tests/data/CsCl_lattice.csv"
-#         )
-#         unit_cell = UnitCell.new_unit_cell(CsCl_basis, CsCl_lattice)
-#         assert unit_cell is not None
+    @staticmethod
+    def test_rlv_magnitudes_from_deflection_angles_normal_operation():
+        """
+        A unit test for the rlv_magnitudes_from_deflection_angles function. This unit
+        test tests normal operation of the function.
+        """
+        deflection_angles = np.array([45, 90])
+        rlv_magnitudes = crystal.ReciprocalSpace.rlv_magnitudes_from_deflection_angles(
+            deflection_angles, 0.1
+        )
 
-#         reciprocal_lattice_vector = ReciprocalLatticeVector(
-#             (1, 2, 3), unit_cell.lattice_constants
-#         )
-#         components = reciprocal_lattice_vector.components()
+        assert np.all(np.isclose(rlv_magnitudes, np.array([48.089, 88.858]), rtol=1e-4))
 
-#         a, b, c = reciprocal_lattice_vector.lattice_constants
-#         expected_components = (2 * np.pi / a, 4 * np.pi / b, 6 * np.pi / c)
+    @staticmethod
+    def test_deflection_angles_from_rlv_magnitudes_normal_operation():
+        """
+        A unit test for the deflection_angles_from_rlv_magnitudes function. This unit
+        test tests normal operation of the function.
+        """
+        rlv_magnitudes = np.array([1, 2, 3, 4, 5])
 
-#         assert np.isclose(components[0], expected_components[0], rtol=1e-6)
-#         assert np.isclose(components[1], expected_components[1], rtol=1e-6)
-#         assert np.isclose(components[2], expected_components[2], rtol=1e-6)
+        deflection_angles = (
+            crystal.ReciprocalSpace.deflection_angles_from_rlv_magnitudes(
+                rlv_magnitudes, 0.1
+            )
+        )
 
-#     @staticmethod
-#     def test_magnitude_normal_operation():
-#         """
-#         A unit test for the magnitude function. This unit test tests normal operation
-#         of the function.
-#         """
-#         CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
-#             "tests/data/CsCl_basis.csv"
-#         )
-#         CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
-#             "tests/data/CsCl_lattice.csv"
-#         )
-#         unit_cell = UnitCell.new_unit_cell(CsCl_basis, CsCl_lattice)
-#         assert unit_cell is not None
+        expected_rlv_magnitudes = (
+            crystal.ReciprocalSpace.rlv_magnitudes_from_deflection_angles(
+                deflection_angles, 0.1
+            )
+        )
 
-#         reciprocal_lattice_vector = ReciprocalLatticeVector(
-#             (1, 2, 3), unit_cell.lattice_constants
-#         )
-
-#         a, b, c = reciprocal_lattice_vector.lattice_constants
-#         expected_components = (2 * np.pi / a, 4 * np.pi / b, 6 * np.pi / c)
-
-#         assert np.isclose(
-#             reciprocal_lattice_vector.magnitude(),
-#             np.sqrt(utils.dot_product_tuples(expected_components, expected_components)),
-#             rtol=1e-6,
-#         )
-
-#     @staticmethod
-#     def test_get_reciprocal_lattice_vectors_normal_operation():
-#         """
-#         A unit test for the get_reciprocal_lattice_vectors function. This unit test tests
-#         normal operation of the function.
-#         """
-#         basis = file_reading.read_basis("tests/data/test_basis.csv")
-#         lattice = file_reading.read_lattice("tests/data/test_lattice.csv")
-#         unit_cell = UnitCell.new_unit_cell(basis, lattice)
-
-#         reciprocal_lattice_vectors = (
-#             ReciprocalLatticeVector.get_reciprocal_lattice_vectors(
-#                 1, 2 * np.pi + 0.001, unit_cell
-#             )
-#         )
-
-#         expected_reciprocal_lattice_vectors = [
-#             ReciprocalLatticeVector((-1, 0, 0), unit_cell.lattice_constants),
-#             ReciprocalLatticeVector((0, -1, 0), unit_cell.lattice_constants),
-#             ReciprocalLatticeVector((0, 0, -1), unit_cell.lattice_constants),
-#             ReciprocalLatticeVector((1, 0, 0), unit_cell.lattice_constants),
-#             ReciprocalLatticeVector((0, 1, 0), unit_cell.lattice_constants),
-#             ReciprocalLatticeVector((0, 0, 1), unit_cell.lattice_constants),
-#         ]
-
-#         assert sorted(reciprocal_lattice_vectors, key=str) == sorted(
-#             expected_reciprocal_lattice_vectors, key=str
-#         )
+        assert np.all(np.isclose(rlv_magnitudes, expected_rlv_magnitudes, rtol=1e-6))
