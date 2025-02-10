@@ -1,5 +1,6 @@
 """
 This module contains tests for the alloy module.
+TODO: add tests for the add_disorder function.
 """
 
 import numpy as np

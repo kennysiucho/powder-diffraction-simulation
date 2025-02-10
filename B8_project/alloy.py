@@ -6,6 +6,7 @@ This module contains code related to generating and representing alloys.
 """
 
 from dataclasses import dataclass
+from copy import deepcopy
 import numpy as np
 
 from B8_project.crystal import UnitCell
@@ -115,13 +116,70 @@ class SuperCell:
 
         return UnitCell(material, lattice_constants, atoms)
 
+    @staticmethod
+    def apply_disorder(
+        super_cell: UnitCell,
+        super_cell_side_lengths: tuple[int, int, int],
+        target_atomic_number: int,
+        substitute_atomic_number: int,
+        concentration: float,
+        material_name: str,
+        substitute_lattice_constants: np.ndarray,
+    ):
+        """
+        Apply disorder
+        ==============
 
-# class DisorderedAlloy:
-#     """
-#     Disordered alloy
-#     ================
+        Randomly replaces target atoms in a super cell with substitute atoms until a
+        specified concentration is reached. The new disordered super cell is returned.
 
-#     This class groups functions related to disordered alloys.
-#     """
-#     @staticmethod
-#     def apply_disorder(super_cell: SuperCell, ):
+        The lattice constants of the crystal with 100% substitute atom concentration
+        must be specified. For example, if you want to produce a super cell for
+        the alloy In(x)Ga(1-x)As, you should input a GaAs super cell and the lattice
+        constants of InAs. To calculate the lattice constants of In(x)Ga(1-x)As, a
+        linear interpolation between the lattice constants of GaAs and InAs is used.
+
+        Parameters
+        ----------
+        TODO: add parameters.
+
+        Returns
+        -------
+        TODO: add returns.
+        """
+        # Error handling.
+        if concentration < 0 or concentration > 1:
+            raise ValueError("concentration must be between 0 and 1")
+
+        # Get a list of target atoms, and shuffle the list.
+        atoms = deepcopy(super_cell.atoms)
+        target_atoms = atoms[atoms["atomic_numbers"] == target_atomic_number]
+        np.random.shuffle(target_atoms)
+
+        # Calculate the number of substitute atoms.
+        num_substitute_atoms = int(np.ceil(concentration * len(target_atoms)))
+
+        # Replace the correct number of atoms in target_atoms with the substitute atoms.
+        for i in range(num_substitute_atoms):
+            target_atoms["atomic_numbers"][i] = substitute_atomic_number
+
+        # Add the substituted atoms back into atoms
+        atoms[atoms["atomic_numbers"] == target_atomic_number] = target_atoms
+
+        # Calculate the lattice constants with 0% and 100% substitute atom
+        # concentration.
+        initial_lattice_constants = super_cell.lattice_constants
+        final_lattice_constants = substitute_lattice_constants * np.array(
+            super_cell_side_lengths
+        )
+
+        # Calculate the concentration of substitute atoms, and use a linear
+        # interpolation to calculate the lattice constants of the disordered alloy.
+        actual_concentration = float(num_substitute_atoms) / float(len(atoms))
+        lattice_constants = (
+            initial_lattice_constants
+            + (final_lattice_constants - initial_lattice_constants)
+            * actual_concentration
+        )
+
+        return UnitCell(material_name, lattice_constants, atoms)
