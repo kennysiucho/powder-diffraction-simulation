@@ -114,7 +114,10 @@ class SuperCell:
                 for z in range(z_length)
             ]
         )
-        return lattice_vectors
+
+        sorted_lattice_vectors = lattice_vectors[np.lexsort(lattice_vectors.T)]
+
+        return sorted_lattice_vectors
 
     def to_unit_cell(self) -> UnitCell:
         """
@@ -135,7 +138,9 @@ class SuperCell:
         # For each unit cell copy, duplicates all of the atoms and shifts their
         # positions.
         atomic_numbers = np.repeat(atomic_numbers, len(lattice_vectors))
-        atomic_positions = atomic_positions[:, np.newaxis, :] + lattice_vectors
+        atomic_positions = (
+            atomic_positions[:, np.newaxis, :] + lattice_vectors
+        ) / self.side_lengths
 
         # Define a custom datatype to represent atoms.
         dtype = np.dtype([("atomic_numbers", "i4"), ("positions", "3f8")])
