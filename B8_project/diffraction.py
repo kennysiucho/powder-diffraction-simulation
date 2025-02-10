@@ -171,8 +171,6 @@ def _merge_peaks(
     angle (to within a given tolerance) are merged. Second, the remaining peaks are
     normalized. Finally, any peaks which have an intensity smaller than the intensity
     cutoff are removed.
-
-    TODO: optimize this function. np.delete() is taking a long time to run.
     """
     # Relative tolerance for comparing deflection angles.
     angle_tolerance = 1e-10
@@ -180,26 +178,30 @@ def _merge_peaks(
     # Sort diffraction_peaks based on the deflection angle.
     diffraction_peaks.sort(order="deflection_angles")
 
-    # Iterate over all diffraction peaks
-    i = 0
-    while i < len(diffraction_peaks) - 1:
-        # Sort miller indices from largest to smallest and take the absolute value.
-        diffraction_peaks["miller_indices"][i] = np.sort(
-            diffraction_peaks["miller_indices"][i]
-        )[::-1]
+    # Initialise a mask to keep track of duplicate peaks.
+    mask = np.ones(len(diffraction_peaks), dtype=bool)
 
-        # Remove any duplicate angles and merge intensities
-        while i < len(diffraction_peaks) - 1 and np.isclose(
-            diffraction_peaks[i]["deflection_angles"],
-            diffraction_peaks[i + 1]["deflection_angles"],
+    # Iterate over all diffraction peaks.
+    i = 0
+    length = len(diffraction_peaks)
+    while i < length - 1:
+        # Find all peaks with similar deflection angles and merge them.
+        j = i + 1
+        while j < length and np.isclose(
+            diffraction_peaks["deflection_angles"][i],
+            diffraction_peaks["deflection_angles"][j],
             rtol=angle_tolerance,
         ):
-            diffraction_peaks["intensities"][i] += diffraction_peaks["intensities"][
-                i + 1
-            ]
-            diffraction_peaks = np.delete(diffraction_peaks, i + 1)
+            # Merge intensities.
+            diffraction_peaks["intensities"][i] += diffraction_peaks["intensities"][j]
 
-        i += 1
+            # Mark peak as a duplicate.
+            mask[j] = False
+            j += 1
+        i = j
+
+    # Remove duplicate intensities
+    diffraction_peaks = diffraction_peaks[mask]
 
     # Normalize the intensities
     max_intensity = diffraction_peaks["intensities"].max()
@@ -209,6 +211,13 @@ def _merge_peaks(
     diffraction_peaks = diffraction_peaks[
         diffraction_peaks["intensities"] >= intensity_cutoff
     ]
+
+    # Take the absolute value of the miller indices for each peak and sort from largest
+    # to smallest.
+    for i in range(len(diffraction_peaks)):
+        diffraction_peaks["miller_indices"][i] = np.sort(
+            diffraction_peaks["miller_indices"][i]
+        )[::-1]
 
     return diffraction_peaks
 

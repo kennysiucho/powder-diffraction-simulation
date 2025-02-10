@@ -27,7 +27,7 @@ neutron_form_factors = file_reading.read_neutron_scattering_lengths(
 # Generate GaAs super cells.
 GaAs_super_cells = []
 
-MAX_SIDE_LENGTH = 3
+MAX_SIDE_LENGTH = 5
 for side_length in range(1, MAX_SIDE_LENGTH + 1):
     GaAs_super_cell = alloy.SuperCell.new_super_cell(
         GaAs_unit_cell, (side_length, side_length, side_length), "GaAs"
