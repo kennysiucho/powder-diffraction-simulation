@@ -463,6 +463,11 @@ def plot_diffraction_pattern(
     file_path : str
         The path to the directory where the plot will be stored. Default value is
         `"results/"`.
+
+    Todos
+    -----
+    TODO: give the user the option to display the plot, and the option to not save the
+    plot as a .pdf file.
     """
     # Get the diffraction pattern.
     try:
@@ -590,6 +595,11 @@ def plot_superimposed_diffraction_patterns(
         The opacity of each curve. Default value is 0.5.
     file_path : str
         The path to the directory where the plot will be stored. Default value is `"results/"`.
+
+    Todos
+    -----
+    TODO: give the user the option to display the plot, and the option to not save the
+    plot as a .pdf file.
     """
     # Create the figure and axis.
     fig, ax = plt.subplots(figsize=(10, 6))
