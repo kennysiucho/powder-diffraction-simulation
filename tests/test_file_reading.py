@@ -88,7 +88,7 @@ def test_read_x_ray_form_factors_normal_operation():
     A unit test for the read_xray_form_factors function. This unit test tests normal
     operation of the function.
     """
-    filename = "tests/data/xray_form_factors.csv"
+    filename = "tests/data/x_ray_form_factors.csv"
 
     x_ray_form_factors = file_reading.read_xray_form_factors(filename)
 

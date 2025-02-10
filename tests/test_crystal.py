@@ -17,8 +17,8 @@ class TestUnitCell:
     @staticmethod
     def test_unit_cell_initialization_normal_operation():
         """
-        A unit test that tests the initialization of a `UnitCell` instance. This unit test
-        tests initialization with normal attributes.
+        A unit test that tests the initialization of a `UnitCell` instance. This unit
+        test tests initialization with normal attributes.
         """
         atomic_numbers = np.array([11, 17])
         atomic_positions = np.array([[0, 0, 0], [0.5, 0.5, 0.5]])
@@ -87,8 +87,8 @@ class TestUnitCell:
     @staticmethod
     def test_new_unit_cell_normal_operation():
         """
-        A unit test for the crystal_parameters_to_unit_cell function. This unit test tests
-        normal operation of the function.
+        A unit test for the crystal_parameters_to_unit_cell function. This unit test
+        tests normal operation of the function.
         """
         # CsCl unit cell.
         CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
