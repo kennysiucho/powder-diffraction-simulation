@@ -322,6 +322,7 @@ def get_diffraction_pattern(
     min_deflection_angle: float = 10,
     max_deflection_angle: float = 170,
     peak_width: float = 0.1,
+    intensity_cutoff: float = 1e-6,
 ) -> np.ndarray:
     """
     Get diffraction pattern
@@ -349,6 +350,9 @@ def get_diffraction_pattern(
         The width of the intensity peaks. This parameter is only used for plotting. A
         value should be chosen so that all diffraction peaks can be observed. The
         default value is 0.1°.
+    intensity_cutoff : float
+        The minimum intensity required for a peak to be registered. The default value
+        is 1e-6.
 
     Returns
     -------
@@ -367,6 +371,7 @@ def get_diffraction_pattern(
                 wavelength,
                 min_deflection_angle,
                 max_deflection_angle,
+                intensity_cutoff,
             )
         except Exception as exc:
             raise ValueError(f"Error finding diffraction peaks: {exc}") from exc
@@ -379,6 +384,7 @@ def get_diffraction_pattern(
                 wavelength,
                 min_deflection_angle,
                 max_deflection_angle,
+                intensity_cutoff,
             )
         except Exception as exc:
             raise ValueError(f"Error finding diffraction peaks: {exc}") from exc
@@ -430,6 +436,7 @@ def plot_diffraction_pattern(
     wavelength: float = 0.1,
     min_deflection_angle: float = 10,
     max_deflection_angle: float = 170,
+    intensity_cutoff: float = 1e-6,
     peak_width: float = 0.1,
     y_axis_logarithmic: bool = False,
     line_width: float = 1.0,
@@ -464,6 +471,9 @@ def plot_diffraction_pattern(
         The wavelength of incident particles, given in nanometers (nm).
     min_deflection_angle, max_deflection_angle : float
         These parameters specify the range of deflection angles to be plotted.
+    intensity_cutoff : float
+        The minimum intensity needed for a peak to be registered. The default value is
+        1e-6.
     peak_width : float
         The width of the intensity peaks. This parameter is only used for plotting. A
         value should be chosen so that all diffraction peaks can be observed. The
@@ -493,6 +503,7 @@ def plot_diffraction_pattern(
             min_deflection_angle,
             max_deflection_angle,
             peak_width,
+            intensity_cutoff,
         )
     except Exception as exc:
         raise ValueError(f"Error getting diffraction pattern: {exc}") from exc
@@ -523,6 +534,7 @@ def plot_diffraction_pattern(
     # Set y-axis scale.
     if y_axis_logarithmic:
         ax.set_yscale("log")
+        ax.set_ylim(intensity_cutoff, 1)
 
     # Set title.
     ax.set_title(
@@ -560,6 +572,7 @@ def plot_superimposed_diffraction_patterns(
     wavelength: float = 0.1,
     min_deflection_angle: float = 10,
     max_deflection_angle: float = 170,
+    intensity_cutoff: float = 1e-6,
     peak_width: float = 0.1,
     variable_wavelength: bool = False,
     y_axis_logarithmic: bool = False,
@@ -599,6 +612,9 @@ def plot_superimposed_diffraction_patterns(
     min_deflection_angle, max_deflection_angle : float
         These parameters specify the range of deflection angles to be plotted. Default
         values are 10°, 170° respectively.
+    intensity_cutoff : float
+        The minimum intensity needed for a peak to be registered. The default value is
+        1e-6.
     peak_width : float
         The width of the intensity peaks. This parameter is only used for plotting. A
         value should be chosen so that all diffraction peaks can be observed. The
@@ -649,6 +665,7 @@ def plot_superimposed_diffraction_patterns(
                     min_deflection_angle,
                     max_deflection_angle,
                     peak_width,
+                    intensity_cutoff,
                 )
             except Exception as exc:
                 raise ValueError(f"Error getting points to plot: {exc}") from exc
@@ -665,6 +682,7 @@ def plot_superimposed_diffraction_patterns(
                     min_deflection_angle,
                     max_deflection_angle,
                     peak_width,
+                    intensity_cutoff,
                 )
             except Exception as exc:
                 raise ValueError(f"Error getting points to plot: {exc}") from exc
@@ -713,6 +731,7 @@ def plot_superimposed_diffraction_patterns(
     # Set y-axis scale.
     if y_axis_logarithmic:
         ax.set_yscale("log")
+        ax.set_ylim(intensity_cutoff, 1)
 
     # Add legend.
     plt.legend()
