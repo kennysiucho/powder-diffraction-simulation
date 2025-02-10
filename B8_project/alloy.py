@@ -119,12 +119,12 @@ class SuperCell:
     @staticmethod
     def apply_disorder(
         super_cell: UnitCell,
-        super_cell_side_lengths: tuple[int, int, int],
         target_atomic_number: int,
         substitute_atomic_number: int,
         concentration: float,
+        lattice_constants_no_substitution: np.ndarray,
+        lattice_constants_full_substitution: np.ndarray,
         material_name: str,
-        substitute_lattice_constants: np.ndarray,
     ):
         """
         Apply disorder
@@ -166,20 +166,19 @@ class SuperCell:
         # Add the substituted atoms back into atoms
         atoms[atoms["atomic_numbers"] == target_atomic_number] = target_atoms
 
-        # Calculate the lattice constants with 0% and 100% substitute atom
-        # concentration.
-        initial_lattice_constants = super_cell.lattice_constants
-        final_lattice_constants = substitute_lattice_constants * np.array(
-            super_cell_side_lengths
-        )
+        # Calculate the side lengths of the super cell.
+        side_lengths = super_cell.lattice_constants / lattice_constants_no_substitution
 
-        # Calculate the concentration of substitute atoms, and use a linear
-        # interpolation to calculate the lattice constants of the disordered alloy.
+        # Calculate the concentration of substitute atoms.
         actual_concentration = float(num_substitute_atoms) / float(len(atoms))
+
+        # Use a linear interpolation to calculate the lattice constants of the
+        # disordered alloy.
         lattice_constants = (
-            initial_lattice_constants
-            + (final_lattice_constants - initial_lattice_constants)
-            * actual_concentration
+            super_cell.lattice_constants
+            + actual_concentration
+            * side_lengths
+            * (lattice_constants_full_substitution - lattice_constants_no_substitution)
         )
 
         return UnitCell(material_name, lattice_constants, atoms)
