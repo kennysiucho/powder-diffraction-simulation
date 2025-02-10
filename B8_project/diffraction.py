@@ -431,6 +431,7 @@ def plot_diffraction_pattern(
     min_deflection_angle: float = 10,
     max_deflection_angle: float = 170,
     peak_width: float = 0.1,
+    y_axis_logarithmic: bool = False,
     line_width: float = 1.0,
     file_path: str = "results/",
 ):
@@ -467,6 +468,9 @@ def plot_diffraction_pattern(
         The width of the intensity peaks. This parameter is only used for plotting. A
         value should be chosen so that all diffraction peaks can be observed. The
         default value is 0.1°.
+    y_axis_logarithmic : bool
+        True -> logarithmic scale is used for relative intensities. False (default) ->
+        linear scale is used for relative intensities.
     line_width : float
         The linewidth of the plot. Default value is 1.
     file_path : str
@@ -516,6 +520,10 @@ def plot_diffraction_pattern(
     ax.set_xlabel("Deflection angle (°)", fontsize=11)
     ax.set_ylabel("Relative intensity", fontsize=11)
 
+    # Set y-axis scale.
+    if y_axis_logarithmic:
+        ax.set_yscale("log")
+
     # Set title.
     ax.set_title(
         f"Diffraction pattern for {unit_cell.material} ({diffraction_type}).",
@@ -554,6 +562,7 @@ def plot_superimposed_diffraction_patterns(
     max_deflection_angle: float = 170,
     peak_width: float = 0.1,
     variable_wavelength: bool = False,
+    y_axis_logarithmic: bool = False,
     line_width: float = 1.0,
     opacity: float = 0.5,
     file_path: str = "results/",
@@ -594,6 +603,9 @@ def plot_superimposed_diffraction_patterns(
         The width of the intensity peaks. This parameter is only used for plotting. A
         value should be chosen so that all diffraction peaks can be observed. The
         default value is 0.1°.
+    y_axis_logarithmic : bool
+        True -> logarithmic scale is used for relative intensities. False (default) ->
+        linear scale is used for relative intensities.
     variable_wavelength : bool
         False (default) -> Each plot uses the same wavelength. True -> the first plot
         uses the wavelength specified when the function is called, and the other plots
@@ -697,6 +709,10 @@ def plot_superimposed_diffraction_patterns(
     # Set axis labels.
     ax.set_xlabel("Deflection angle (°)", fontsize=11)
     ax.set_ylabel("Relative intensity", fontsize=11)
+
+    # Set y-axis scale.
+    if y_axis_logarithmic:
+        ax.set_yscale("log")
 
     # Add legend.
     plt.legend()
