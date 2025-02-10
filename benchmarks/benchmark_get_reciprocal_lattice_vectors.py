@@ -18,7 +18,7 @@ MAX_SIDE_LENGTH = 10
 for side_length in range(1, MAX_SIDE_LENGTH + 1):
     GaAs_super_cell = alloy.SuperCell.new_super_cell(
         GaAs_unit_cell, (side_length, side_length, side_length)
-    ).to_unit_cell()
+    )
 
     GaAs_super_cells.append(GaAs_super_cell)
 

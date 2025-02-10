@@ -31,7 +31,7 @@ MAX_SIDE_LENGTH = 5
 for side_length in range(1, MAX_SIDE_LENGTH + 1):
     GaAs_super_cell = alloy.SuperCell.new_super_cell(
         GaAs_unit_cell, (side_length, side_length, side_length), "GaAs"
-    ).to_unit_cell()
+    )
 
     GaAs_super_cells.append(GaAs_super_cell)
 
@@ -53,7 +53,7 @@ for i, GaAs_super_cell in enumerate(GaAs_super_cells):
         intensity_cutoff=1e-6,
         print_peak_data=False,
         save_to_csv=False,
-        number_of_runs=3,
+        number_of_runs=5,
     )
     benchmark_data.append((i + 1, average_time, std_dev_time))
 
