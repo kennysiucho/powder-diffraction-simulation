@@ -21,8 +21,8 @@ def _calculate_structure_factors(
     reciprocal_lattice_vectors: np.ndarray,
 ) -> np.ndarray:
     """
-    Get structure factors
-    =====================
+    Calculate structure factors
+    ===========================
 
     Calculates the structure factor of a crystal for a specified range of
     reciprocal lattice vectors, and returns the structure factors as a NumPy array.
@@ -562,7 +562,10 @@ def plot_superimposed_diffraction_patterns(
     Parameters
     ----------
     unit_cells_with_diffraction_types : list[tuple[UnitCell, str]]
-        Each element in the list is a tuple (`unit_cell`, `diffraction_type`). `unit_cell` is an instance of `UnitCell`, and represents a crystal. `diffraction_type` is a string. `diffraction_type` should be `"ND"` for neutron diffraction or `"XRD"` for X-ray diffraction.
+        Each element in the list is a tuple (`unit_cell`, `diffraction_type`).
+        `unit_cell` is an instance of `UnitCell`, and represents a crystal.
+        `diffraction_type` is a string. `diffraction_type` should be `"ND"` for neutron
+        diffraction or `"XRD"` for X-ray diffraction.
     neutron_form_factors : Mapping[int, NeutronFormFactor]
         A mapping from atomic numbers to a class which represents a neutron form factor.
     x_ray_form_factors : Mapping[int, XRayFormFactor]
@@ -578,7 +581,9 @@ def plot_superimposed_diffraction_patterns(
         value should be chosen so that all diffraction peaks can be observed. The
         default value is 0.1°.
     variable_wavelength : bool
-        False (default) -> Each plot uses the same wavelength. True -> the first plot uses the wavelength specified when the function is called, and the other plots use different wavelengths, such that the peaks for all of the plots overlap.
+        False (default) -> Each plot uses the same wavelength. True -> the first plot
+        uses the wavelength specified when the function is called, and the other plots
+        use different wavelengths, such that the peaks for all of the plots overlap.
     line_width : float
         The linewidth of each curve. Default value is 1.
     opacity : float

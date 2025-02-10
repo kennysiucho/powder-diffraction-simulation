@@ -167,7 +167,7 @@ class UnitCell:
         TODO: modify algorithm so that the positions of the new atoms are defined modulo
         a real lattice vector.
         """
-        material, lattice_type, lattice_constants = lattice
+        material_type, lattice_type, lattice_constants = lattice
         atomic_numbers, atomic_positions = basis
 
         # Validate the lattice and basis parameters
@@ -221,7 +221,7 @@ class UnitCell:
         atoms["atomic_numbers"] = np.array(atomic_numbers)
         atoms["positions"] = np.array(atomic_positions)
 
-        return cls(material, np.array(lattice_constants), atoms)
+        return cls(material_type, np.array(lattice_constants), atoms)
 
 
 class ReciprocalSpace:
