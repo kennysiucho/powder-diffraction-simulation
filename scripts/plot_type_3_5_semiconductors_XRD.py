@@ -3,8 +3,8 @@
 This script plots diffraction patterns for a range of type 3-5 semiconductors.
 """
 
-from B8_project import file_reading
-from B8_project import crystal, diffraction
+from B8_project import crystal, file_reading
+from B8_project import diffraction
 
 # Get basis and lattice parameters from CSV files.
 CRYSTAL_PATH = "data/type_3_5_semiconductors/"

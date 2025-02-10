@@ -3,8 +3,7 @@ This module contains unit tests for the form_factor module.
 """
 
 import numpy as np
-from B8_project.crystal import ReciprocalLatticeVector
-from B8_project.form_factor import FormFactorProtocol, NeutronFormFactor, XRayFormFactor
+from B8_project import form_factor
 
 
 class TestFormFactorProtocol:
@@ -18,8 +17,10 @@ class TestFormFactorProtocol:
         A unit test to check if the `NeutronFormFactor` class implements the form
         factor protocol
         """
-        neutron_form_factor = NeutronFormFactor(neutron_scattering_length=1.0)
-        assert isinstance(neutron_form_factor, FormFactorProtocol)
+        neutron_form_factor = form_factor.NeutronFormFactor(
+            neutron_scattering_length=1.0
+        )
+        assert isinstance(neutron_form_factor, form_factor.FormFactorProtocol)
 
     @staticmethod
     def test_x_ray_form_factor_implements_protocol():
@@ -27,8 +28,8 @@ class TestFormFactorProtocol:
         A unit test to check if the `XRayFormFactor` class implements the form
         factor protocol
         """
-        x_ray_form_factor = XRayFormFactor(1, 1, 1, 1, 1, 1, 1, 1, 1)
-        assert isinstance(x_ray_form_factor, FormFactorProtocol)
+        x_ray_form_factor = form_factor.XRayFormFactor(1, 1, 1, 1, 1, 1, 1, 1, 1)
+        assert isinstance(x_ray_form_factor, form_factor.FormFactorProtocol)
 
 
 class TestNeutronFormFactor:
@@ -42,7 +43,7 @@ class TestNeutronFormFactor:
         A unit test that tests the initialization of a `NeutronFormFactor` instance.
         This unit test tests initialization with normal attributes.
         """
-        neutron_form_factor = NeutronFormFactor(1)
+        neutron_form_factor = form_factor.NeutronFormFactor(1)
         assert neutron_form_factor.neutron_scattering_length == 1
 
     @staticmethod
@@ -51,12 +52,10 @@ class TestNeutronFormFactor:
         A unit test for the form_factor function. This unit test tests normal
         operation of the function.
         """
-        neutron_form_factor = NeutronFormFactor(1)
-        assert (
-            neutron_form_factor.evaluate_form_factor(
-                ReciprocalLatticeVector((0, 0, 0), (1, 1, 1))
-            )
-            == 1
+        neutron_form_factor = form_factor.NeutronFormFactor(1)
+        rlv_magnitudes = np.linspace(1, 10, 100)
+        assert np.array_equal(
+            neutron_form_factor.evaluate_form_factors(rlv_magnitudes), np.full(100, 1)
         )
 
 
@@ -71,7 +70,7 @@ class TestXRayFormFactor:
         A unit test that tests the initialization of a `XRayFormFactor` instance.
         This unit test tests initialization with normal attributes.
         """
-        xray_form_factor = XRayFormFactor(1, 2, 3, 4, 5, 6, 7, 8, 9)
+        xray_form_factor = form_factor.XRayFormFactor(1, 2, 3, 4, 5, 6, 7, 8, 9)
 
         assert xray_form_factor.a1 == 1
         assert xray_form_factor.b1 == 2
@@ -89,12 +88,10 @@ class TestXRayFormFactor:
         A unit test for the form_factor function. This unit test tests normal
         operation of the function.
         """
-        x_ray_form_factor = XRayFormFactor(1, 2, 3, 4, 5, 6, 7, 8, 9)
-        reciprocal_lattice_vector = ReciprocalLatticeVector((1, 0, 0), (1, 1, 1))
+        x_ray_form_factor = form_factor.XRayFormFactor(1, 2, 3, 4, 5, 6, 7, 8, 9)
+        rlv_magnitude = np.array([2 * np.pi])
 
-        assert np.isclose(reciprocal_lattice_vector.magnitude(), 2 * np.pi, rtol=1e-6)
-
-        result = x_ray_form_factor.evaluate_form_factor(reciprocal_lattice_vector)
+        result = x_ray_form_factor.evaluate_form_factors(rlv_magnitude)
 
         a = [1, 3, 5, 7]
         b = [2, 4, 6, 8]

@@ -2,81 +2,18 @@
 Crystal
 =======
 
-This module contains a selection of classes which represent various properties of a 
-crystal lattice.
+This module contains classes which relate to various properties of a crystal lattice.
 
 Classes
 -------
-    - Atom: A class to represent an atom in a unit cell.
     - UnitCell: A class to represent a unit cell. This class can only represent unit 
     cells where all of the angles are 90 degrees.
-    - ReciprocalLatticeVector: A class to represent a reciprocal lattice vector.
 """
 
 from dataclasses import dataclass
 import numpy as np
+
 import B8_project.utils as utils
-
-
-@dataclass
-class Atom:
-    """
-    Atom
-    ====
-
-    A class to represent an atom in a unit cell.
-
-    Attributes
-    ----------
-        - atomic_number (int): The atomic number of the atom.
-        - position (tuple[float, float, float]): The position of the atom in the unit
-        cell, given in terms of the lattice constants.
-
-    Methods
-    -------
-        - shift_position: shifts the `position` of an `Atom` instance by a specified
-        amount.
-        - scale_position: scales the x, y, z coordinates of an atom by a specified
-        amount.
-    """
-
-    atomic_number: int
-    position: tuple[float, float, float]
-
-    def shift_position(self, shift: tuple[float, float, float]) -> "Atom":
-        """
-        Shift position
-        ==============
-
-        Shifts the `position` of an `Atom` instance by `shift`, and returns this new
-        `Atom` instance.
-
-        Parameters
-        ----------
-            - shift (tuple[float, float, float]): the amount the the `position`
-            attribute is shifted by.
-
-        Returns
-        -------
-            - (Atom): an `Atom` instance.
-        """
-        return Atom(self.atomic_number, utils.add_tuples(self.position, shift))
-
-    def scale_position(self, scale_factor: tuple[float, float, float]) -> "Atom":
-        """
-        Scale position
-        ==============
-
-        Scales the x, y, z coordinates of an atom by a specified amount.
-        """
-        return Atom(
-            self.atomic_number,
-            (
-                self.position[0] * scale_factor[0],
-                self.position[1] * scale_factor[1],
-                self.position[2] * scale_factor[2],
-            ),
-        )
 
 
 @dataclass
@@ -90,24 +27,44 @@ class UnitCell:
 
     Attributes
     ----------
-        - material (str): The chemical formula of the crystal, e.g. "NaCl".
-        - lattice_constants (tuple[float, float, float]): The side lengths (a, b, c) of
-        the unit cell in the (x, y, z) directions respectively, given in nanometers
-        (nm).
-        - atoms(list[Atom]): A list of the atoms in the unit cell. Each atom is
-        represented by an `Atom` instance.
+    material : str
+        The chemical formula of the crystal, e.g. "NaCl".
+    lattice_constants : ndarray
+        The side lengths (a, b, c) of the unit cell in the (x, y, z) directions
+        respectively, given in nanometers (nm).
+    atoms : ndarray
+        A list of the atoms in the unit cell, represented as a structured NumPy array.
+        This array must have fields "atomic_numbers" and "positions".
 
     Methods
     -------
-        - _validate_crystal_parameters: Takes lattice and basis parameters as inputs,
-        and raises an error if the parameters are invalid. This function has no returns.
-        - new_unit_cell: Converts lattice and basis parameters to an instance
-        of `UnitCell`.
+    _validate_crystal_parameters
+        Takes lattice and basis parameters as inputs, and raises an error if the
+        parameters are invalid. This function has no returns.
+    new_unit_cell
+        Converts lattice and basis parameters to a unit cell.
     """
 
     material: str
-    lattice_constants: tuple[float, float, float]
-    atoms: list[Atom]
+    lattice_constants: np.ndarray
+    atoms: np.ndarray
+
+    def __post_init__(self):
+        if not (
+            isinstance(self.lattice_constants, np.ndarray)
+            and self.lattice_constants.shape == (3,)
+        ):
+            raise ValueError("lattice_constants must be a numpy array of length 3.")
+        if not np.issubdtype(self.lattice_constants.dtype, np.floating):
+            raise ValueError("lattice_constants must contain only floats.")
+        required_fields = {"atomic_numbers", "positions"}
+        if not (
+            isinstance(self.atoms, np.ndarray)
+            and set(self.atoms.dtype.names) >= required_fields
+        ):
+            raise ValueError(
+                f"atoms must be a structured numpy array with fields {required_fields}."
+            )
 
     @staticmethod
     def _validate_crystal_parameters(
@@ -120,13 +77,6 @@ class UnitCell:
 
         Processes lattice and basis parameters, and raises an error if they are invalid.
         This function has no return value.
-
-        Parameters
-        ----------
-            - lattice (tuple[str, int, tuple[float, float, float]]): The lattice parameters,
-            stored as a tuple (material, lattice_type, lattice_constants).
-            - basis (tuple[list[int], list[tuple[float, float, float]]]): The basis
-            parameters, stored as a tuple (atomic_numbers, atomic_positions).
         """
         _, lattice_type, lattice_constants = lattice
         atomic_numbers, atomic_positions = basis
@@ -188,30 +138,28 @@ class UnitCell:
 
         Parameters
         ----------
-            - lattice (tuple[str, int, tuple[float, float, float]]): a tuple
-            (material, lattice_type, lattice_constants) that represents the lattice.
-                - "material" (str): Chemical formula of the crystal (e.g. "NaCl").
-                - "lattice_type" (int): Integer (1 - 4 inclusive) that represents the
-                Bravais lattice type.
-                    - 1 -> Simple.
-                    - 2 -> Body centred.
-                    - 3 -> Face centred.
-                    - 4 -> Base centred.
-                - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
-                directions respectively in nanometers (nm).
-            - basis (tuple[list[int], list[tuple[float, float, float]]]): a tuple
-            (atomic_numbers, atomic_positions) that represents the basis.
-                - atomic_numbers (list[int]): The atomic number of each atom in the
+        lattice : tuple[str, int, tuple[float, float, float]]:
+            A tuple (material, lattice_type, lattice_constants) that represents the
+            lattice.
+            - material : str. Chemical formula of the crystal (e.g. "NaCl").
+            - lattice_type : int. Integer (1 - 4 inclusive) that represents the Bravais
+            lattice type. 1 -> Simple; 2 -> Body centred; 3 -> Face centred; 4 -> Base
+            centred.
+            - lattice_constants : tuple[float, float, float]. Side lengths of the unit
+            cell in the x, y and z directions respectively in nanometers (nm).
+        basis : tuple[list[int], list[tuple[float, float, float]]]
+            A tuple (atomic_numbers, atomic_positions) that represents the basis.
+            - atomic_numbers : list[int]. The atomic number of each atom in the
                 basis.
-                - atomic_positions (list[tuple[float, float, float]]): The position of
-                each atom in the basis.
+            - atomic_positions : list[tuple[float, float, float]].  The position of
+            each atom in the basis.
 
         Returns
         -------
-            - (UnitCell): An instance of `UnitCell`, which represents the unit cell of
-            the crystal.
-            - (None): If an error is encountered, the function returns None and raises
-            an error.
+        UnitCell
+            An object representing the unit cell of the crystal.
+        None
+            If an error is encountered, the function returns None and raises an error.
 
         Todos
         -----
@@ -219,7 +167,7 @@ class UnitCell:
         TODO: modify algorithm so that the positions of the new atoms are defined modulo
         a real lattice vector.
         """
-        material, lattice_type, lattice_constants = lattice
+        material_type, lattice_type, lattice_constants = lattice
         atomic_numbers, atomic_positions = basis
 
         # Validate the lattice and basis parameters
@@ -228,52 +176,36 @@ class UnitCell:
         except ValueError as exc:
             raise ValueError(f"Invalid parameters: {exc}") from exc
 
-        # Convert the basis into a list of atoms.
-        atoms = [
-            Atom(number, position)
-            for number, position in zip(atomic_numbers, atomic_positions)
-        ]
-
-        # Simple lattice
-        if lattice_type == 1:
-            # No modification needed - the conventional unit cell is equal to the
-            # primitive unit cell.
-            return cls(material, lattice_constants, atoms)
-
         # Body centered lattice
-        elif lattice_type == 2:
+        if lattice_type == 2:
             # Duplicates every atom in the unit cell two times, as the conventional
             # unit cell contains two lattice points.
-            atoms = utils.duplicate_elements(atoms, 2)
+            atomic_numbers = utils.duplicate_elements(atomic_numbers, 2)
+            atomic_positions = utils.duplicate_elements(atomic_positions, 2)
 
             # Amount that duplicate atoms are shifted by.
-            shifts = {1: (0.5, 0.5, 0.5)}
+            shifts = [(0, 0, 0), (0.5, 0.5, 0.5)]
 
-            length = len(atoms)
-            for i in range(0, length):
-                if not i % 2 == 0:
-                    atoms[i] = atoms[i].shift_position(shifts[i % 2])
-
-            return cls(material, lattice_constants, atoms)
+            # Apply shifts to the positions of the atoms.
+            for i, position in enumerate(atomic_positions):
+                atomic_positions[i] = utils.add_tuples(position, shifts[i % 2])
 
         # Face centred lattice
         elif lattice_type == 3:
             # Duplicates every atom in the unit cell four times, as the conventional
             # unit cell contains four lattice points.
-            atoms = utils.duplicate_elements(atoms, 4)
+            atomic_numbers = utils.duplicate_elements(atomic_numbers, 4)
+            atomic_positions = utils.duplicate_elements(atomic_positions, 4)
 
-            # Shifts all of the duplicate atoms.
-            shifts = {1: (0.5, 0.5, 0), 2: (0.5, 0, 0.5), 3: (0, 0.5, 0.5)}
+            # Amount that duplicate atoms are shifted by
+            shifts = [(0, 0, 0), (0.5, 0.5, 0), (0.5, 0, 0.5), (0, 0.5, 0.5)]
 
-            length = len(atoms)
-            for i in range(0, length):
-                if not i % 4 == 0:
-                    atoms[i] = atoms[i].shift_position(shifts[i % 4])
-
-            return cls(material, lattice_constants, atoms)
+            # Apply shifts to the positions of the atoms.
+            for i, position in enumerate(atomic_positions):
+                atomic_positions[i] = utils.add_tuples(position, shifts[i % 4])
 
         # Base centred lattice
-        else:
+        elif lattice_type == 4:
             # Implement base centred lattice logic here.
 
             raise ValueError(
@@ -281,164 +213,150 @@ class UnitCell:
                 different lattice type."""
             )
 
+        # Define a custom datatype to represent atoms.
+        dtype = np.dtype([("atomic_numbers", "i4"), ("positions", "3f8")])
 
-@dataclass
-class ReciprocalLatticeVector:
+        # Create a structured NumPy array to store the atoms.
+        atoms = np.empty(len(atomic_numbers), dtype=dtype)
+        atoms["atomic_numbers"] = np.array(atomic_numbers)
+        atoms["positions"] = np.array(atomic_positions)
+
+        return cls(material_type, np.array(lattice_constants), atoms)
+
+
+class ReciprocalSpace:
     """
-    Reciprocal lattice vector
-    =========================
+    Reciprocal space
+    ================
 
-    A class to represent a reciprocal lattice vector.
-
-    Attributes
-    ----------
-        - miller_indices (tuple[float, float, float]): The miller indices (h, k, l)
-        associated with a reciprocal lattice vector.
-        - lattice_constants (tuple[float, float, float]): The side lengths (a, b, c) of
-        the unit cell in the x, y and z directions respectively.
+    A class to group functions related to reciprocal space, reciprocal lattice vectors
+    and scattering vectors.
 
     Methods
     -------
-        - components: Returns the components of a reciprocal lattice vector, in
-        units of inverse nanometers (nm^-1). For miller indices (h, k, l) and lattice
-        constants (a, b, c), the components of a reciprocal lattice vector are
-        (2π/a, 2π/b, 2π/c).
-        - magnitude: Returns the magnitude of a reciprocal lattice vector, in
-        units of inverse nanometers (nm^-1).
-        - get_reciprocal_lattice_vectors: Returns a list of `ReciprocalLatticeVectors`
-        with magnitude in between a specified minimum and maximum magnitude (i.e.
-        returns a list of all reciprocal lattice vectors that lie within a spherical
-        shell in k-space).
+    get_reciprocal_lattice_vectors
+        Finds all the reciprocal lattice vectors with a magnitude in between a specified
+        minimum and maximum magnitude.
+    rlv_magnitudes_from_deflection_angles
+        Calculates the magnitudes of the reciprocal lattice vectors associated with a
+        range of given deflection angles.
+    deflection_angles_from_rlv_magnitudes
+        Calculates the magnitudes of the reciprocal lattice vectors associated with a
+        range of given deflection angles.
     """
 
-    miller_indices: tuple[int, int, int]
-    lattice_constants: tuple[float, float, float]
-
-    def components(self) -> tuple[float, float, float]:
-        """
-        Components
-        ==========
-
-        Returns the components of the reciprocal lattice vector associated with an
-        instance of `ReciprocalLatticeVector`.
-        """
-        return (
-            2 * np.pi * self.miller_indices[0] / self.lattice_constants[0],
-            2 * np.pi * self.miller_indices[1] / self.lattice_constants[1],
-            2 * np.pi * self.miller_indices[2] / self.lattice_constants[2],
-        )
-
-    def magnitude(self) -> float:
-        """
-        Magnitude
-        =========
-
-        Returns the magnitude of the reciprocal lattice vector associated with an
-        instance  of `ReciprocalLatticeVector`.
-        """
-        return np.sqrt(utils.dot_product_tuples(self.components(), self.components()))
-
-    @classmethod
+    @staticmethod
     def get_reciprocal_lattice_vectors(
-        cls, min_magnitude: float, max_magnitude: float, unit_cell: UnitCell
-    ) -> list["ReciprocalLatticeVector"]:
+        min_magnitude: float,
+        max_magnitude: float,
+        lattice_constants: np.ndarray,
+    ):
         """
         Get reciprocal lattice vectors
         ==============================
 
-        Returns a list of all reciprocal lattice vectors with `magnitude` in between
-        `min_magnitude` and `max_magnitude`.
+        Finds all the reciprocal lattice vectors with a magnitude in between a specified
+        minimum and maximum magnitude. Returns a structured NumPy array representing the
+        valid reciprocal lattice vectors.
+
+        Array format
+        ------------
+        The structured NumPy array has the following fields:
+            - 'miller_indices': An ndarray representing the Miller indices (h, k, l).
+            - 'magnitude': A float representing the magnitude of the reciprocal lattice
+            vector.
+            - 'components': An ndarray representing the components of the reciprocal
+            lattice vector.
         """
-        # Validate that max_magnitude and min_magnitude are greater than 0.
+        # Error handling.
         if not (max_magnitude > 0 and min_magnitude >= 0):
             raise ValueError(
                 "max_magnitude and min_magnitude should be greater than or equal to 0."
             )
-
-        # Validate that max_magnitude is greater than min_magnitude
         if not max_magnitude > min_magnitude:
             raise ValueError("max_magnitude must be greater than min_magnitude.")
-
-        a, b, c = unit_cell.lattice_constants
+        if not (
+            isinstance(lattice_constants, np.ndarray)
+            and lattice_constants.shape == (3,)
+        ):
+            raise ValueError("lattice_constants must be a numpy array of length 3.")
+        if not np.issubdtype(lattice_constants.dtype, np.floating):
+            raise ValueError("lattice_constants must contain only floats.")
 
         # Upper bounds on Miller indices.
-        max_h = np.ceil((a * max_magnitude) / (2 * np.pi)).astype(int)
-        max_k = np.ceil((b * max_magnitude) / (2 * np.pi)).astype(int)
-        max_l = np.ceil((c * max_magnitude) / (2 * np.pi)).astype(int)
+        max_hkl = np.ceil((lattice_constants * max_magnitude) / (2 * np.pi)).astype(int)
 
-        # List to store reciprocal lattice vectors.
-        reciprocal_lattice_vectors = []
-
-        # Iterate through all the Miller indices, and add all reciprocal lattice vectors
-        # with magnitude greater than min_magnitude and less than max_magnitude.
-        for h in range(-max_h, max_h + 1, 1):
-            for k in range(-max_k, max_k + 1, 1):
-                for l in range(-max_l, max_l + 1, 1):
-                    # Define an instance of `ReciprocalLatticeVector` associated with
-                    # the Miller indices (hkl)
-                    reciprocal_lattice_vector = cls(
-                        (h, k, l), unit_cell.lattice_constants
-                    )
-
-                    # If reciprocal_lattice_vector has a valid magnitude, append it to
-                    # the list
-                    if (
-                        reciprocal_lattice_vector.magnitude() >= min_magnitude
-                        and reciprocal_lattice_vector.magnitude() <= max_magnitude
-                    ):
-                        reciprocal_lattice_vectors.append(reciprocal_lattice_vector)
-
-        return reciprocal_lattice_vectors
-
-    @classmethod
-    def get_magnitudes_and_multiplicities(
-        cls, min_magnitude: float, max_magnitude: float, unit_cell: UnitCell
-    ) -> list[tuple["ReciprocalLatticeVector", float, int]]:
-        """
-        Get reciprocal lattice vector magnitudes and multiplicities
-        ===========================================================
-
-        Returns a list of all reciprocal lattice vectors with a unique magnitude in
-        between `min_magnitude` and `max_magnitude` and the corresponding
-        magnitudes and multiplicities of these reciprocal lattice vectors.
-
-        The format of the list is
-        `list[(ReciprocalLatticeVector, magnitude, multiplicity)]`.
-        """
-        # Get a list of all valid reciprocal lattice vectors.
-        reciprocal_lattice_vectors = (
-            ReciprocalLatticeVector.get_reciprocal_lattice_vectors(
-                min_magnitude, max_magnitude, unit_cell
-            )
-        )
-
-        # Store the reciprocal lattice vectors, magnitudes and multiplicities in the
-        # same list, and sort the list by magnitude.
-        magnitudes = [x.magnitude() for x in reciprocal_lattice_vectors]
-        multiplicities = [1 for x in reciprocal_lattice_vectors]
-        reciprocal_lattice_vectors = list(
-            zip(reciprocal_lattice_vectors, magnitudes, multiplicities)
-        )
-        reciprocal_lattice_vectors.sort(key=lambda x: x[1])
-
-        # Remove any reciprocal lattice vectors with the same magnitudes and update
-        # multiplicities.
-        i = 0
-        while i < len(reciprocal_lattice_vectors) - 1:
-            reciprocal_lattice_vector = reciprocal_lattice_vectors[i][0]
-            magnitude = reciprocal_lattice_vectors[i][1]
-
-            while i < len(reciprocal_lattice_vectors) - 1 and np.isclose(
-                magnitude, reciprocal_lattice_vectors[i + 1][1], rtol=1e-6
-            ):
-                reciprocal_lattice_vectors[i] = (
-                    reciprocal_lattice_vector,
-                    magnitude,
-                    reciprocal_lattice_vectors[i][2]
-                    + reciprocal_lattice_vectors[i + 1][2],
+        # Generate all possible Miller indices within the bounds.
+        miller_indices = (
+            np.vstack(
+                np.meshgrid(
+                    np.arange(-max_hkl[0], max_hkl[0] + 1),
+                    np.arange(-max_hkl[1], max_hkl[1] + 1),
+                    np.arange(-max_hkl[2], max_hkl[2] + 1),
+                    indexing="ij",
                 )
-                del reciprocal_lattice_vectors[i + 1]
+            )
+            .reshape(3, -1)
+            .T
+        )
 
-            i += 1
+        # Compute reciprocal lattice vector components and magnitudes.
+        components = (2 * np.pi * miller_indices) / lattice_constants
+        magnitudes = np.linalg.norm(components, axis=1)
+
+        # Filter the reciprocal lattice vectors based on their magnitude.
+        mask = (magnitudes >= min_magnitude) & (magnitudes <= max_magnitude)
+        valid_miller_indices = miller_indices[mask]
+        valid_magnitudes = magnitudes[mask]
+
+        # Define a custom datatype to represent reciprocal lattice vectors.
+        dtype = np.dtype(
+            [("miller_indices", "3i4"), ("magnitudes", "f8"), ("components", "3f8")]
+        )
+
+        # Create a structured NumPy array to store the valid reciprocal lattice vectors.
+        reciprocal_lattice_vectors = np.empty(
+            valid_miller_indices.shape[0], dtype=dtype
+        )
+        reciprocal_lattice_vectors["miller_indices"] = valid_miller_indices
+        reciprocal_lattice_vectors["magnitudes"] = valid_magnitudes
+        reciprocal_lattice_vectors["components"] = (
+            2 * np.pi * valid_miller_indices
+        ) / lattice_constants
 
         return reciprocal_lattice_vectors
+
+    @staticmethod
+    def rlv_magnitudes_from_deflection_angles(
+        deflection_angles: np.ndarray, wavelength: float
+    ):
+        """
+        Reciprocal lattice vector magnitude from deflection angle
+        =========================================================
+
+        Calculates the magnitudes of the reciprocal lattice vectors associated with a
+        range of given deflection angles.
+        """
+        if deflection_angles.min() < 0 or deflection_angles.max() > 180:
+            raise ValueError("Invalid deflection angle.")
+
+        angles = deflection_angles * np.pi / 360
+        return 4 * np.pi * np.sin(angles) / wavelength
+
+    @staticmethod
+    def deflection_angles_from_rlv_magnitudes(
+        reciprocal_lattice_vector_magnitudes: np.ndarray, wavelength: float
+    ):
+        """
+        Deflection angle from reciprocal lattice vector magnitude
+        =========================================================
+
+        Calculates the deflection angles associated with a range of reciprocal lattice
+        vectors of given magnitudes.
+        """
+        sin_angles = (wavelength * reciprocal_lattice_vector_magnitudes) / (4 * np.pi)
+
+        if sin_angles.max() > 1 or sin_angles.min() < 0:
+            raise ValueError("Invalid reciprocal lattice vector magnitude(s)")
+
+        return np.arcsin(sin_angles) * 360 / np.pi
