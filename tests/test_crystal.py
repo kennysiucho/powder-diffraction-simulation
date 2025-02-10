@@ -2,56 +2,11 @@
 This module contains unit tests for the crystal.py module.
 TODO: add test for base-centred lattice type once base-centred logic has been 
 implemented.
+TODO: add tests for the ReciprocalSpace class.
 """
 
 import numpy as np
-from B8_project.crystal import (
-    Atom,
-    UnitCell,
-    UnitCellV2,
-    ReciprocalSpace,
-)
-from B8_project import file_reading
-from B8_project import utils
-
-
-class TestAtom:
-    """
-    Unit tests for the `Atom` class.
-    """
-
-    @staticmethod
-    def test_atom_initialization_normal_operation():
-        """
-        A unit test that tests the initialization of an `Atom` instance. This unit test
-        tests initialization with normal attributes.
-        """
-        atom = Atom(11, (0, 0, 0))
-        assert atom.atomic_number == 11
-        assert atom.position == (0, 0, 0)
-
-    @staticmethod
-    def test_atom_shift_position_normal_operation():
-        """
-        A unit test that tests the shift_position method of the Atom class. This unit
-        test verifies the normal operation of the shift_position method.
-        """
-        atom = Atom(11, (0, 0, 0))
-        assert atom.shift_position((0, 0, 0)) == atom
-        assert atom.shift_position((0.5, 0.5, 0.5)) == Atom(11, (0.5, 0.5, 0.5))
-
-        atom = Atom(17, (0.5, 0.25, 0.25))
-        assert atom.shift_position((0.1, 0.2, 0.3)) == Atom(17, (0.6, 0.45, 0.55))
-
-    @staticmethod
-    def test_atom_scale_position_normal_operation():
-        """
-        A unit test that tests the scale_position method of the Atom class. This unit
-        test verifies the normal operation of the scale_position method.
-        """
-        atom = Atom(1, (0.5, 0.5, 0.5))
-        assert atom.scale_position((2, 2, 2)) == Atom(1, (1, 1, 1))
-        assert atom.scale_position((0.5, 0.5, 0.5)) == Atom(1, (0.25, 0.25, 0.25))
+from B8_project import file_reading, crystal
 
 
 class TestUnitCell:
@@ -65,149 +20,18 @@ class TestUnitCell:
         A unit test that tests the initialization of a `UnitCell` instance. This unit test
         tests initialization with normal attributes.
         """
-        atoms = [Atom(11, (0, 0, 0)), Atom(17, (0.5, 0.5, 0.5))]
-        unit_cell = UnitCell("NaCl", (1, 1, 1), atoms)
-        assert unit_cell.material == "NaCl"
-        assert unit_cell.lattice_constants == (1, 1, 1)
-        assert unit_cell.atoms == atoms
+        atomic_numbers = np.array([11, 17])
+        atomic_positions = np.array([[0, 0, 0], [0.5, 0.5, 0.5]])
 
-    @staticmethod
-    def test_validate_parameters_normal_operation():
-        """
-        A unit test for the validate_parameters function. This unit test tests normal
-        operation of the function.
-        """
-        CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
-            "tests/data/CsCl_basis.csv"
-        )
-        CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
-            "tests/data/CsCl_lattice.csv"
-        )
-        Cu_basis = file_reading.read_basis(  # pylint: disable=C0103
-            "tests/data/Cu_basis.csv"
-        )
-        Cu_lattice = file_reading.read_lattice(  # pylint: disable=C0103
-            "tests/data/Cu_lattice.csv"
-        )
-        Na_basis = file_reading.read_basis(  # pylint: disable=C0103
-            "tests/data/Na_basis.csv"
-        )
-        Na_lattice = file_reading.read_lattice(  # pylint: disable=C0103
-            "tests/data/Na_lattice.csv"
-        )
-        NaCl_basis = file_reading.read_basis(  # pylint: disable=C0103
-            "tests/data/NaCl_basis.csv"
-        )
-        NaCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
-            "tests/data/NaCl_lattice.csv"
-        )
-
-        # pylint: disable=W0212
-        assert UnitCell._validate_crystal_parameters(CsCl_basis, CsCl_lattice) is None
-        assert UnitCell._validate_crystal_parameters(Cu_basis, Cu_lattice) is None
-        assert UnitCell._validate_crystal_parameters(Na_basis, Na_lattice) is None
-        assert UnitCell._validate_crystal_parameters(NaCl_basis, NaCl_lattice) is None
-        # pylint: enable=W0212
-
-    @staticmethod
-    def test_new_unit_cell_normal_operation():
-        """
-        A unit test for the crystal_parameters_to_unit_cell function. This unit test tests
-        normal operation of the function.
-        """
-        CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
-            "tests/data/CsCl_basis.csv"
-        )
-        CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
-            "tests/data/CsCl_lattice.csv"
-        )
-        unit_cell = UnitCell.new_unit_cell(CsCl_basis, CsCl_lattice)
-        assert unit_cell is not None
-        assert unit_cell.material == "CsCl"
-        assert unit_cell.lattice_constants == (0.4119, 0.4119, 0.4119)
-        assert sorted(unit_cell.atoms, key=str) == sorted(
-            [Atom(55, (0, 0, 0)), Atom(17, (0.5, 0.5, 0.5))], key=str
-        )
-
-        Cu_basis = file_reading.read_basis(  # pylint: disable=C0103
-            "tests/data/Cu_basis.csv"
-        )
-        Cu_lattice = file_reading.read_lattice(  # pylint: disable=C0103
-            "tests/data/Cu_lattice.csv"
-        )
-        unit_cell = UnitCell.new_unit_cell(Cu_basis, Cu_lattice)
-        assert unit_cell is not None
-        assert unit_cell.material == "Cu"
-        assert unit_cell.lattice_constants == (0.3615, 0.3615, 0.3615)
-        assert sorted(unit_cell.atoms, key=str) == sorted(
-            [
-                Atom(29, (0, 0, 0)),
-                Atom(29, (0.5, 0.5, 0)),
-                Atom(29, (0.5, 0, 0.5)),
-                Atom(29, (0, 0.5, 0.5)),
-            ],
-            key=str,
-        )
-
-        Na_basis = file_reading.read_basis(  # pylint: disable=C0103
-            "tests/data/Na_basis.csv"
-        )
-        Na_lattice = file_reading.read_lattice(  # pylint: disable=C0103
-            "tests/data/Na_lattice.csv"
-        )
-        unit_cell = UnitCell.new_unit_cell(Na_basis, Na_lattice)
-        assert unit_cell is not None
-        assert unit_cell.material == "Na"
-        assert unit_cell.lattice_constants == (0.4287, 0.4287, 0.4287)
-        assert sorted(unit_cell.atoms, key=str) == sorted(
-            [Atom(11, (0, 0, 0)), Atom(11, (0.5, 0.5, 0.5))], key=str
-        )
-
-        NaCl_basis = file_reading.read_basis(  # pylint: disable=C0103
-            "tests/data/NaCl_basis.csv"
-        )
-        NaCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
-            "tests/data/NaCl_lattice.csv"
-        )
-        unit_cell = UnitCell.new_unit_cell(NaCl_basis, NaCl_lattice)
-        assert unit_cell is not None
-        assert unit_cell.material == "NaCl"
-        assert unit_cell.lattice_constants == (0.5640, 0.5640, 0.5640)
-        assert sorted(unit_cell.atoms, key=str) == sorted(
-            [
-                Atom(11, (0, 0, 0)),
-                Atom(11, (0.5, 0.5, 0)),
-                Atom(11, (0.5, 0, 0.5)),
-                Atom(11, (0, 0.5, 0.5)),
-                Atom(17, (0.5, 0.5, 0.5)),
-                Atom(17, (1.0, 1.0, 0.5)),
-                Atom(17, (1.0, 0.5, 1.0)),
-                Atom(17, (0.5, 1.0, 1.0)),
-            ],
-            key=str,
-        )
-
-
-class TestUnitCellV2:
-    """
-    Unit tests for the UnitCellV2 class
-    """
-
-    @staticmethod
-    def test_unit_cell_initialization_normal_operation():
-        """
-        A unit test that tests the initialization of a `UnitCellV2` instance. This unit
-        test tests initialization with normal attributes.
-        """
         # Define a custom datatype to represent atoms.
         dtype = np.dtype([("atomic_numbers", "i4"), ("positions", "3f8")])
 
         # Create a structured NumPy array to store the atoms.
-        atoms = np.empty(2, dtype=dtype)
-        atoms["atomic_numbers"] = [55, 17]
-        atoms["positions"] = [(0, 0, 0), (0.5, 0.5, 0.5)]
+        atoms = np.empty(len(atomic_numbers), dtype=dtype)
+        atoms["atomic_numbers"] = atomic_numbers
+        atoms["positions"] = atomic_positions
 
-        unit_cell = UnitCellV2("NaCl", np.array([1.0, 1.0, 1.0]), atoms)
+        unit_cell = crystal.UnitCell("NaCl", np.array([1.0, 1.0, 1.0]), atoms)
         assert unit_cell.material == "NaCl"
         assert np.array_equal(unit_cell.lattice_constants, np.array([1.0, 1.0, 1.0]))
         assert np.array_equal(unit_cell.atoms, atoms)
@@ -244,10 +68,20 @@ class TestUnitCellV2:
         )
 
         # pylint: disable=W0212
-        assert UnitCellV2._validate_crystal_parameters(CsCl_basis, CsCl_lattice) is None
-        assert UnitCellV2._validate_crystal_parameters(Cu_basis, Cu_lattice) is None
-        assert UnitCellV2._validate_crystal_parameters(Na_basis, Na_lattice) is None
-        assert UnitCellV2._validate_crystal_parameters(NaCl_basis, NaCl_lattice) is None
+        assert (
+            crystal.UnitCell._validate_crystal_parameters(CsCl_basis, CsCl_lattice)
+            is None
+        )
+        assert (
+            crystal.UnitCell._validate_crystal_parameters(Cu_basis, Cu_lattice) is None
+        )
+        assert (
+            crystal.UnitCell._validate_crystal_parameters(Na_basis, Na_lattice) is None
+        )
+        assert (
+            crystal.UnitCell._validate_crystal_parameters(NaCl_basis, NaCl_lattice)
+            is None
+        )
         # pylint: enable=W0212
 
     @staticmethod
@@ -256,100 +90,101 @@ class TestUnitCellV2:
         A unit test for the crystal_parameters_to_unit_cell function. This unit test tests
         normal operation of the function.
         """
-        # CsCl crystal.
+        # CsCl unit cell.
         CsCl_basis = file_reading.read_basis(  # pylint: disable=C0103
             "tests/data/CsCl_basis.csv"
         )
         CsCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
             "tests/data/CsCl_lattice.csv"
         )
-        unit_cell = UnitCellV2.new_unit_cell(CsCl_basis, CsCl_lattice)
-
+        unit_cell = crystal.UnitCell.new_unit_cell(CsCl_basis, CsCl_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "CsCl"
-
         assert np.array_equal(
             unit_cell.lattice_constants, np.array([0.4119, 0.4119, 0.4119])
         )
+        assert np.array_equal(unit_cell.atoms["atomic_numbers"], np.array([55, 17]))
+        assert np.array_equal(
+            unit_cell.atoms["positions"], np.array([[0, 0, 0], [0.5, 0.5, 0.5]])
+        )
 
-        dtype = np.dtype([("atomic_numbers", "i4"), ("positions", "3f8")])
-        expected_atoms = np.array([(55, (0, 0, 0)), (17, (0.5, 0.5, 0.5))], dtype=dtype)
-        assert np.array_equal(unit_cell.atoms, expected_atoms)
-
-        # Cu crystal.
+        # Cu unit cell.
         Cu_basis = file_reading.read_basis(  # pylint: disable=C0103
             "tests/data/Cu_basis.csv"
         )
         Cu_lattice = file_reading.read_lattice(  # pylint: disable=C0103
             "tests/data/Cu_lattice.csv"
         )
-        unit_cell = UnitCellV2.new_unit_cell(Cu_basis, Cu_lattice)
-
+        unit_cell = crystal.UnitCell.new_unit_cell(Cu_basis, Cu_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "Cu"
-
         assert np.array_equal(
             unit_cell.lattice_constants, np.array([0.3615, 0.3615, 0.3615])
         )
-
-        dtype = np.dtype([("atomic_numbers", "i4"), ("positions", "3f8")])
-        expected_atoms = np.array(
-            [
-                (29, (0, 0, 0)),
-                (29, (0.5, 0.5, 0)),
-                (29, (0.5, 0, 0.5)),
-                (29, (0, 0.5, 0.5)),
-            ],
-            dtype=dtype,
+        assert np.array_equal(
+            unit_cell.atoms["atomic_numbers"], np.array([29, 29, 29, 29])
         )
-        assert np.array_equal(unit_cell.atoms, expected_atoms)
+        assert np.array_equal(
+            unit_cell.atoms["positions"],
+            np.array([[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]]),
+        )
 
-        # Na crystal.
+        # Na unit cell.
         Na_basis = file_reading.read_basis(  # pylint: disable=C0103
             "tests/data/Na_basis.csv"
         )
         Na_lattice = file_reading.read_lattice(  # pylint: disable=C0103
             "tests/data/Na_lattice.csv"
         )
-        unit_cell = UnitCellV2.new_unit_cell(Na_basis, Na_lattice)
+        unit_cell = crystal.UnitCell.new_unit_cell(Na_basis, Na_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "Na"
         assert np.array_equal(
             unit_cell.lattice_constants, np.array([0.4287, 0.4287, 0.4287])
         )
+        assert np.array_equal(unit_cell.atoms["atomic_numbers"], np.array([11, 11]))
+        assert np.array_equal(
+            unit_cell.atoms["positions"], np.array([[0, 0, 0], [0.5, 0.5, 0.5]])
+        )
 
-        dtype = np.dtype([("atomic_numbers", "i4"), ("positions", "3f8")])
-        expected_atoms = np.array([(11, (0, 0, 0)), (11, (0.5, 0.5, 0.5))], dtype=dtype)
-        assert np.array_equal(unit_cell.atoms, expected_atoms)
-
-        # NaCl crystal.
+        # NaCl unit cell.
         NaCl_basis = file_reading.read_basis(  # pylint: disable=C0103
             "tests/data/NaCl_basis.csv"
         )
         NaCl_lattice = file_reading.read_lattice(  # pylint: disable=C0103
             "tests/data/NaCl_lattice.csv"
         )
-        unit_cell = UnitCellV2.new_unit_cell(NaCl_basis, NaCl_lattice)
+        unit_cell = crystal.UnitCell.new_unit_cell(NaCl_basis, NaCl_lattice)
         assert unit_cell is not None
         assert unit_cell.material == "NaCl"
         assert np.array_equal(
             unit_cell.lattice_constants, np.array([0.5640, 0.5640, 0.5640])
         )
-
-        expected_atoms = np.array(
-            [
-                (11, (0, 0, 0)),
-                (11, (0.5, 0.5, 0)),
-                (11, (0.5, 0, 0.5)),
-                (11, (0, 0.5, 0.5)),
-                (17, (0.5, 0.5, 0.5)),
-                (17, (1.0, 1.0, 0.5)),
-                (17, (1.0, 0.5, 1.0)),
-                (17, (0.5, 1.0, 1.0)),
-            ],
-            dtype=dtype,
+        assert np.array_equal(
+            unit_cell.atoms["atomic_numbers"],
+            np.array([11, 11, 11, 11, 17, 17, 17, 17]),
         )
-        assert np.array_equal(unit_cell.atoms, expected_atoms)
+        assert np.array_equal(
+            unit_cell.atoms["positions"],
+            np.array(
+                [
+                    [0, 0, 0],
+                    [0.5, 0.5, 0],
+                    [0.5, 0, 0.5],
+                    [0, 0.5, 0.5],
+                    [0.5, 0.5, 0.5],
+                    [1.0, 1.0, 0.5],
+                    [1.0, 0.5, 1.0],
+                    [0.5, 1.0, 1.0],
+                ]
+            ),
+        )
+
+
+class TestReciprocalSpace:
+    """
+    Unit tests for the `ReciprocalSpace` class.
+    """
 
 
 # class TestReciprocalLatticeVector:
