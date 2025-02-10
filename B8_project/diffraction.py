@@ -184,9 +184,9 @@ def _merge_peaks(
     i = 0
     while i < len(diffraction_peaks) - 1:
         # Sort miller indices from largest to smallest and take the absolute value.
-        diffraction_peaks[i]["miller_indices"] = np.abs(
-            np.sort(diffraction_peaks[i]["miller_indices"])
-        )
+        diffraction_peaks["miller_indices"][i] = np.sort(
+            diffraction_peaks["miller_indices"][i]
+        )[::-1]
 
         # Remove any duplicate angles and merge intensities
         while i < len(diffraction_peaks) - 1 and np.isclose(
