@@ -350,8 +350,8 @@ class UnitCellVarieties:
                  replacement_prob: ReplacementProbability):
         self.pure_unit_cell = pure_unit_cell
         self.replacement_prob = replacement_prob
-        self.unit_cell_varieties = []
-        self.probabilities = []
+        self.unit_cell_varieties: list[UnitCell] = []
+        self.probabilities: list[float] = []
         self.generate_all_unit_cell_varieties()
         self.calculate_probabilities()
 
