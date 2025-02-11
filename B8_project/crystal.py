@@ -43,6 +43,15 @@ class Atom:
     atomic_number: int
     position: tuple[float, float, float]
 
+    def __eq__(self, other):
+        if not isinstance(other, Atom):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        return (self.atomic_number == other.atomic_number and
+                self.position == other.position)
+
+
     def shift_position(self, shift: tuple[float, float, float]) -> "Atom":
         """
         Shift position
@@ -108,6 +117,15 @@ class UnitCell:
     material: str
     lattice_constants: tuple[float, float, float]
     atoms: list[Atom]
+
+    def __eq__(self, other):
+        if not isinstance(other, UnitCell):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        return (self.material == other.material and
+                self.lattice_constants == other.lattice_constants and
+                self.atoms == other.atoms)
 
     @staticmethod
     def _validate_crystal_parameters(
