@@ -14,7 +14,7 @@ GaAs_lattice = file_reading.read_lattice("data/GaAs_lattice.csv")
 GaAs_unit_cell = crystal.UnitCell.new_unit_cell(GaAs_basis, GaAs_lattice)
 
 # Generate a pure GaAs super cell.
-GaAs_super_cell = alloy.SuperCell.new_super_cell(GaAs_unit_cell, (6, 6, 6))
+GaAs_super_cell = alloy.SuperCell.new_super_cell(GaAs_unit_cell, (5, 5, 5))
 
 # Read InAs parameters from .csv files.
 InAs_basis = file_reading.read_basis("data/InAs_basis.csv")
@@ -26,7 +26,7 @@ neutron_form_factors = file_reading.read_neutron_scattering_lengths()
 x_ray_form_factors = file_reading.read_xray_form_factors()
 
 # Generate a range of concentrations.
-concentrations = np.linspace(0, 1, 6)
+concentrations = np.linspace(0, 1, 11)
 
 # For every concentration, generate a disordered super cell and calculate + plot the
 # XRD pattern.
@@ -52,10 +52,10 @@ for conc in concentrations:
         neutron_form_factors,
         x_ray_form_factors,
         wavelength=0.1,
-        min_deflection_angle=20,
-        max_deflection_angle=90,
-        intensity_cutoff=1e-3,
-        peak_width=0.05,
+        min_deflection_angle=10,
+        max_deflection_angle=60,
+        intensity_cutoff=5e-3,
+        peak_width=0.1,
         y_axis_logarithmic=True,
         line_width=1,
         file_path="results/InGaAs/",

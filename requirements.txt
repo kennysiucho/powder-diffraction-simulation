@@ -1,5 +1,5 @@
 alabaster==0.7.16
--e git+https://github.com/joeEndacott/B8_project.git@f25265b2e3b84635073f15482bb44e35263745e1#egg=B8_project
+-e git+https://github.com/joeEndacott/B8_project.git@2ce7244af10678e4e88c3cf12e057ea074993495#egg=B8_project
 babel==2.16.0
 certifi==2024.12.14
 charset-normalizer==3.4.1
@@ -17,10 +17,12 @@ Jinja2==3.1.5
 kiwisolver==1.4.7
 MarkupSafe==3.0.2
 matplotlib==3.9.4
+narwhals==1.26.0
 numpy==2.0.2
 packaging==24.2
 pandas==2.2.3
 pillow==11.1.0
+plotly==6.0.0
 pluggy==1.5.0
 Pygments==2.19.1
 pyparsing==3.2.1
