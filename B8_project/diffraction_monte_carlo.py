@@ -308,28 +308,28 @@ class NeutronDiffractionMonteCarlo:
             scattering_vecs = scattering_vecs[angles_accepted]
 
             # Compute lattice portion of structure factors
-            # scattering_vecs.shape = (batch_trials, 3)
+            # scattering_vecs.shape = (# trials filtered, 3)
             # unit_cell_pos.shape = (# unit cells, 3)
-            # dot_products_lattice.shape = (batch_trials, # unit cells)
+            # dot_products_lattice.shape = (# trials filtered, # unit cells)
             dot_products_lattice = np.einsum("ik,jk", scattering_vecs, unit_cell_pos)
 
-            # exp_terms.shape = (batch_trials, # unit cells)
+            # exp_terms.shape = (# trials filtered, # unit cells)
             exp_terms_lattice = np.exp(1j * dot_products_lattice)
 
-            # structure_factors_lattice.shape = (batch_trials,)
+            # structure_factors_lattice.shape = (# trials filtered,)
             structure_factors_lattice = np.sum(exp_terms_lattice, axis=1)
 
             # Compute basis portion of structure factors
-            # scattering_vecs.shape = (batch_trials, 3)
+            # scattering_vecs.shape = (# trials filtered, 3)
             # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
-            # dot_products_lattice.shape = (batch_trials, # atoms in a unit cell)
+            # dot_products_lattice.shape = (# trials filtered, # atoms in a unit cell)
             dot_products_basis = np.einsum("ik,jk", scattering_vecs, atom_pos_in_uc)
 
-            # exp_terms.shape = (batch_trials, # atoms in a unit cell)
+            # exp_terms.shape = (# trials filtered, # atoms in a unit cell)
             exps = np.exp(1j * dot_products_basis)
             exp_terms_basis = scattering_lengths_in_uc * exps
 
-            # structure_factors_basis.shape = (batch_trials,)
+            # structure_factors_basis.shape = (# trials filtered,)
             structure_factors_basis = np.sum(exp_terms_basis, axis=1)
 
             structure_factors = np.multiply(structure_factors_lattice,
