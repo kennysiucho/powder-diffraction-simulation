@@ -326,6 +326,44 @@ class TestUnitCellVarieties:
         """
         nptest.assert_allclose(np.sum(uc_vars.probabilities), 1.0)
 
+    @staticmethod
+    def test_atomic_number_lists(uc_vars):
+        """
+        Tests that the lists of atomic numbers are correct and have the correct
+        probability.
+        """
+        atomic_numbers, probs = uc_vars.atomic_number_lists()
+        actual = {(tuple(atomic_numbers[i]), probs[i]) for i in range(len(
+            atomic_numbers))}
+        expected = {((31, 31, 31, 31, 33, 33, 33, 33), 0.4096),
+                    ((49, 31, 31, 31, 33, 33, 33, 33), 0.1024),
+                    ((31, 49, 31, 31, 33, 33, 33, 33), 0.1024),
+                    ((31, 31, 49, 31, 33, 33, 33, 33), 0.1024),
+                    ((31, 31, 31, 49, 33, 33, 33, 33), 0.1024),
+                    ((49, 49, 31, 31, 33, 33, 33, 33), 0.0256),
+                    ((49, 31, 49, 31, 33, 33, 33, 33), 0.0256),
+                    ((49, 31, 31, 49, 33, 33, 33, 33), 0.0256),
+                    ((31, 49, 49, 31, 33, 33, 33, 33), 0.0256),
+                    ((31, 49, 31, 49, 33, 33, 33, 33), 0.0256),
+                    ((31, 31, 49, 49, 33, 33, 33, 33), 0.0256),
+                    ((49, 49, 49, 31, 33, 33, 33, 33), 0.0064),
+                    ((49, 49, 31, 49, 33, 33, 33, 33), 0.0064),
+                    ((49, 31, 49, 49, 33, 33, 33, 33), 0.0064),
+                    ((31, 49, 49, 49, 33, 33, 33, 33), 0.0064),
+                    ((49, 49, 49, 49, 33, 33, 33, 33), 0.0016)}
+
+        assert len(actual) == len(expected)
+
+        # Convert to sorted list to compare using numpy
+        expected_sorted = sorted(expected, key=lambda x: (x[0], x[1]))
+        actual_sorted = sorted(actual, key=lambda x: (x[0], x[1]))
+
+        for (expected_tuple, expected_float), (actual_tuple, actual_float) in zip(
+                expected_sorted, actual_sorted):
+            # Compare the tuple elements directly
+            assert expected_tuple == actual_tuple
+            # Compare floats
+            np.testing.assert_allclose(expected_float, actual_float)
 
 class TestReciprocalLatticeVector:
     """
