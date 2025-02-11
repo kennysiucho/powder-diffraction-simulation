@@ -283,6 +283,16 @@ class TestUnitCellVarieties:
         assert len(expected_ucs) == 0
 
     @staticmethod
+    def test_generate_all_unit_cells_does_not_alter_atom_positions(uc_vars):
+        """
+        Check that all the unit cells have the same atomic positions in the same order.
+        """
+        expected_positions = np.array(uc_vars.unit_cell_varieties[0].positions())
+        for uc in uc_vars.unit_cell_varieties:
+            pos = np.array(uc.positions())
+            nptest.assert_allclose(pos, expected_positions)
+
+    @staticmethod
     def test_generate_all_unit_cells_unique_references(uc_vars):
         """
         Check that uc_vars contains unique UnitCell objects
