@@ -75,7 +75,7 @@ class NeutronDiffractionMonteCarlo:
     Neutron Diffraction Monte Carlo
     ===============================
 
-    A class to calculate neutron diffraction patterns via a Monte Carlo method.
+    A class to calculate neutron diffraction patterns via Monte Carlo methods.
 
     Attributes
     ----------
@@ -84,13 +84,16 @@ class NeutronDiffractionMonteCarlo:
 
     Methods
     -------
-        - `calculate_diffraction_pattern`: Returns two NumPy arrays: `two_thetas` and
-        `intensities`, representing the diffraction spectrum
+        - `calculate_diffraction_pattern`: Calculate spectrum given list of atoms in
+        a crystal, without further assumptions about the structure.
+        - `calculate_diffraction_pattern_ideal_crystal`: Calculate spectrum of a
+        crystal consisting of perfectly repeating unit cells.
     """
     def __init__(self, unit_cell: UnitCell, wavelength: float):
         self.unit_cell = unit_cell
         self.wavelength = wavelength
 
+    # TODO: change this take a list of all atoms
     def calculate_diffraction_pattern(self,
                                       target_accepted_trials: int = 5000,
                                       trials_per_batch: int = 1000,
@@ -156,6 +159,7 @@ class NeutronDiffractionMonteCarlo:
         atom_pos_in_uc = np.array(atom_pos_in_uc)
         scattering_lengths_in_uc = np.array(scattering_lengths_in_uc)
 
+        # Compute list of positions and scattering lengths of all atoms in the crystal
         n_unit_cells = unit_cell_pos.shape[0]
         n_atoms_per_uc = atom_pos_in_uc.shape[0]
         all_atom_pos = np.repeat(unit_cell_pos, n_atoms_per_uc, axis=0) + np.tile(
@@ -204,6 +208,295 @@ class NeutronDiffractionMonteCarlo:
             bins = np.searchsorted(two_thetas, two_theta_batch)
             intensities[bins] += intensity_batch
 
+            stats.accepted_data_points += two_theta_batch.shape[0]
+
+        intensities /= np.max(intensities)
+
+        return two_thetas, intensities
+
+
+    def calculate_diffraction_pattern_ideal_crystal(
+            self,
+            target_accepted_trials: int = 5000,
+            trials_per_batch: int = 1000,
+            unit_cells_in_crystal: tuple[int, int, int] = (8, 8, 8),
+            min_angle_deg: float = 0.0,
+            max_angle_deg: float = 180.0,
+            angle_bins: int = 100):
+        """
+        Calculate diffraction pattern ideal crystal
+        =============================
+
+        Calculates the neutron diffraction spectrum using a Monte Carlo method,
+        assuming the crystal consists of the same unit cell throughout (ideal crystal).
+
+        For each Monte Carlo trial, randomly choose the incident and scattered k-
+        vectors. If the scattering angle is within the range specified, compute the
+        lattice and basis structure factors and hence intensity of the trial. Add
+        intensity to final diffraction pattern.
+
+        Parameters
+        ----------
+            - `target_accepted_trials` (`int`): Target number of accepted trials.
+            - `trials_per_batch` (`int`): Number of trials calculated at once using
+            NumPy methods
+            - `unit_cells_in_crystal` (`tuple[int, int, int]`): How many times to
+            repeat the unit cell in x, y, z directions, forming the crystal powder
+            for diffraction.
+            - `min_angle_rad`, `max_angle_rad` (`float`): Minimum/maximum scattering
+            angle in radians for a scattering trial to be accepted
+            - `angle_bins` (`int`): Number of bins for scattering angles
+
+        Returns
+        -------
+            - `two_thetas` ((`target_accepted_trials`,) ndarray): representing the
+            left edges of the bins, evenly spaced within angle range specified
+            - `intensities` ((`target_accepted_trials`,) ndarray): intensity
+            calculated for each bin
+        """
+        k = 2 * np.pi / self.wavelength
+        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
+        intensities = np.zeros(angle_bins)
+
+        # TODO: get scattering lengths as parameter instead
+        # read relevant neutron scattering lengths
+        all_scattering_lengths = read_neutron_scattering_lengths(
+            "data/neutron_scattering_lengths.csv")
+        scattering_lengths = {}
+        for atom in self.unit_cell.atoms:
+            scattering_lengths[atom.atomic_number] = all_scattering_lengths[
+                atom.atomic_number].neutron_scattering_length
+
+        # Compute positions of the unit cells in the crystal
+        unit_cell_pos = np.vstack(
+            np.mgrid[0:unit_cells_in_crystal[0], 0:unit_cells_in_crystal[1],
+            0:unit_cells_in_crystal[2]]).reshape(3, -1).T
+        unit_cell_pos = unit_cell_pos.astype(np.float64)
+        np.multiply(unit_cell_pos, self.unit_cell.lattice_constants, out=unit_cell_pos)
+
+        # Prepare the positions and scattering lengths for each atom in a single unit
+        # cell
+        atom_pos_in_uc = []
+        scattering_lengths_in_uc = []
+        for atom in self.unit_cell.atoms:
+            atom_pos_in_uc.append(np.multiply(atom.position,
+                                              self.unit_cell.lattice_constants))
+            scattering_lengths_in_uc.append(scattering_lengths[atom.atomic_number])
+        atom_pos_in_uc = np.array(atom_pos_in_uc)
+        scattering_lengths_in_uc = np.array(scattering_lengths_in_uc)
+
+        stats = NeutronDiffractionMonteCarloRunStats()
+
+        while stats.accepted_data_points < target_accepted_trials:
+
+            if time.time() - stats.prev_print_time_ > 5:
+                stats.prev_print_time_ = time.time()
+                print(stats)
+
+            k_vecs = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
+            k_primes = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
+            scattering_vecs = k_primes - k_vecs
+
+            # Compute scattering angle
+            dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
+            two_theta_batch = np.degrees(np.arccos(dot_products / k ** 2))
+
+            # Discard trials with scattering angle out of range of interest
+            angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_deg,
+                                                      two_theta_batch < max_angle_deg))
+            two_theta_batch = two_theta_batch[angles_accepted]
+            scattering_vecs = scattering_vecs[angles_accepted]
+
+            # Compute lattice portion of structure factors
+            # scattering_vecs.shape = (# trials filtered, 3)
+            # unit_cell_pos.shape = (# unit cells, 3)
+            # dot_products_lattice.shape = (# trials filtered, # unit cells)
+            dot_products_lattice = np.einsum("ik,jk", scattering_vecs, unit_cell_pos)
+
+            # exp_terms.shape = (# trials filtered, # unit cells)
+            exp_terms_lattice = np.exp(1j * dot_products_lattice)
+
+            # structure_factors_lattice.shape = (# trials filtered,)
+            structure_factors_lattice = np.sum(exp_terms_lattice, axis=1)
+
+            # Compute basis portion of structure factors
+            # scattering_vecs.shape = (# trials filtered, 3)
+            # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
+            # dot_products_lattice.shape = (# trials filtered, # atoms in a unit cell)
+            dot_products_basis = np.einsum("ik,jk", scattering_vecs, atom_pos_in_uc)
+
+            # exp_terms.shape = (# trials filtered, # atoms in a unit cell)
+            exps = np.exp(1j * dot_products_basis)
+            exp_terms_basis = scattering_lengths_in_uc * exps
+
+            # structure_factors_basis.shape = (# trials filtered,)
+            structure_factors_basis = np.sum(exp_terms_basis, axis=1)
+
+            structure_factors = np.multiply(structure_factors_lattice,
+                                            structure_factors_basis)
+            intensity_batch = np.abs(structure_factors) ** 2
+
+            bins = np.searchsorted(two_thetas, two_theta_batch)
+            intensities[bins] += intensity_batch
+
+            stats.total_trials += two_theta_batch.shape[0]
+            stats.accepted_data_points += two_theta_batch.shape[0]
+
+        intensities /= np.max(intensities)
+
+        return two_thetas, intensities
+
+    def calculate_diffraction_pattern_random_occupation(
+            self,
+            replaced_element: int,
+            new_element: int,
+            probability: float,
+            target_accepted_trials: int = 5000,
+            trials_per_batch: int = 1000,
+            unit_cells_in_crystal: tuple[int, int, int] = (8, 8, 8),
+            min_angle_deg: float = 0.0,
+            max_angle_deg: float = 180.0,
+            angle_bins: int = 100):
+        """
+        # TODO: update docstring, add tests
+        Calculate diffraction pattern ideal crystal
+        =============================
+
+        Calculates the neutron diffraction spectrum using a Monte Carlo method,
+        assuming the crystal consists of the same unit cell throughout (ideal crystal).
+
+        For each Monte Carlo trial, randomly choose the incident and scattered k-
+        vectors. If the scattering angle is within the range specified, compute the
+        lattice and basis structure factors and hence intensity of the trial. Add
+        intensity to final diffraction pattern.
+
+        Parameters
+        ----------
+            - `target_accepted_trials` (`int`): Target number of accepted trials.
+            - `trials_per_batch` (`int`): Number of trials calculated at once using
+            NumPy methods
+            - `unit_cells_in_crystal` (`tuple[int, int, int]`): How many times to
+            repeat the unit cell in x, y, z directions, forming the crystal powder
+            for diffraction.
+            - `min_angle_rad`, `max_angle_rad` (`float`): Minimum/maximum scattering
+            angle in radians for a scattering trial to be accepted
+            - `angle_bins` (`int`): Number of bins for scattering angles
+
+        Returns
+        -------
+            - `two_thetas` ((`target_accepted_trials`,) ndarray): representing the
+            left edges of the bins, evenly spaced within angle range specified
+            - `intensities` ((`target_accepted_trials`,) ndarray): intensity
+            calculated for each bin
+        """
+        k = 2 * np.pi / self.wavelength
+        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
+        intensities = np.zeros(angle_bins)
+
+        # TODO: get scattering lengths as parameter instead
+        # read relevant neutron scattering lengths
+        all_scattering_lengths = read_neutron_scattering_lengths(
+            "data/neutron_scattering_lengths.csv")
+
+        # Compute positions of the unit cells in the crystal
+        unit_cell_pos = np.vstack(
+            np.mgrid[0:unit_cells_in_crystal[0], 0:unit_cells_in_crystal[1],
+            0:unit_cells_in_crystal[2]]).reshape(3, -1).T
+        unit_cell_pos = unit_cell_pos.astype(np.float64)
+        np.multiply(unit_cell_pos, self.unit_cell.lattice_constants, out=unit_cell_pos)
+
+        # Prepare the positions for each atom in a single unit cell
+        atom_pos_in_uc = []
+        for atom in self.unit_cell.atoms:
+            atom_pos_in_uc.append(np.multiply(atom.position,
+                                              self.unit_cell.lattice_constants))
+        atom_pos_in_uc = np.array(atom_pos_in_uc)
+
+        # Prepare the scattering lengths for each atom in a unit cell, replacing one
+        # of the atoms with the new element
+        scattering_length_uc_varieties = []
+        for replaced_atom in self.unit_cell.atoms:
+            if replaced_atom.atomic_number == replaced_element:
+                scattering_lengths_in_uc = []
+                for atom in self.unit_cell.atoms:
+                    if atom == replaced_atom:
+                        scattering_lengths_in_uc.append(all_scattering_lengths[
+                            new_element].neutron_scattering_length)
+                    else:
+                        scattering_lengths_in_uc.append(all_scattering_lengths[
+                            atom.atomic_number].neutron_scattering_length)
+                atom_pos_in_uc = np.array(atom_pos_in_uc)
+                scattering_length_uc_varieties.append(scattering_lengths_in_uc)
+        scattering_length_uc_varieties = np.array(scattering_length_uc_varieties)
+
+        stats = NeutronDiffractionMonteCarloRunStats()
+
+        rng = np.random.default_rng() # A NumPy Random Generator
+
+        while stats.accepted_data_points < target_accepted_trials:
+
+            if time.time() - stats.prev_print_time_ > 5:
+                stats.prev_print_time_ = time.time()
+                print(stats)
+
+            k_vecs = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
+            k_primes = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
+            scattering_vecs = k_primes - k_vecs
+
+            # Compute scattering angle
+            dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
+            two_theta_batch = np.degrees(np.arccos(dot_products / k ** 2))
+
+            # Discard trials with scattering angle out of range of interest
+            angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_deg,
+                                                      two_theta_batch < max_angle_deg))
+            two_theta_batch = two_theta_batch[angles_accepted]
+            scattering_vecs = scattering_vecs[angles_accepted]
+
+            # Compute basis portion of structure factors
+            # scattering_vecs.shape = (# trials filtered, 3)
+            # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
+            # dot_products_lattice.shape = (# trials filtered, # atoms in a unit cell)
+            dot_products_basis = np.einsum("ik,jk", scattering_vecs, atom_pos_in_uc)
+
+            # scattering_lengths_uc_varieties = (varieties, # atoms in unit cell)
+            # exp_terms.shape = (# trials filtered, varieties, # atoms in a unit cell)
+            exps = np.exp(1j * dot_products_basis)
+            exp_terms_basis = np.einsum("ik,jk->ijk", exps,
+                                        scattering_length_uc_varieties)
+
+            # structure_factors_basis.shape = (# trials filtered, varieties)
+            structure_factors_basis = np.sum(exp_terms_basis, axis=2)
+
+            # Compute lattice portion of structure factors
+            # scattering_vecs.shape = (# trials filtered, 3)
+            # unit_cell_pos.shape = (# unit cells, 3)
+            # dot_products_lattice.shape = (# trials filtered, # unit cells)
+            dot_products_lattice = np.einsum("ik,jk", scattering_vecs, unit_cell_pos)
+
+            # exp_terms_lattice.shape = (# trials filtered, # unit cells)
+            exp_terms_lattice = np.exp(1j * dot_products_lattice)
+
+            # Each term of the lattice structure factor is multiplied with the basis
+            # structure factor of one of the unit cells
+
+            # structure_factors_basis.shape = (# trials filtered, varieties)
+            # structure_factors_basis_random.shape = (# trials filtered, # unit cells)
+            # TODO: factor in probability
+            n_unit_cells = unit_cell_pos.shape[0]
+            structure_factors_basis_random = rng.choice(structure_factors_basis,
+                                                        size=n_unit_cells, axis=1)
+
+            # structure_factors_lattice.shape = (# trials filtered,)
+            structure_factors = np.sum(
+                np.multiply(exp_terms_lattice, structure_factors_basis_random), axis=1)
+
+            intensity_batch = np.abs(structure_factors) ** 2
+
+            bins = np.searchsorted(two_thetas, two_theta_batch)
+            intensities[bins] += intensity_batch
+
+            stats.total_trials += two_theta_batch.shape[0]
             stats.accepted_data_points += two_theta_batch.shape[0]
 
         intensities /= np.max(intensities)

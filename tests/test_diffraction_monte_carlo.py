@@ -53,7 +53,6 @@ random_unit_vectors_2 = np.array(
     ]
 )
 
-
 def test_monte_carlo_calculate_diffraction_pattern(nd_monte_carlo, mocker):
     """
     A unit test for the Monte Carlo calculate_diffraction_pattern function. This unit
@@ -75,6 +74,37 @@ def test_monte_carlo_calculate_diffraction_pattern(nd_monte_carlo, mocker):
         max_angle_deg=180,
         angle_bins=10
     )
+
+    expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
+                                    180.])
+    expected_intensities = np.array([0.000000e+00, 8.349908e-05, 0.000000e+00,
+                                     2.231075e-04, 7.179199e-06, 6.286620e-06,
+                                     0.000000e+00, 0.000000e+00, 1.000000e+00,
+                                     2.489788e-05])
+
+    nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
+    nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
+
+def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(nd_monte_carlo,
+                                                                 mocker):
+    """
+    A unit test for the Monte Carlo calculate_diffraction_pattern_ideal_crystal
+    function. This unit test tests normal operation of the function.
+    """
+    mocker.patch(
+        "B8_project.utils.random_uniform_unit_vectors",
+        side_effect=[random_unit_vectors_1, random_unit_vectors_2],
+    )
+
+    two_thetas, intensities = (
+        nd_monte_carlo.calculate_diffraction_pattern_ideal_crystal(
+        target_accepted_trials=10,
+        trials_per_batch=10,
+        unit_cells_in_crystal=(8, 8, 8),
+        min_angle_deg=0,
+        max_angle_deg=180,
+        angle_bins=10
+    ))
 
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
                                     180.])

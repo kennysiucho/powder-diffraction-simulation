@@ -24,7 +24,7 @@ if two_thetas_file.is_file() or intensities_file.is_file():
             CALCULATE_SPECTRUM = True
             break
 else:
-    CALCULATE_SPECTRUM = False
+    CALCULATE_SPECTRUM = True
 
 if CALCULATE_SPECTRUM:
     LATTICE_FILE = "data/PrO2_lattice.csv"
@@ -37,10 +37,13 @@ if CALCULATE_SPECTRUM:
     nd = NeutronDiffractionMonteCarlo(unit_cell, 0.123)
 
     two_thetas, intensities = (
-        nd.calculate_diffraction_pattern(30000,
-                                         min_angle_deg=18,
-                                         max_angle_deg=57,
-                                         angle_bins=200))
+        nd.calculate_diffraction_pattern_ideal_crystal(
+            target_accepted_trials=1000000,
+            unit_cells_in_crystal=(10, 10, 10),
+            trials_per_batch=1000,
+            min_angle_deg=18,
+            max_angle_deg=55,
+            angle_bins=100))
     np.savetxt('two_thetas.txt', two_thetas)
     np.savetxt('intensities.txt', intensities)
 else:
