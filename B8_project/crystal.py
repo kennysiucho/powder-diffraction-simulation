@@ -322,7 +322,9 @@ class UnitCellVarieties:
         self.pure_unit_cell = pure_unit_cell
         self.replacement_prob = replacement_prob
         self.unit_cell_varieties = []
+        self.probabilities = []
         self.generate_all_unit_cell_varieties()
+        self.calculate_probabilities()
 
     def generate_all_unit_cell_varieties(self):
         """
@@ -351,17 +353,22 @@ class UnitCellVarieties:
                     new_unit_cell.atoms[indices_to_replace[i]] = deepcopy(new_atoms[i])
             self.unit_cell_varieties.append(new_unit_cell)
 
-    def unit_cell_distribution(self):
+    def calculate_probabilities(self):
         """
-        Returns a list of all possible disordered unit cells for the alloy with their
-        associated probabilities such that a random sample of unit cells results in the
-        desired concentration of elements.
-
-        Returns
-        -------
-
+        Calculates the probability associated with each unit cell variety, such that
+        when sampling the unit cells from the probability distribution, it results in an
+        alloy with the desired concentration of elements.
         """
-        pass
+        n_atoms = sum(1 for atom in self.unit_cell_varieties[0].atoms if
+                      atom.atomic_number in (self.replacement_prob.atom_to,
+                                             self.replacement_prob.atom_from))
+        for uc in self.unit_cell_varieties:
+            n_atoms_replaced = sum(1 for atom in uc.atoms if
+                                   atom.atomic_number == self.replacement_prob.atom_to)
+            p = self.replacement_prob.probability
+            self.probabilities.append(
+                p ** n_atoms_replaced * (1 - p) ** (n_atoms - n_atoms_replaced))
+
 
     def atoms_list_distribution(self):
         """
