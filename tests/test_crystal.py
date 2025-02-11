@@ -5,6 +5,7 @@ implemented.
 """
 
 import numpy as np
+import numpy.testing as nptest
 import pytest
 from copy import deepcopy
 from B8_project.crystal import (
@@ -208,19 +209,24 @@ def fixture_ingaas_replacement_prob() -> ReplacementProbability:
     """
     yield ReplacementProbability(31, 49, 0.2)
 
+@pytest.fixture(name="uc_vars")
+def fixture_uc_vars(gaas_unit_cell, ingaas_replacement_prob) -> UnitCellVarieties:
+    """
+    Returns instance of UnitCellVarieties
+    """
+    yield UnitCellVarieties(gaas_unit_cell, ingaas_replacement_prob)
+
 class TestUnitCellVarieties:
     """
     Unit tests for the `UnitCellVarieties` class.
     """
 
     @staticmethod
-    def test_generate_all_unit_cells(gaas_unit_cell, ingaas_replacement_prob):
+    def test_generate_all_unit_cells_correct_atom_combinations(uc_vars,
+                                                               gaas_unit_cell):
         """
-        Tests that all combinations of unit cells of an alloy are generated, and that
-        the unit cell are all unique objects
+        Tests that all combinations of unit cells of an alloy are generated
         """
-        uc_vars = UnitCellVarieties(gaas_unit_cell, ingaas_replacement_prob)
-
         expected_ucs = [deepcopy(gaas_unit_cell) for _ in range(16)]
         ga_indices = [i for i in range(len(gaas_unit_cell.atoms)) if
                       gaas_unit_cell.atoms[i].atomic_number == 31]
@@ -275,6 +281,40 @@ class TestUnitCellVarieties:
             except ValueError as e:
                 raise AssertionError(f"Unexpected unit cell found: {uc}") from e
         assert len(expected_ucs) == 0
+
+    @staticmethod
+    def test_generate_all_unit_cells_unique_references(uc_vars):
+        """
+        Check that uc_vars contains unique UnitCell objects
+        """
+        for i in range(len(uc_vars.unit_cell_varieties)):
+            for j in range(i + 1, len(uc_vars.unit_cell_varieties)):
+                assert uc_vars.unit_cell_varieties[i] is not \
+                       uc_vars.unit_cell_varieties[j]
+
+    @staticmethod
+    def test_calculate_probabilities_correct(uc_vars):
+        """
+        Tests that the correct set of probabilities is generated
+        """
+        probs = uc_vars.probabilities
+        probs.sort()
+        # Expected probability distribution for 4 atoms with replacement probability
+        # of 0.2
+        expected_probs = [0.0016,
+                          0.0064, 0.0064, 0.0064, 0.0064,
+                          0.0256, 0.0256, 0.0256, 0.0256, 0.0256, 0.0256,
+                          0.1024, 0.1024, 0.1024, 0.1024,
+                          0.4096]
+
+        nptest.assert_allclose(probs, expected_probs)
+
+    @staticmethod
+    def test_calculate_probabilities_sum_to_one(uc_vars):
+        """
+        Tests that the probability distribution for unit cell varieties sum to one.
+        """
+        nptest.assert_allclose(np.sum(uc_vars.probabilities), 1.0)
 
 
 class TestReciprocalLatticeVector:
