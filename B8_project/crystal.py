@@ -300,6 +300,18 @@ class UnitCell:
                 different lattice type."""
             )
 
+    def atomic_numbers(self) -> list[int]:
+        """
+        Returns the atomic numbers of the atoms in the unit cell.
+        """
+        return [atom.atomic_number for atom in self.atoms]
+
+    def positions(self) -> list[tuple[float, float, float]]:
+        """
+        Returns the positions of the atos in the unit cell.
+        """
+        return [atom.position for atom in self.atoms]
+
 
 @dataclass
 class ReplacementProbability:
@@ -315,7 +327,24 @@ class ReplacementProbability:
     atom_to: int
     probability: float
 
+
 class UnitCellVarieties:
+    """
+    Stores the all possible unit cells of a disordered alloy and their associated
+    probabilities based on the probability of concentration of elements.
+
+    Possible extensions for the future:
+    - Prune unit cells with negligible probabilities
+    - Allow more cases beyond two elements randomly occupying a single lattice site.
+
+    Attributes
+    ----------
+    pure_unit_cell : UnitCell
+        The unit cell before its atoms are replaced with another element.
+    replacement_prob : ReplacementProbability
+        Specifies what element is to be replaced with another element, and with what
+        probability.
+    """
     def __init__(self,
                  pure_unit_cell: UnitCell,
                  replacement_prob: ReplacementProbability):
@@ -369,16 +398,21 @@ class UnitCellVarieties:
             self.probabilities.append(
                 p ** n_atoms_replaced * (1 - p) ** (n_atoms - n_atoms_replaced))
 
-
-    def atoms_list_distribution(self):
+    def atomic_number_lists(self) -> tuple[list[np.ndarray], list[float]]:
         """
-        Returns a list of all possible disordered unit cells, represented as a list
-        of atomic numbers, with their associated probabilities.
+        Returns a list of the disordered unit cells generated, represented as a list
+        of atomic numbers, and their associated probabilities
 
         Returns
         -------
-
+        atomic_number_lists : list[np.ndarray]
+            2D list, containing list of unit cells, each being a ndarray of atomic
+            numbers.
+        probabilities : list[float]
+            List of probabilities associated with each unit cell
         """
+        return ([uc.atomic_numbers() for uc in self.unit_cell_varieties],
+            self.probabilities)
 
 
 
