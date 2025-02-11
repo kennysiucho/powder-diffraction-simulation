@@ -14,6 +14,7 @@ Classes
 """
 
 from dataclasses import dataclass
+from copy import deepcopy
 import numpy as np
 import B8_project.utils as utils
 
@@ -298,6 +299,80 @@ class UnitCell:
                 """Base centred lattice logic not implemented yet. Please choose a 
                 different lattice type."""
             )
+
+
+@dataclass
+class ReplacementProbability:
+    """
+    Specifies how to generate unit cell varieties for a disordered alloy: atoms with
+    atomic number `atom_from` in a unit cell should be replaced with atomic number
+    `atom_to` with `probability`.
+
+    Currently only supports one-to-one replacement, in other words only two elements
+    on a lattice site.
+    """
+    atom_from: int
+    atom_to: int
+    probability: float
+
+class UnitCellVarieties:
+    def __init__(self,
+                 pure_unit_cell: UnitCell,
+                 replacement_prob: ReplacementProbability):
+        self.pure_unit_cell = pure_unit_cell
+        self.replacement_prob = replacement_prob
+        self.unit_cell_varieties = []
+        self.generate_all_unit_cell_varieties()
+
+    def generate_all_unit_cell_varieties(self):
+        """
+        Generates the list of all possible disordered unit cells for the alloy and
+        stores it in the `unit_cell_varieties` attribute.
+        """
+        indices_to_replace = []
+        for i, atom in enumerate(self.pure_unit_cell.atoms):
+            if atom.atomic_number == self.replacement_prob.atom_from:
+                indices_to_replace.append(i)
+
+        lattice_sites = len(indices_to_replace)
+        total_varieties = 2**lattice_sites
+        print(f"INFO: Total number of unit cell varieties = {total_varieties}")
+
+        # Create the new Atom object
+        new_atoms = [deepcopy(self.pure_unit_cell.atoms[i]) for i in indices_to_replace]
+        for new_atom in new_atoms:
+            new_atom.atomic_number = self.replacement_prob.atom_to
+
+        # Iterate over all possible permutations
+        for bitmask in range(total_varieties):
+            new_unit_cell = deepcopy(self.pure_unit_cell)
+            for i in range(lattice_sites):
+                if bitmask & (1 << i):
+                    new_unit_cell.atoms[indices_to_replace[i]] = deepcopy(new_atoms[i])
+            self.unit_cell_varieties.append(new_unit_cell)
+
+    def unit_cell_distribution(self):
+        """
+        Returns a list of all possible disordered unit cells for the alloy with their
+        associated probabilities such that a random sample of unit cells results in the
+        desired concentration of elements.
+
+        Returns
+        -------
+
+        """
+        pass
+
+    def atoms_list_distribution(self):
+        """
+        Returns a list of all possible disordered unit cells, represented as a list
+        of atomic numbers, with their associated probabilities.
+
+        Returns
+        -------
+
+        """
+
 
 
 @dataclass
