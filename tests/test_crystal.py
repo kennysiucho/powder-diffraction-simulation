@@ -5,10 +5,15 @@ implemented.
 """
 
 import numpy as np
+import numpy.testing as nptest
+import pytest
+from copy import deepcopy
 from B8_project.crystal import (
     Atom,
     UnitCell,
     ReciprocalLatticeVector,
+    UnitCellVarieties,
+    ReplacementProbability,
 )
 from B8_project import file_reading
 from B8_project import utils
@@ -186,6 +191,179 @@ class TestUnitCell:
             key=str,
         )
 
+@pytest.fixture(name="gaas_unit_cell")
+def fixture_gaas_unit_cell() -> UnitCell:
+    """
+    Returns a GaAs unit cell.
+    """
+    gaas_basis = file_reading.read_basis("tests/data/GaAs_basis.csv")
+    gaas_lattice = file_reading.read_lattice("tests/data/GaAs_lattice.csv")
+    unit_cell = UnitCell.new_unit_cell(gaas_basis, gaas_lattice)
+    yield unit_cell
+
+@pytest.fixture(name="ingaas_replacement_prob")
+def fixture_ingaas_replacement_prob() -> ReplacementProbability:
+    """
+    Returns instance of ReplacementProbability, specifying to replace Ga with in with
+    a 0.2 probability.
+    """
+    yield ReplacementProbability(31, 49, 0.2)
+
+@pytest.fixture(name="uc_vars")
+def fixture_uc_vars(gaas_unit_cell, ingaas_replacement_prob) -> UnitCellVarieties:
+    """
+    Returns instance of UnitCellVarieties
+    """
+    yield UnitCellVarieties(gaas_unit_cell, ingaas_replacement_prob)
+
+class TestUnitCellVarieties:
+    """
+    Unit tests for the `UnitCellVarieties` class.
+    """
+
+    @staticmethod
+    def test_generate_all_unit_cells_correct_atom_combinations(uc_vars,
+                                                               gaas_unit_cell):
+        """
+        Tests that all combinations of unit cells of an alloy are generated
+        """
+        expected_ucs = [deepcopy(gaas_unit_cell) for _ in range(16)]
+        ga_indices = [i for i in range(len(gaas_unit_cell.atoms)) if
+                      gaas_unit_cell.atoms[i].atomic_number == 31]
+        assert len(ga_indices) == 4
+
+        # 1 Ga atom replaced with In
+        expected_ucs[1].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[2].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[3].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[4].atoms[ga_indices[3]].atomic_number = 49
+
+        # 2 Ga atoms replaced with In
+        expected_ucs[5].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[5].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[6].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[6].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[7].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[7].atoms[ga_indices[3]].atomic_number = 49
+        expected_ucs[8].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[8].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[9].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[9].atoms[ga_indices[3]].atomic_number = 49
+        expected_ucs[10].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[10].atoms[ga_indices[3]].atomic_number = 49
+
+        # 3 Ga atoms replaced with In
+        expected_ucs[11].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[11].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[11].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[12].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[12].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[12].atoms[ga_indices[3]].atomic_number = 49
+        expected_ucs[13].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[13].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[13].atoms[ga_indices[3]].atomic_number = 49
+        expected_ucs[14].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[14].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[14].atoms[ga_indices[3]].atomic_number = 49
+
+        # 4 Ga atoms replaced with In
+        expected_ucs[15].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[15].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[15].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[15].atoms[ga_indices[3]].atomic_number = 49
+
+        assert len(uc_vars.unit_cell_varieties) == 16
+
+        # Check whether uc_vars contains all elements of expected_ucs
+        for uc in uc_vars.unit_cell_varieties:
+            try:
+                expected_ucs.remove(uc)
+            except ValueError as e:
+                raise AssertionError(f"Unexpected unit cell found: {uc}") from e
+        assert len(expected_ucs) == 0
+
+    @staticmethod
+    def test_generate_all_unit_cells_does_not_alter_atom_positions(uc_vars):
+        """
+        Check that all the unit cells have the same atomic positions in the same order.
+        """
+        expected_positions = np.array(uc_vars.unit_cell_varieties[0].positions())
+        for uc in uc_vars.unit_cell_varieties:
+            pos = np.array(uc.positions())
+            nptest.assert_allclose(pos, expected_positions)
+
+    @staticmethod
+    def test_generate_all_unit_cells_unique_references(uc_vars):
+        """
+        Check that uc_vars contains unique UnitCell objects
+        """
+        for i in range(len(uc_vars.unit_cell_varieties)):
+            for j in range(i + 1, len(uc_vars.unit_cell_varieties)):
+                assert uc_vars.unit_cell_varieties[i] is not \
+                       uc_vars.unit_cell_varieties[j]
+
+    @staticmethod
+    def test_calculate_probabilities_correct(uc_vars):
+        """
+        Tests that the correct set of probabilities is generated
+        """
+        probs = uc_vars.probabilities
+        probs.sort()
+        # Expected probability distribution for 4 atoms with replacement probability
+        # of 0.2
+        expected_probs = [0.0016,
+                          0.0064, 0.0064, 0.0064, 0.0064,
+                          0.0256, 0.0256, 0.0256, 0.0256, 0.0256, 0.0256,
+                          0.1024, 0.1024, 0.1024, 0.1024,
+                          0.4096]
+
+        nptest.assert_allclose(probs, expected_probs)
+
+    @staticmethod
+    def test_calculate_probabilities_sum_to_one(uc_vars):
+        """
+        Tests that the probability distribution for unit cell varieties sum to one.
+        """
+        nptest.assert_allclose(np.sum(uc_vars.probabilities), 1.0)
+
+    @staticmethod
+    def test_atomic_number_lists(uc_vars):
+        """
+        Tests that the lists of atomic numbers are correct and have the correct
+        probability.
+        """
+        atomic_numbers, probs = uc_vars.atomic_number_lists()
+        actual = {(tuple(atomic_numbers[i]), probs[i]) for i in range(len(
+            atomic_numbers))}
+        expected = {((31, 31, 31, 31, 33, 33, 33, 33), 0.4096),
+                    ((49, 31, 31, 31, 33, 33, 33, 33), 0.1024),
+                    ((31, 49, 31, 31, 33, 33, 33, 33), 0.1024),
+                    ((31, 31, 49, 31, 33, 33, 33, 33), 0.1024),
+                    ((31, 31, 31, 49, 33, 33, 33, 33), 0.1024),
+                    ((49, 49, 31, 31, 33, 33, 33, 33), 0.0256),
+                    ((49, 31, 49, 31, 33, 33, 33, 33), 0.0256),
+                    ((49, 31, 31, 49, 33, 33, 33, 33), 0.0256),
+                    ((31, 49, 49, 31, 33, 33, 33, 33), 0.0256),
+                    ((31, 49, 31, 49, 33, 33, 33, 33), 0.0256),
+                    ((31, 31, 49, 49, 33, 33, 33, 33), 0.0256),
+                    ((49, 49, 49, 31, 33, 33, 33, 33), 0.0064),
+                    ((49, 49, 31, 49, 33, 33, 33, 33), 0.0064),
+                    ((49, 31, 49, 49, 33, 33, 33, 33), 0.0064),
+                    ((31, 49, 49, 49, 33, 33, 33, 33), 0.0064),
+                    ((49, 49, 49, 49, 33, 33, 33, 33), 0.0016)}
+
+        assert len(actual) == len(expected)
+
+        # Convert to sorted list to compare using numpy
+        expected_sorted = sorted(expected, key=lambda x: (x[0], x[1]))
+        actual_sorted = sorted(actual, key=lambda x: (x[0], x[1]))
+
+        for (expected_tuple, expected_float), (actual_tuple, actual_float) in zip(
+                expected_sorted, actual_sorted):
+            # Compare the tuple elements directly
+            assert expected_tuple == actual_tuple
+            # Compare floats
+            np.testing.assert_allclose(expected_float, actual_float)
 
 class TestReciprocalLatticeVector:
     """
