@@ -5,10 +5,14 @@ implemented.
 """
 
 import numpy as np
+import pytest
+from copy import deepcopy
 from B8_project.crystal import (
     Atom,
     UnitCell,
     ReciprocalLatticeVector,
+    UnitCellVarieties,
+    ReplacementProbability,
 )
 from B8_project import file_reading
 from B8_project import utils
@@ -185,6 +189,92 @@ class TestUnitCell:
             ],
             key=str,
         )
+
+@pytest.fixture(name="gaas_unit_cell")
+def fixture_gaas_unit_cell() -> UnitCell:
+    """
+    Returns a GaAs unit cell.
+    """
+    gaas_basis = file_reading.read_basis("tests/data/GaAs_basis.csv")
+    gaas_lattice = file_reading.read_lattice("tests/data/GaAs_lattice.csv")
+    unit_cell = UnitCell.new_unit_cell(gaas_basis, gaas_lattice)
+    yield unit_cell
+
+@pytest.fixture(name="ingaas_replacement_prob")
+def fixture_ingaas_replacement_prob() -> ReplacementProbability:
+    """
+    Returns instance of ReplacementProbability, specifying to replace Ga with in with
+    a 0.2 probability.
+    """
+    yield ReplacementProbability(31, 49, 0.2)
+
+class TestUnitCellVarieties:
+    """
+    Unit tests for the `UnitCellVarieties` class.
+    """
+
+    @staticmethod
+    def test_generate_all_unit_cells(gaas_unit_cell, ingaas_replacement_prob):
+        """
+        Tests that all combinations of unit cells of an alloy are generated, and that
+        the unit cell are all unique objects
+        """
+        uc_vars = UnitCellVarieties(gaas_unit_cell, ingaas_replacement_prob)
+
+        expected_ucs = [deepcopy(gaas_unit_cell) for _ in range(16)]
+        ga_indices = [i for i in range(len(gaas_unit_cell.atoms)) if
+                      gaas_unit_cell.atoms[i].atomic_number == 31]
+        assert len(ga_indices) == 4
+
+        # 1 Ga atom replaced with In
+        expected_ucs[1].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[2].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[3].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[4].atoms[ga_indices[3]].atomic_number = 49
+
+        # 2 Ga atoms replaced with In
+        expected_ucs[5].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[5].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[6].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[6].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[7].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[7].atoms[ga_indices[3]].atomic_number = 49
+        expected_ucs[8].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[8].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[9].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[9].atoms[ga_indices[3]].atomic_number = 49
+        expected_ucs[10].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[10].atoms[ga_indices[3]].atomic_number = 49
+
+        # 3 Ga atoms replaced with In
+        expected_ucs[11].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[11].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[11].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[12].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[12].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[12].atoms[ga_indices[3]].atomic_number = 49
+        expected_ucs[13].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[13].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[13].atoms[ga_indices[3]].atomic_number = 49
+        expected_ucs[14].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[14].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[14].atoms[ga_indices[3]].atomic_number = 49
+
+        # 4 Ga atoms replaced with In
+        expected_ucs[15].atoms[ga_indices[0]].atomic_number = 49
+        expected_ucs[15].atoms[ga_indices[1]].atomic_number = 49
+        expected_ucs[15].atoms[ga_indices[2]].atomic_number = 49
+        expected_ucs[15].atoms[ga_indices[3]].atomic_number = 49
+
+        assert len(uc_vars.unit_cell_varieties) == 16
+
+        # Check whether uc_vars contains all elements of expected_ucs
+        for uc in uc_vars.unit_cell_varieties:
+            try:
+                expected_ucs.remove(uc)
+            except ValueError as e:
+                raise AssertionError(f"Unexpected unit cell found: {uc}") from e
+        assert len(expected_ucs) == 0
 
 
 class TestReciprocalLatticeVector:
