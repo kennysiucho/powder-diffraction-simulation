@@ -6,10 +6,12 @@ This module contains classes to calculate diffraction spectra using Monte Carlo 
 
 Classes
 -------
-    - `NeutronDiffractionMonteCarloRunStats`: A class to store statistics associated
-    with each run of `calculate_diffraction_pattern`.
-    - `NeutronDiffractionMonteCarlo`: A class to calculate neutron diffraction
-    patterns, with different optimizations based on the type of crystal
+`NeutronDiffractionMonteCarloRunStats`
+    A class to store statistics associated with each run of
+    `calculate_diffraction_pattern`.
+`NeutronDiffractionMonteCarlo`
+    A class to calculate neutron diffraction patterns, with different optimizations
+    based on the type of crystal
 """
 
 import time
@@ -22,9 +24,6 @@ from B8_project.crystal import UnitCell
 @dataclass
 class NeutronDiffractionMonteCarloRunStats:
     """
-    Neutron Diffraction Monte Carlo Run Stats
-    =========================================
-
     A class to store statistics associated with each run of `calculate_diffraction_
     pattern`.
 
@@ -32,21 +31,18 @@ class NeutronDiffractionMonteCarloRunStats:
 
     Attributes
     ----------
-        - `accepted_data_points` (`int`): Number of accepted trials so far
-        - `total_trials` (`int`): Total number of trials attempted, regardless of their
-        angles and intensities
-        - `start_time_` (`float`): Start time of calculation, in seconds since the Epoch
-        - `prev_print_time_` (`float`): Previous time stamp when the run stats are
-        printed; keeps track so that the run stats are printed in regular intervals.
-        - `microseconds_per_trial` (`float`): Microseconds spent to calculate each
-        trial; includes all trials, accepted or not.
-
-    Methods
-    -------
-        - `recalculate_microseconds_per_trial`: Recalculate average `microseconds_per
-        _trial`.
-        - `__str__`: Returns a formatted string containing all attributes that don't
-        end in `_`.
+    accepted_data_points : int
+        Number of accepted trials so far
+    total_trials : int
+        Total number of trials attempted, regardless of their angles and intensities
+    start_time_ : float
+        Start time of calculation, in seconds since the Epoch
+    prev_print_time_ : float
+        Previous time stamp when the run stats are printed; keeps track so that the
+        run stats are printed in regular intervals.
+    microseconds_per_trial : float
+        Microseconds spent to calculate each trial; includes all trials, accepted or
+        not.
     """
 
     accepted_data_points: int = 0
@@ -65,6 +61,10 @@ class NeutronDiffractionMonteCarloRunStats:
                                        self.total_trials * 1000000)
 
     def __str__(self):
+        """
+        Returns a formatted string containing all attributes that don't
+        end in `_`.
+        """
         self.recalculate_microseconds_per_trial()
         return "".join([f"{key}={val:.1f} | " if key[-1] != '_' else ""
                         for key, val in self.__dict__.items()])
@@ -72,22 +72,14 @@ class NeutronDiffractionMonteCarloRunStats:
 
 class NeutronDiffractionMonteCarlo:
     """
-    Neutron Diffraction Monte Carlo
-    ===============================
-
     A class to calculate neutron diffraction patterns via Monte Carlo methods.
 
     Attributes
     ----------
-        - `unit_cell` (`UnitCell`): The unit cell of the crystal
-        - `wavelength` (`float`): The wavelength of the incident neutrons (in nm)
-
-    Methods
-    -------
-        - `calculate_diffraction_pattern`: Calculate spectrum given list of atoms in
-        a crystal, without further assumptions about the structure.
-        - `calculate_diffraction_pattern_ideal_crystal`: Calculate spectrum of a
-        crystal consisting of perfectly repeating unit cells.
+    unit_cell : UnitCell
+        The unit cell of the crystal
+    wavelength : float
+        The wavelength of the incident neutrons (in nm)
     """
     def __init__(self, unit_cell: UnitCell, wavelength: float):
         self.unit_cell = unit_cell
@@ -103,9 +95,6 @@ class NeutronDiffractionMonteCarlo:
                                       max_angle_deg: float = 180.0,
                                       angle_bins: int = 100):
         """
-        Calculate diffraction pattern
-        =============================
-
         Calculates the neutron diffraction spectrum using a Monte Carlo method.
 
         For each Monte Carlo trial, randomly choose the incident and scattered k-
@@ -115,22 +104,25 @@ class NeutronDiffractionMonteCarlo:
 
         Parameters
         ----------
-            - `target_accepted_trials` (`int`): Target number of accepted trials.
-            - `trials_per_batch` (`int`): Number of trials calculated at once using
-            NumPy methods
-            - `unit_cells_in_crystal` (`tuple[int, int, int]`): How many times to
-            repeat the unit cell in x, y, z directions, forming the crystal powder
-            for diffraction.
-            - `min_angle_rad`, `max_angle_rad` (`float`): Minimum/maximum scattering
-            angle in radians for a scattering trial to be accepted
-            - `angle_bins` (`int`): Number of bins for scattering angles
+        target_accepted_trials : int
+            Target number of accepted trials.
+        trials_per_batch : int
+            Number of trials calculated at once using NumPy methods.
+        unit_cells_in_crystal : tuple[int, int, int]
+            How many times to repeat the unit cell in x, y, z directions, forming the
+            crystal powder for diffraction.
+        min_angle_deg, max_angle_deg : float
+            Minimum/maximum scattering angle in degrees for a scattering trial to be
+            accepted.
+        angle_bins : int
+            Number of bins for scattering angles.
 
         Returns
         -------
-            - `two_thetas` ((`target_accepted_trials`,) ndarray): representing the
-            left edges of the bins, evenly spaced within angle range specified
-            - `intensities` ((`target_accepted_trials`,) ndarray): intensity
-            calculated for each bin
+        two_thetas : (target_accepted_trials,) ndarray
+            the left edges of the bins, evenly spaced within angle range specified
+        intensities : (target_accepted_trials,) ndarray
+            intensity calculated for each bin
         """
         k = 2 * np.pi / self.wavelength
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
@@ -224,9 +216,6 @@ class NeutronDiffractionMonteCarlo:
             max_angle_deg: float = 180.0,
             angle_bins: int = 100):
         """
-        Calculate diffraction pattern ideal crystal
-        =============================
-
         Calculates the neutron diffraction spectrum using a Monte Carlo method,
         assuming the crystal consists of the same unit cell throughout (ideal crystal).
 
@@ -237,22 +226,25 @@ class NeutronDiffractionMonteCarlo:
 
         Parameters
         ----------
-            - `target_accepted_trials` (`int`): Target number of accepted trials.
-            - `trials_per_batch` (`int`): Number of trials calculated at once using
-            NumPy methods
-            - `unit_cells_in_crystal` (`tuple[int, int, int]`): How many times to
-            repeat the unit cell in x, y, z directions, forming the crystal powder
-            for diffraction.
-            - `min_angle_rad`, `max_angle_rad` (`float`): Minimum/maximum scattering
-            angle in radians for a scattering trial to be accepted
-            - `angle_bins` (`int`): Number of bins for scattering angles
+        target_accepted_trials : int
+            Target number of accepted trials.
+        trials_per_batch : int
+            Number of trials calculated at once using NumPy methods
+        unit_cells_in_crystal : tuple[int, int, int]
+            How many times to repeat the unit cell in x, y, z directions, forming the
+            crystal powder for diffraction.
+        min_angle_deg, max_angle_deg : float
+            Minimum/maximum scattering angle in degrees for a scattering trial to be
+            accepted
+        angle_bins : int
+            Number of bins for scattering angles
 
         Returns
         -------
-            - `two_thetas` ((`target_accepted_trials`,) ndarray): representing the
-            left edges of the bins, evenly spaced within angle range specified
-            - `intensities` ((`target_accepted_trials`,) ndarray): intensity
-            calculated for each bin
+        two_thetas : (`target_accepted_trials`,) ndarray
+            The left edges of the bins, evenly spaced within angle range specified
+        intensities : (`target_accepted_trials`,) ndarray
+            Intensity calculated for each bin
         """
         k = 2 * np.pi / self.wavelength
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
@@ -359,35 +351,6 @@ class NeutronDiffractionMonteCarlo:
             angle_bins: int = 100):
         """
         # TODO: update docstring, add tests
-        Calculate diffraction pattern ideal crystal
-        =============================
-
-        Calculates the neutron diffraction spectrum using a Monte Carlo method,
-        assuming the crystal consists of the same unit cell throughout (ideal crystal).
-
-        For each Monte Carlo trial, randomly choose the incident and scattered k-
-        vectors. If the scattering angle is within the range specified, compute the
-        lattice and basis structure factors and hence intensity of the trial. Add
-        intensity to final diffraction pattern.
-
-        Parameters
-        ----------
-            - `target_accepted_trials` (`int`): Target number of accepted trials.
-            - `trials_per_batch` (`int`): Number of trials calculated at once using
-            NumPy methods
-            - `unit_cells_in_crystal` (`tuple[int, int, int]`): How many times to
-            repeat the unit cell in x, y, z directions, forming the crystal powder
-            for diffraction.
-            - `min_angle_rad`, `max_angle_rad` (`float`): Minimum/maximum scattering
-            angle in radians for a scattering trial to be accepted
-            - `angle_bins` (`int`): Number of bins for scattering angles
-
-        Returns
-        -------
-            - `two_thetas` ((`target_accepted_trials`,) ndarray): representing the
-            left edges of the bins, evenly spaced within angle range specified
-            - `intensities` ((`target_accepted_trials`,) ndarray): intensity
-            calculated for each bin
         """
         k = 2 * np.pi / self.wavelength
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
