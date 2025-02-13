@@ -86,7 +86,7 @@ def test_monte_carlo_calculate_diffraction_pattern(
         nacl_nd_form_factors,
         target_accepted_trials=10,
         trials_per_batch=10,
-        unit_cells_in_crystal=(8, 8, 8),
+        unit_cell_reps=(8, 8, 8),
         min_angle_deg=0,
         max_angle_deg=180,
         angle_bins=10
@@ -118,7 +118,7 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
             nacl_nd_form_factors,
             target_accepted_trials=10,
             trials_per_batch=10,
-            unit_cells_in_crystal=(8, 8, 8),
+            unit_cell_reps=(8, 8, 8),
             min_angle_deg=0,
             max_angle_deg=180,
             angle_bins=10

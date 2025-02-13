@@ -93,13 +93,20 @@ class DiffractionMonteCarlo:
         """
         return 2 * np.pi / self.wavelength
 
+    def _unit_cell_positions(self, unit_cell_reps: tuple[int, int, int]):
+        unit_cell_pos = np.vstack(
+            np.mgrid[0:unit_cell_reps[0], 0:unit_cell_reps[1],
+            0:unit_cell_reps[2]]).reshape(3, -1).T
+        unit_cell_pos = unit_cell_pos.astype(np.float64)
+        np.multiply(unit_cell_pos, self.unit_cell.lattice_constants, out=unit_cell_pos)
+        return unit_cell_pos
+
     # TODO: change this take a list of all atoms
     def calculate_diffraction_pattern(self,
                                       form_factors: Mapping[int, FormFactorProtocol],
                                       target_accepted_trials: int = 5000,
                                       trials_per_batch: int = 1000,
-                                      unit_cells_in_crystal: tuple[int, int, int] = (
-                                      8, 8, 8),
+                                      unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
                                       min_angle_deg: float = 0.0,
                                       max_angle_deg: float = 180.0,
                                       angle_bins: int = 100):
@@ -120,7 +127,7 @@ class DiffractionMonteCarlo:
             Target number of accepted trials.
         trials_per_batch : int
             Number of trials calculated at once using NumPy methods.
-        unit_cells_in_crystal : tuple[int, int, int]
+        unit_cell_reps : tuple[int, int, int]
             How many times to repeat the unit cell in x, y, z directions, forming the
             crystal powder for diffraction.
         min_angle_deg, max_angle_deg : float
@@ -139,11 +146,7 @@ class DiffractionMonteCarlo:
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
         intensities = np.zeros(angle_bins)
 
-        unit_cell_pos = np.vstack(
-            np.mgrid[0:unit_cells_in_crystal[0], 0:unit_cells_in_crystal[1],
-            0:unit_cells_in_crystal[2]]).reshape(3, -1).T
-        unit_cell_pos = unit_cell_pos.astype(np.float64)
-        np.multiply(unit_cell_pos, self.unit_cell.lattice_constants, out=unit_cell_pos)
+        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
 
         atoms_in_uc = []
         atom_pos_in_uc = []
@@ -223,7 +226,7 @@ class DiffractionMonteCarlo:
             form_factors: Mapping[int, FormFactorProtocol],
             target_accepted_trials: int = 5000,
             trials_per_batch: int = 1000,
-            unit_cells_in_crystal: tuple[int, int, int] = (8, 8, 8),
+            unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
             min_angle_deg: float = 0.0,
             max_angle_deg: float = 180.0,
             angle_bins: int = 100):
@@ -245,7 +248,7 @@ class DiffractionMonteCarlo:
             Target number of accepted trials.
         trials_per_batch : int
             Number of trials calculated at once using NumPy methods
-        unit_cells_in_crystal : tuple[int, int, int]
+        unit_cell_reps : tuple[int, int, int]
             How many times to repeat the unit cell in x, y, z directions, forming the
             crystal powder for diffraction.
         min_angle_deg, max_angle_deg : float
@@ -265,11 +268,7 @@ class DiffractionMonteCarlo:
         intensities = np.zeros(angle_bins)
 
         # Compute positions of the unit cells in the crystal
-        unit_cell_pos = np.vstack(
-            np.mgrid[0:unit_cells_in_crystal[0], 0:unit_cells_in_crystal[1],
-            0:unit_cells_in_crystal[2]]).reshape(3, -1).T
-        unit_cell_pos = unit_cell_pos.astype(np.float64)
-        np.multiply(unit_cell_pos, self.unit_cell.lattice_constants, out=unit_cell_pos)
+        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
 
         # Prepare the positions and scattering lengths for each atom in a single unit
         # cell
@@ -357,7 +356,7 @@ class DiffractionMonteCarlo:
             form_factors: Mapping[int, FormFactorProtocol],
             target_accepted_trials: int = 5000,
             trials_per_batch: int = 1000,
-            unit_cells_in_crystal: tuple[int, int, int] = (8, 8, 8),
+            unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
             min_angle_deg: float = 0.0,
             max_angle_deg: float = 180.0,
             angle_bins: int = 100):
@@ -368,11 +367,7 @@ class DiffractionMonteCarlo:
         intensities = np.zeros(angle_bins)
 
         # Compute positions of the unit cells in the crystal
-        unit_cell_pos = np.vstack(
-            np.mgrid[0:unit_cells_in_crystal[0], 0:unit_cells_in_crystal[1],
-            0:unit_cells_in_crystal[2]]).reshape(3, -1).T
-        unit_cell_pos = unit_cell_pos.astype(np.float64)
-        np.multiply(unit_cell_pos, self.unit_cell.lattice_constants, out=unit_cell_pos)
+        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
 
         # Prepare the positions for each atom in a single unit cell
         atom_pos_in_uc = []

@@ -57,7 +57,7 @@ if CALCULATE_SPECTRUM:
             0.25,
             xrd_form_factors,
             target_accepted_trials=1000000,
-            unit_cells_in_crystal=(10, 10, 10),
+            unit_cell_reps=(10, 10, 10),
             trials_per_batch=1000,
             min_angle_deg=18,
             max_angle_deg=57,
