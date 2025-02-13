@@ -16,10 +16,12 @@ Classes
 
 import time
 from dataclasses import dataclass
+from typing import Mapping
 import numpy as np
 from B8_project.file_reading import read_neutron_scattering_lengths
 from B8_project import utils
 from B8_project.crystal import UnitCell, UnitCellVarieties, ReplacementProbability
+from B8_project.form_factor import FormFactorProtocol
 
 
 @dataclass
@@ -210,6 +212,7 @@ class NeutronDiffractionMonteCarlo:
 
     def calculate_diffraction_pattern_ideal_crystal(
             self,
+            form_factors: Mapping[int, FormFactorProtocol],
             target_accepted_trials: int = 5000,
             trials_per_batch: int = 1000,
             unit_cells_in_crystal: tuple[int, int, int] = (8, 8, 8),
@@ -227,6 +230,9 @@ class NeutronDiffractionMonteCarlo:
 
         Parameters
         ----------
+        form_factors : Mapping[int, FormFactorProtocol]
+            Dictionary mapping atomic number to associated NeutronFormFactor or
+            XRayFormFactor.
         target_accepted_trials : int
             Target number of accepted trials.
         trials_per_batch : int
@@ -251,15 +257,6 @@ class NeutronDiffractionMonteCarlo:
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
         intensities = np.zeros(angle_bins)
 
-        # TODO: get scattering lengths as parameter instead
-        # read relevant neutron scattering lengths
-        all_scattering_lengths = read_neutron_scattering_lengths(
-            "data/neutron_scattering_lengths.csv")
-        scattering_lengths = {}
-        for atom in self.unit_cell.atoms:
-            scattering_lengths[atom.atomic_number] = all_scattering_lengths[
-                atom.atomic_number].neutron_scattering_length
-
         # Compute positions of the unit cells in the crystal
         unit_cell_pos = np.vstack(
             np.mgrid[0:unit_cells_in_crystal[0], 0:unit_cells_in_crystal[1],
@@ -269,14 +266,14 @@ class NeutronDiffractionMonteCarlo:
 
         # Prepare the positions and scattering lengths for each atom in a single unit
         # cell
+        atoms_in_uc = []
         atom_pos_in_uc = []
-        scattering_lengths_in_uc = []
         for atom in self.unit_cell.atoms:
+            atoms_in_uc.append(atom.atomic_number)
             atom_pos_in_uc.append(np.multiply(atom.position,
                                               self.unit_cell.lattice_constants))
-            scattering_lengths_in_uc.append(scattering_lengths[atom.atomic_number])
+        atoms_in_uc = np.array(atoms_in_uc)
         atom_pos_in_uc = np.array(atom_pos_in_uc)
-        scattering_lengths_in_uc = np.array(scattering_lengths_in_uc)
 
         stats = NeutronDiffractionMonteCarloRunStats()
 
@@ -318,9 +315,15 @@ class NeutronDiffractionMonteCarlo:
             # dot_products_lattice.shape = (# trials filtered, # atoms in a unit cell)
             dot_products_basis = np.einsum("ik,jk", scattering_vecs, atom_pos_in_uc)
 
+            # form_factors_basis.shape = (# trials filtered, # atoms in a unit cell)
+            form_factors_basis = np.stack(
+                [form_factors[atom].evaluate_form_factors(scattering_vecs) for atom in
+                 atoms_in_uc],
+                axis=1)
+
             # exp_terms.shape = (# trials filtered, # atoms in a unit cell)
             exps = np.exp(1j * dot_products_basis)
-            exp_terms_basis = scattering_lengths_in_uc * exps
+            exp_terms_basis = np.multiply(form_factors_basis, exps)
 
             # structure_factors_basis.shape = (# trials filtered,)
             structure_factors_basis = np.sum(exp_terms_basis, axis=1)
@@ -351,7 +354,7 @@ class NeutronDiffractionMonteCarlo:
             max_angle_deg: float = 180.0,
             angle_bins: int = 100):
         """
-        # TODO: update docstring, add tests
+        TODO: update docstring, add tests
         """
         k = 2 * np.pi / self.wavelength
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)

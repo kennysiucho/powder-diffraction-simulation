@@ -36,16 +36,26 @@ if CALCULATE_SPECTRUM:
     unit_cell = unit_cell.UnitCell.new_unit_cell(basis, lattice)
     nd = NeutronDiffractionMonteCarlo(unit_cell, 0.123)
 
+    all_nd_form_factors = file_reading.read_neutron_scattering_lengths(
+        "data/neutron_scattering_lengths.csv")
+    nd_form_factors = {}
+    for atom in nd.unit_cell.atoms:
+        nd_form_factors[atom.atomic_number] = all_nd_form_factors[atom.atomic_number]
+
+    all_xray_form_factors = file_reading.read_xray_form_factors(
+        "data/x_ray_form_factors.csv")
+    xrd_form_factors = {}
+    for atom in nd.unit_cell.atoms:
+        xrd_form_factors[atom.atomic_number] = all_xray_form_factors[atom.atomic_number]
+
     two_thetas, intensities = (
-        nd.calculate_diffraction_pattern_random_occupation(
-            31,
-            49,
-            0.25,
-            target_accepted_trials=30000000,
+        nd.calculate_diffraction_pattern_ideal_crystal(
+            xrd_form_factors,
+            target_accepted_trials=1000000,
             unit_cells_in_crystal=(10, 10, 10),
             trials_per_batch=1000,
-            min_angle_deg=48,
-            max_angle_deg=60,
+            min_angle_deg=18,
+            max_angle_deg=57,
             angle_bins=200))
     np.savetxt('two_thetas.txt', two_thetas)
     np.savetxt('intensities.txt', intensities)

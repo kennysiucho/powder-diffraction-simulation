@@ -5,13 +5,15 @@ This module contains unit tests for the diffraction_monte_carlo.py module.
 import pytest
 import numpy as np
 import numpy.testing as nptest
-from B8_project.file_reading import read_lattice, read_basis
+
+from B8_project.file_reading import read_lattice, read_basis, \
+    read_neutron_scattering_lengths
 from B8_project.crystal import UnitCell
 from B8_project.diffraction_monte_carlo import NeutronDiffractionMonteCarlo
 
 
-@pytest.fixture
-def nd_monte_carlo():
+@pytest.fixture(name="nd_monte_carlo")
+def fixture_nd_monte_carlo():
     """
     Returns instance of `NeutronDiffractionMonteCarlo`, containing data for NaCl and
     wavelength of 0.123nm
@@ -23,6 +25,19 @@ def nd_monte_carlo():
 
     yield nd
 
+@pytest.fixture(name="pro2_nd_form_factors")
+def fixture_pro2_nd_form_factors():
+    """
+    Returns a dictionary of neutron form factors for PrO2
+    """
+    all_nd_form_factors = read_neutron_scattering_lengths(
+        "data/neutron_scattering_lengths.csv")
+    nd_form_factors = {
+        11: all_nd_form_factors[11],
+        17: all_nd_form_factors[17]
+    }
+    print(nd_form_factors)
+    yield nd_form_factors
 
 random_unit_vectors_1 = np.array(
     [
@@ -85,8 +100,8 @@ def test_monte_carlo_calculate_diffraction_pattern(nd_monte_carlo, mocker):
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
     nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
 
-def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(nd_monte_carlo,
-                                                                 mocker):
+def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
+        nd_monte_carlo, pro2_nd_form_factors, mocker):
     """
     A unit test for the Monte Carlo calculate_diffraction_pattern_ideal_crystal
     function. This unit test tests normal operation of the function.
@@ -98,13 +113,14 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(nd_monte_carlo,
 
     two_thetas, intensities = (
         nd_monte_carlo.calculate_diffraction_pattern_ideal_crystal(
-        target_accepted_trials=10,
-        trials_per_batch=10,
-        unit_cells_in_crystal=(8, 8, 8),
-        min_angle_deg=0,
-        max_angle_deg=180,
-        angle_bins=10
-    ))
+            pro2_nd_form_factors,
+            target_accepted_trials=10,
+            trials_per_batch=10,
+            unit_cells_in_crystal=(8, 8, 8),
+            min_angle_deg=0,
+            max_angle_deg=180,
+            angle_bins=10
+        ))
 
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
                                     180.])
