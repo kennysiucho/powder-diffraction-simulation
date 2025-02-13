@@ -19,7 +19,8 @@ from dataclasses import dataclass
 import numpy as np
 from B8_project.file_reading import read_neutron_scattering_lengths
 from B8_project import utils
-from B8_project.crystal import UnitCell
+from B8_project.crystal import UnitCell, UnitCellVarieties, ReplacementProbability
+
 
 @dataclass
 class NeutronDiffractionMonteCarloRunStats:
@@ -340,8 +341,8 @@ class NeutronDiffractionMonteCarlo:
 
     def calculate_diffraction_pattern_random_occupation(
             self,
-            replaced_element: int,
-            new_element: int,
+            atom_from: int,
+            atom_to: int,
             probability: float,
             target_accepted_trials: int = 5000,
             trials_per_batch: int = 1000,
@@ -375,22 +376,16 @@ class NeutronDiffractionMonteCarlo:
                                               self.unit_cell.lattice_constants))
         atom_pos_in_uc = np.array(atom_pos_in_uc)
 
-        # Prepare the scattering lengths for each atom in a unit cell, replacing one
-        # of the atoms with the new element
-        scattering_length_uc_varieties = []
-        for replaced_atom in self.unit_cell.atoms:
-            if replaced_atom.atomic_number == replaced_element:
-                scattering_lengths_in_uc = []
-                for atom in self.unit_cell.atoms:
-                    if atom == replaced_atom:
-                        scattering_lengths_in_uc.append(all_scattering_lengths[
-                            new_element].neutron_scattering_length)
-                    else:
-                        scattering_lengths_in_uc.append(all_scattering_lengths[
-                            atom.atomic_number].neutron_scattering_length)
-                atom_pos_in_uc = np.array(atom_pos_in_uc)
-                scattering_length_uc_varieties.append(scattering_lengths_in_uc)
-        scattering_length_uc_varieties = np.array(scattering_length_uc_varieties)
+        uc_vars = UnitCellVarieties(self.unit_cell,
+                                    ReplacementProbability(atom_from, atom_to,
+                                                           probability))
+        atomic_numbers_vars, probs \
+            = uc_vars.atomic_number_lists()
+        scattering_lengths_vars = \
+            np.vectorize(all_scattering_lengths.get)(atomic_numbers_vars)
+        scattering_lengths_vars = \
+            np.vectorize(lambda e: e.neutron_scattering_length)(scattering_lengths_vars)
+        print(probs)
 
         stats = NeutronDiffractionMonteCarloRunStats()
 
@@ -426,7 +421,7 @@ class NeutronDiffractionMonteCarlo:
             # exp_terms.shape = (# trials filtered, varieties, # atoms in a unit cell)
             exps = np.exp(1j * dot_products_basis)
             exp_terms_basis = np.einsum("ik,jk->ijk", exps,
-                                        scattering_length_uc_varieties)
+                                        scattering_lengths_vars)
 
             # structure_factors_basis.shape = (# trials filtered, varieties)
             structure_factors_basis = np.sum(exp_terms_basis, axis=2)
@@ -445,14 +440,18 @@ class NeutronDiffractionMonteCarlo:
 
             # structure_factors_basis.shape = (# trials filtered, varieties)
             # structure_factors_basis_random.shape = (# trials filtered, # unit cells)
-            # TODO: factor in probability
+            # TODO: sample based on probs
             n_unit_cells = unit_cell_pos.shape[0]
-            structure_factors_basis_random = rng.choice(structure_factors_basis,
-                                                        size=n_unit_cells, axis=1)
+            n_uc_varieties = scattering_lengths_vars.shape[0]
+            random_indices = rng.choice(np.arange(n_uc_varieties), size=n_unit_cells,
+                                        p=probs)
+            structure_factors_basis_random = structure_factors_basis[:, random_indices]
 
             # structure_factors_lattice.shape = (# trials filtered,)
             structure_factors = np.sum(
                 np.multiply(exp_terms_lattice, structure_factors_basis_random), axis=1)
+
+            # TODO: test to Sanity check to ensure concentration in alloy is as expected
 
             intensity_batch = np.abs(structure_factors) ** 2
 
