@@ -25,8 +25,8 @@ def fixture_nd_monte_carlo():
 
     yield nd
 
-@pytest.fixture(name="pro2_nd_form_factors")
-def fixture_pro2_nd_form_factors():
+@pytest.fixture(name="nacl_nd_form_factors")
+def fixture_nacl_nd_form_factors():
     """
     Returns a dictionary of neutron form factors for PrO2
     """
@@ -68,7 +68,8 @@ random_unit_vectors_2 = np.array(
     ]
 )
 
-def test_monte_carlo_calculate_diffraction_pattern(nd_monte_carlo, mocker):
+def test_monte_carlo_calculate_diffraction_pattern(
+        nd_monte_carlo, nacl_nd_form_factors, mocker):
     """
     A unit test for the Monte Carlo calculate_diffraction_pattern function. This unit
     test tests normal operation of the function.
@@ -82,6 +83,7 @@ def test_monte_carlo_calculate_diffraction_pattern(nd_monte_carlo, mocker):
 
     # Run one batch of 10 trials without any filtering based on angle or intensity
     two_thetas, intensities = nd_monte_carlo.calculate_diffraction_pattern(
+        nacl_nd_form_factors,
         target_accepted_trials=10,
         trials_per_batch=10,
         unit_cells_in_crystal=(8, 8, 8),
@@ -101,7 +103,7 @@ def test_monte_carlo_calculate_diffraction_pattern(nd_monte_carlo, mocker):
     nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
 
 def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
-        nd_monte_carlo, pro2_nd_form_factors, mocker):
+        nd_monte_carlo, nacl_nd_form_factors, mocker):
     """
     A unit test for the Monte Carlo calculate_diffraction_pattern_ideal_crystal
     function. This unit test tests normal operation of the function.
@@ -113,7 +115,7 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
 
     two_thetas, intensities = (
         nd_monte_carlo.calculate_diffraction_pattern_ideal_crystal(
-            pro2_nd_form_factors,
+            nacl_nd_form_factors,
             target_accepted_trials=10,
             trials_per_batch=10,
             unit_cells_in_crystal=(8, 8, 8),

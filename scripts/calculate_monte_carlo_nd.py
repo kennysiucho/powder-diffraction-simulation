@@ -41,15 +41,20 @@ if CALCULATE_SPECTRUM:
     nd_form_factors = {}
     for atom in nd.unit_cell.atoms:
         nd_form_factors[atom.atomic_number] = all_nd_form_factors[atom.atomic_number]
+    nd_form_factors[49] = all_nd_form_factors[49]
 
     all_xray_form_factors = file_reading.read_xray_form_factors(
         "data/x_ray_form_factors.csv")
     xrd_form_factors = {}
     for atom in nd.unit_cell.atoms:
         xrd_form_factors[atom.atomic_number] = all_xray_form_factors[atom.atomic_number]
+    xrd_form_factors[49] = all_xray_form_factors[49]
 
     two_thetas, intensities = (
-        nd.calculate_diffraction_pattern_ideal_crystal(
+        nd.calculate_diffraction_pattern_random_occupation(
+            31,
+            49,
+            0.25,
             xrd_form_factors,
             target_accepted_trials=1000000,
             unit_cells_in_crystal=(10, 10, 10),
