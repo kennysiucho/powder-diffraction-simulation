@@ -88,6 +88,12 @@ class NeutronDiffractionMonteCarlo:
         self.unit_cell = unit_cell
         self.wavelength = wavelength
 
+    def k(self):
+        """
+        Returns 2pi / wavelength.
+        """
+        return 2 * np.pi / self.wavelength
+
     # TODO: change this take a list of all atoms
     def calculate_diffraction_pattern(self,
                                       form_factors: Mapping[int, FormFactorProtocol],
@@ -131,7 +137,6 @@ class NeutronDiffractionMonteCarlo:
         intensities : (target_accepted_trials,) ndarray
             intensity calculated for each bin
         """
-        k = 2 * np.pi / self.wavelength
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
         intensities = np.zeros(angle_bins)
 
@@ -165,8 +170,8 @@ class NeutronDiffractionMonteCarlo:
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            k_vecs = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
-            k_primes = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
+            k_vecs = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
+            k_primes = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
             scattering_vecs = k_primes - k_vecs
 
             # all_atom_pos.shape = (n_atoms, 3)
@@ -194,7 +199,7 @@ class NeutronDiffractionMonteCarlo:
             structure_factors = np.sum(exp_terms, axis=1)
 
             dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
-            two_theta_batch = np.degrees(np.arccos(dot_products / k**2))
+            two_theta_batch = np.degrees(np.arccos(dot_products / self.k()**2))
             intensity_batch = np.abs(structure_factors)**2
 
             stats.total_trials += trials_per_batch
@@ -257,7 +262,6 @@ class NeutronDiffractionMonteCarlo:
         intensities : (`target_accepted_trials`,) ndarray
             Intensity calculated for each bin
         """
-        k = 2 * np.pi / self.wavelength
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
         intensities = np.zeros(angle_bins)
 
@@ -287,13 +291,13 @@ class NeutronDiffractionMonteCarlo:
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            k_vecs = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
-            k_primes = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
+            k_vecs = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
+            k_primes = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
             scattering_vecs = k_primes - k_vecs
 
             # Compute scattering angle
             dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
-            two_theta_batch = np.degrees(np.arccos(dot_products / k ** 2))
+            two_theta_batch = np.degrees(np.arccos(dot_products / self.k() ** 2))
 
             # Discard trials with scattering angle out of range of interest
             angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_deg,
@@ -361,7 +365,6 @@ class NeutronDiffractionMonteCarlo:
         """
         TODO: update docstring, add tests
         """
-        k = 2 * np.pi / self.wavelength
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
         intensities = np.zeros(angle_bins)
 
@@ -396,13 +399,13 @@ class NeutronDiffractionMonteCarlo:
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            k_vecs = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
-            k_primes = k * utils.random_uniform_unit_vectors(trials_per_batch, 3)
+            k_vecs = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
+            k_primes = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
             scattering_vecs = k_primes - k_vecs
 
             # Compute scattering angle
             dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
-            two_theta_batch = np.degrees(np.arccos(dot_products / k ** 2))
+            two_theta_batch = np.degrees(np.arccos(dot_products / self.k() ** 2))
 
             # Discard trials with scattering angle out of range of interest
             angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_deg,
