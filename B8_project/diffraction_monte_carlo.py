@@ -6,11 +6,11 @@ This module contains classes to calculate diffraction spectra using Monte Carlo 
 
 Classes
 -------
-`NeutronDiffractionMonteCarloRunStats`
+`DiffractionMonteCarloRunStats`
     A class to store statistics associated with each run of
     `calculate_diffraction_pattern`.
-`NeutronDiffractionMonteCarlo`
-    A class to calculate neutron diffraction patterns, with different optimizations
+`DiffractionMonteCarlo`
+    A class to calculate diffraction patterns, with different optimizations
     based on the type of crystal
 """
 
@@ -18,14 +18,13 @@ import time
 from dataclasses import dataclass
 from typing import Mapping
 import numpy as np
-from B8_project.file_reading import read_neutron_scattering_lengths
 from B8_project import utils
 from B8_project.crystal import UnitCell, UnitCellVarieties, ReplacementProbability
 from B8_project.form_factor import FormFactorProtocol
 
 
 @dataclass
-class NeutronDiffractionMonteCarloRunStats:
+class DiffractionMonteCarloRunStats:
     """
     A class to store statistics associated with each run of `calculate_diffraction_
     pattern`.
@@ -73,7 +72,7 @@ class NeutronDiffractionMonteCarloRunStats:
                         for key, val in self.__dict__.items()])
 
 
-class NeutronDiffractionMonteCarlo:
+class DiffractionMonteCarlo:
     """
     A class to calculate neutron diffraction patterns via Monte Carlo methods.
 
@@ -162,7 +161,7 @@ class NeutronDiffractionMonteCarlo:
             atom_pos_in_uc, (n_unit_cells, 1))
         all_atoms = np.tile(atoms_in_uc, n_unit_cells)
 
-        stats = NeutronDiffractionMonteCarloRunStats()
+        stats = DiffractionMonteCarloRunStats()
 
         while stats.accepted_data_points < target_accepted_trials:
 
@@ -283,7 +282,7 @@ class NeutronDiffractionMonteCarlo:
         atoms_in_uc = np.array(atoms_in_uc)
         atom_pos_in_uc = np.array(atom_pos_in_uc)
 
-        stats = NeutronDiffractionMonteCarloRunStats()
+        stats = DiffractionMonteCarloRunStats()
 
         while stats.accepted_data_points < target_accepted_trials:
 
@@ -389,7 +388,7 @@ class NeutronDiffractionMonteCarlo:
             = uc_vars.atomic_number_lists()
         print(probs)
 
-        stats = NeutronDiffractionMonteCarloRunStats()
+        stats = DiffractionMonteCarloRunStats()
 
         rng = np.random.default_rng() # A NumPy Random Generator
 

@@ -9,19 +9,19 @@ import numpy.testing as nptest
 from B8_project.file_reading import read_lattice, read_basis, \
     read_neutron_scattering_lengths
 from B8_project.crystal import UnitCell
-from B8_project.diffraction_monte_carlo import NeutronDiffractionMonteCarlo
+from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo
 
 
-@pytest.fixture(name="nd_monte_carlo")
-def fixture_nd_monte_carlo():
+@pytest.fixture(name="diffraction_monte_carlo")
+def fixture_diffraction_monte_carlo():
     """
-    Returns instance of `NeutronDiffractionMonteCarlo`, containing data for NaCl and
+    Returns instance of `DiffractionMonteCarlo`, containing data for NaCl and
     wavelength of 0.123nm
     """
     nacl_lattice = read_lattice("tests/data/NaCl_lattice.csv")
     nacl_basis = read_basis("tests/data/NaCl_basis.csv")
     unit_cell = UnitCell.new_unit_cell(nacl_basis, nacl_lattice)
-    nd = NeutronDiffractionMonteCarlo(unit_cell, 0.123)
+    nd = DiffractionMonteCarlo(unit_cell, 0.123)
 
     yield nd
 
@@ -69,7 +69,7 @@ random_unit_vectors_2 = np.array(
 )
 
 def test_monte_carlo_calculate_diffraction_pattern(
-        nd_monte_carlo, nacl_nd_form_factors, mocker):
+        diffraction_monte_carlo, nacl_nd_form_factors, mocker):
     """
     A unit test for the Monte Carlo calculate_diffraction_pattern function. This unit
     test tests normal operation of the function.
@@ -82,7 +82,7 @@ def test_monte_carlo_calculate_diffraction_pattern(
     )
 
     # Run one batch of 10 trials without any filtering based on angle or intensity
-    two_thetas, intensities = nd_monte_carlo.calculate_diffraction_pattern(
+    two_thetas, intensities = diffraction_monte_carlo.calculate_diffraction_pattern(
         nacl_nd_form_factors,
         target_accepted_trials=10,
         trials_per_batch=10,
@@ -103,7 +103,7 @@ def test_monte_carlo_calculate_diffraction_pattern(
     nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
 
 def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
-        nd_monte_carlo, nacl_nd_form_factors, mocker):
+        diffraction_monte_carlo, nacl_nd_form_factors, mocker):
     """
     A unit test for the Monte Carlo calculate_diffraction_pattern_ideal_crystal
     function. This unit test tests normal operation of the function.
@@ -114,7 +114,7 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
     )
 
     two_thetas, intensities = (
-        nd_monte_carlo.calculate_diffraction_pattern_ideal_crystal(
+        diffraction_monte_carlo.calculate_diffraction_pattern_ideal_crystal(
             nacl_nd_form_factors,
             target_accepted_trials=10,
             trials_per_batch=10,

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from B8_project import file_reading
 import B8_project.crystal as unit_cell
-from B8_project.diffraction_monte_carlo import NeutronDiffractionMonteCarlo
+from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo
 
 two_thetas_file = Path("two_thetas.txt")
 intensities_file = Path("intensities.txt")
@@ -34,7 +34,7 @@ if CALCULATE_SPECTRUM:
     basis = file_reading.read_basis(BASIS_FILE)
 
     unit_cell = unit_cell.UnitCell.new_unit_cell(basis, lattice)
-    nd = NeutronDiffractionMonteCarlo(unit_cell, 0.123)
+    nd = DiffractionMonteCarlo(unit_cell, 0.123)
 
     all_nd_form_factors = file_reading.read_neutron_scattering_lengths(
         "data/neutron_scattering_lengths.csv")
@@ -68,8 +68,8 @@ else:
     two_thetas = np.loadtxt("two_thetas.txt")
     intensities = np.loadtxt("intensities.txt")
 
-two_thetas = two_thetas[::2]
-intensities = (intensities[::2] + intensities[1::2]) / 2
+# two_thetas = two_thetas[::2]
+# intensities = (intensities[::2] + intensities[1::2]) / 2
 
 # plt.scatter(two_thetas, intensities, s=2, label="Intensity")
 plt.plot(two_thetas, intensities, color='k', label="Intensity")
