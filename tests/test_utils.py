@@ -80,7 +80,7 @@ def test_gaussian_normal_operation():
 
 def test_random_uniform_unit_vector_is_unit_vector():
     """
-    Add test docstring here.
+    Test that the random unit vectors have length unity.
     """
 
     n = 500
@@ -95,7 +95,7 @@ def test_random_uniform_unit_vector_is_unit_vector():
 
 def test_random_uniform_unit_vectors_are_unit_vectors():
     """
-    Add test docstring here.
+    Test that the random unit vectors have length unity.
     """
 
     n = 500
@@ -113,10 +113,11 @@ def plot_3d_unit_vectors(vectors, title):
     Plots 3D unit vectors using matplotlib.
 
     Parameters:
-    vectors (np.ndarray): Array of 3D vectors to plot.
-    title (str): Title of the plot.
+    vectors : np.ndarray
+        Array of 3D vectors to plot.
+    title : string
+        Title of the plot.
     """
-
     fig = plt.figure()
     ax = cast(Axes3D, fig.add_subplot(projection="3d"))
     xs, ys, zs = vectors[:, 0], vectors[:, 1], vectors[:, 2]
@@ -128,12 +129,9 @@ def plot_3d_unit_vectors(vectors, title):
     plt.title(title)
     plt.show()
 
-
-# These two tests are merely visual tests - check if the generated random unit
-# vectors seem spherically uniform
 def test_random_uniform_3d_unit_vector():
     """
-    Add test docstring here.
+    Visual test to check if the generated random unit vectors seem spherically uniform
     """
     n = 500
     vectors = [random_uniform_unit_vector(3) for _ in range(n)]
@@ -145,7 +143,7 @@ def test_random_uniform_3d_unit_vector():
 
 def test_random_uniform_3d_unit_vectors():
     """
-    Add test docstring here.
+    Visual test to check if the generated random unit vectors seem spherically uniform
     """
     n = 500
     vectors = random_uniform_unit_vectors(n, 3)
