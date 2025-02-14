@@ -81,6 +81,26 @@ def test_unit_cell_positions(diffraction_monte_carlo):
 
     assert utils.have_same_elements(expected, unit_cell_pos) is True
 
+def test_atoms_and_pos_in_uc(diffraction_monte_carlo):
+    """
+    Tests output of _atoms_and_pos_in_uc. Order does not matter.
+    """
+    atoms_in_uc, atom_pos_in_uc = diffraction_monte_carlo._atoms_and_pos_in_uc() # pylint: disable=protected-access
+    # Convert to non-NumPy data types
+    atoms_in_uc = [int(x) for x in atoms_in_uc]
+    atom_pos_in_uc = atom_pos_in_uc.tolist()
+    res = list(zip(atoms_in_uc, atom_pos_in_uc))
+
+    expected_atoms = [11, 11, 11, 11, 17, 17, 17, 17]
+    expected_pos = [[0, 0, 0], [0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0],
+                    [0, 0, 0.5], [0, 0.5, 0], [0.5, 0, 0], [0.5, 0.5, 0.5]]
+    expected_pos = (np.array(expected_pos) *
+                    np.array(diffraction_monte_carlo.unit_cell.lattice_constants
+                             )).tolist()
+    expected_res = list(zip(expected_atoms, expected_pos))
+
+    assert utils.have_same_elements(res, expected_res, close=True) is True
+
 def test_monte_carlo_calculate_diffraction_pattern(
         diffraction_monte_carlo, nacl_nd_form_factors, mocker):
     """

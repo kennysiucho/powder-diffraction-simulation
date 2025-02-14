@@ -116,6 +116,21 @@ class DiffractionMonteCarlo:
         np.multiply(unit_cell_pos, self.unit_cell.lattice_constants, out=unit_cell_pos)
         return unit_cell_pos
 
+    def _atoms_and_pos_in_uc(self):
+        """
+        Returns a list of the atomic number and coordinates w.r.t. the unit cell of
+        each atom in one unit cell.
+        """
+        atoms_in_uc = []
+        atom_pos_in_uc = []
+        for atom in self.unit_cell.atoms:
+            atoms_in_uc.append(atom.atomic_number)
+            atom_pos_in_uc.append(np.multiply(atom.position,
+                                              self.unit_cell.lattice_constants))
+        atoms_in_uc = np.array(atoms_in_uc)
+        atom_pos_in_uc = np.array(atom_pos_in_uc)
+        return atoms_in_uc, atom_pos_in_uc
+
     # TODO: change this take a list of all atoms
     def calculate_diffraction_pattern(self,
                                       form_factors: Mapping[int, FormFactorProtocol],
@@ -163,14 +178,7 @@ class DiffractionMonteCarlo:
 
         unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
 
-        atoms_in_uc = []
-        atom_pos_in_uc = []
-        for atom in self.unit_cell.atoms:
-            atoms_in_uc.append(atom.atomic_number)
-            atom_pos_in_uc.append(np.multiply(atom.position,
-                                              self.unit_cell.lattice_constants))
-        atoms_in_uc = np.array(atoms_in_uc)
-        atom_pos_in_uc = np.array(atom_pos_in_uc)
+        atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
 
         # Compute list of positions and scattering lengths of all atoms in the crystal
         n_unit_cells = unit_cell_pos.shape[0]
@@ -282,19 +290,9 @@ class DiffractionMonteCarlo:
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
         intensities = np.zeros(angle_bins)
 
-        # Compute positions of the unit cells in the crystal
         unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
 
-        # Prepare the positions and scattering lengths for each atom in a single unit
-        # cell
-        atoms_in_uc = []
-        atom_pos_in_uc = []
-        for atom in self.unit_cell.atoms:
-            atoms_in_uc.append(atom.atomic_number)
-            atom_pos_in_uc.append(np.multiply(atom.position,
-                                              self.unit_cell.lattice_constants))
-        atoms_in_uc = np.array(atoms_in_uc)
-        atom_pos_in_uc = np.array(atom_pos_in_uc)
+        atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
 
         stats = DiffractionMonteCarloRunStats()
 
@@ -381,15 +379,9 @@ class DiffractionMonteCarlo:
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
         intensities = np.zeros(angle_bins)
 
-        # Compute positions of the unit cells in the crystal
         unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
 
-        # Prepare the positions for each atom in a single unit cell
-        atom_pos_in_uc = []
-        for atom in self.unit_cell.atoms:
-            atom_pos_in_uc.append(np.multiply(atom.position,
-                                              self.unit_cell.lattice_constants))
-        atom_pos_in_uc = np.array(atom_pos_in_uc)
+        _, atom_pos_in_uc = self._atoms_and_pos_in_uc()
 
         uc_vars = UnitCellVarieties(self.unit_cell,
                                     ReplacementProbability(atom_from, atom_to,
