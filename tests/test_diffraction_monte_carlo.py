@@ -10,6 +10,7 @@ from B8_project.file_reading import read_lattice, read_basis, \
     read_neutron_scattering_lengths
 from B8_project.crystal import UnitCell
 from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo
+from B8_project import utils
 
 
 @pytest.fixture(name="diffraction_monte_carlo")
@@ -67,6 +68,18 @@ random_unit_vectors_2 = np.array(
         [-0.06581907, 0.22353627, -0.97247076],
     ]
 )
+
+def test_unit_cell_positions(diffraction_monte_carlo):
+    """
+    Tests output of _unit_cell_positions. Order does not matter.
+    """
+    a = diffraction_monte_carlo.unit_cell.lattice_constants
+    unit_cell_pos = diffraction_monte_carlo._unit_cell_positions((1, 2, 3)) # pylint: disable=protected-access
+    expected = np.array([
+        [0, 0, 0], [0, 0, 1], [0, 0, 2], [0, 1, 0], [0, 1, 1], [0, 1, 2]
+    ]) * a
+
+    assert utils.have_same_elements(expected, unit_cell_pos) is True
 
 def test_monte_carlo_calculate_diffraction_pattern(
         diffraction_monte_carlo, nacl_nd_form_factors, mocker):

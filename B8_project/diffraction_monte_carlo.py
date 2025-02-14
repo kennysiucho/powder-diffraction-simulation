@@ -94,6 +94,21 @@ class DiffractionMonteCarlo:
         return 2 * np.pi / self.wavelength
 
     def _unit_cell_positions(self, unit_cell_reps: tuple[int, int, int]):
+        """
+        Returns a list of positions of the unit cells in the crystal particle.
+
+        Parameters
+        ----------
+        unit_cell_reps : tuple[int, int, int]
+            An input of (a, b, c) specifies the unit cell is repeated a, b, c
+            times in the x, y, and z directions respectively.
+
+        Returns
+        -------
+        unit_cell_pos : np.ndarray
+            (a * b * c, 3) array, with each row representing the coordinate of the
+            [0, 0, 0] position of each unit cell.
+        """
         unit_cell_pos = np.vstack(
             np.mgrid[0:unit_cell_reps[0], 0:unit_cell_reps[1],
             0:unit_cell_reps[2]]).reshape(3, -1).T
