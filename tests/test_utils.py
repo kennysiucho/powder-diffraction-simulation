@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import pytest
 from B8_project import utils
+from B8_project.crystal import Atom
 
 RUN_VISUAL_TESTS = False
 
@@ -149,3 +150,108 @@ def test_random_uniform_3d_unit_vectors():
     plot_3d_unit_vectors(
         vectors, "Visual check for spherical uniformity: random_uniform_unit_vectors"
     )
+
+def test_equals_lists():
+    """
+    Tests that two lists are equal when they are exactly the same (ordered)
+    """
+    assert utils.equals([1, 2, 3], [1, 2, 3]) is True
+    assert utils.equals([1, 2, 1], [2, 1, 1]) is False
+    assert utils.equals([1., 2., 3.], [1., 2., 3.]) is True
+    assert utils.equals([1., 2., 3.], [1., 2., 3.0000000001]) is False
+    assert utils.equals([1], [1, 2, 3]) is False
+    assert utils.equals(["asdf"], ["asdf"]) is True
+
+def test_equals_arrays():
+    """
+    Tests that two arrays are equal when they are exactly the same (ordered)
+    """
+    assert utils.equals(np.array([1., 2., 3.]), np.array([1., 2., 3.])) is True
+    assert utils.equals(np.array([1., 2., 3.]), np.array([1., 2., 3.0000001])) is False
+
+obj1 = Atom(1, (1, 2, 3))
+obj2 = Atom(1, (1, 2, 3))
+obj3 = Atom(3, (1, 2, 3))
+
+def test_equals_objects():
+    """
+    Tests that objects are equal according to __eq__
+    """
+    assert utils.equals(obj1, obj2) is True
+    assert utils.equals([obj1], [obj2]) is True
+    assert utils.equals([obj1], [obj3]) is False
+
+def test_equals_different_types():
+    """
+    Tests that objects of different types that cannot be compared are handled.
+    """
+    assert utils.equals(1, 1.0) is False
+    assert utils.equals(1, "1") is False
+
+def test_is_close_lists():
+    """
+    Tests output is true when lists are close according to rtol and atol.
+    """
+    assert utils.is_close([1, 2, 3], [1, 2, 3]) is True
+    assert utils.is_close([1, 2, 1], [2, 1, 1]) is False
+    assert utils.is_close([1., 2., 3.], [1., 2., 3.]) is True
+    assert utils.is_close([1., 2., 3.], [1., 2., 3.0000000001]) is True
+    assert utils.is_close([1], [1, 2, 3]) is False
+
+def test_is_close_arrays():
+    """
+    Tests output is true when arrays are close according to rtol and atol.
+    """
+    assert utils.is_close(np.array([1., 2., 3.]), np.array([1., 2., 3.])) is True
+    assert utils.is_close(np.array([1., 2., 3.]), np.array([1., 2., 3.0000001])) is True
+    assert utils.is_close(np.array([1., 2., 3.]), np.array([1., 2., 3.0001])) is False
+
+def test_is_close_different_types():
+    """
+    Tests that objects of different types that cannot be compared are handled.
+    """
+    assert utils.equals(1, 1.0) is False
+    assert utils.equals(1, "1") is False
+
+def test_have_same_elements_list():
+    """
+    Tests contents of two lists are compared, regardless of order.
+    """
+    assert utils.have_same_elements([1, 2, 3], [3, 1, 2]) is True
+    assert utils.have_same_elements([[1, 2], [3, 4]], [[1, 2], [3, 4]]) is True
+    assert utils.have_same_elements([[1, 2], [3, 4]], [[3, 4], [1, 2]]) is True
+    assert utils.have_same_elements([[1., 2.], [3., 4.]],
+                                    [[1., 2.], [3., 4.000000001]]) is False
+    assert utils.have_same_elements([[1, obj1], [2, obj3]],
+                                    [[2, obj3], [1, obj1]]) is True
+
+def test_have_same_elements_array():
+    """
+    Tests contents of two arrays are compared, regardless of order.
+    """
+    assert utils.have_same_elements(np.array([[1, 2], [3, 4]]),
+                                     np.array([[3, 4], [1, 2]])) is True
+    assert utils.have_same_elements(np.array([[1., 2.], [3., 4.]]),
+                                    np.array([[3., 4.], [1., 2.]])) is True
+    assert utils.have_same_elements(np.array([[1., 2.], [3., 4.00000001]]),
+                                    np.array([[3., 4.], [1., 2.]])) is False
+
+def test_have_same_elements_list_close():
+    """
+    Tests contents of two lists are compared, regardless of order.
+    """
+    assert utils.have_same_elements([[1, 2], [3, 4]], [[3, 4], [1, 2]],
+                                    close=True) is True
+    assert utils.have_same_elements([[1., 2.], [3., 4.]],
+                                    [[3., 4.000000001], [1., 2.]], close=True) is True
+    assert utils.have_same_elements([[1., 2.], [3., 4.]],
+                                    [[3., 4.00001], [1., 2.]], close=True) is False
+
+def test_have_same_elements_array_close():
+    """
+    Tests contents of two arrays are compared, regardless of order.
+    """
+    assert utils.have_same_elements(np.array([[1., 2.], [3., 4.00000001]]),
+                                    np.array([[3., 4.], [1., 2.]]), close=True) is True
+    assert utils.have_same_elements(np.array([[1., 2.], [3., 4.0001]]),
+                                    np.array([[3., 4.], [1., 2.]]), close=True) is False

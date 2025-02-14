@@ -90,3 +90,40 @@ def random_uniform_unit_vectors(n: int, dims: int):
     vecs = np.random.normal(size=(n, dims))
     mag = np.linalg.norm(vecs, axis=1, keepdims=True)
     return vecs / mag
+
+def equals(a, b) -> bool:
+    """
+    Checks if two elements (lists, arrays, objects) are equal.
+    """
+    if not isinstance(a, type(b)):
+        return False
+    if isinstance(a, np.ndarray) and isinstance(b, np.ndarray): # Compare NumPy arrays
+        return np.array_equal(a, b)
+    return a == b  # For lists, scalars, strings, and objects
+
+def is_close(a, b, rtol=1e-6, atol=1e-6) -> bool:
+    """
+    Checks if two objects are close (applicable for lists, arrays, int, float)
+    """
+    if not isinstance(a, type(b)):
+        return False
+    if isinstance(a, (list, np.ndarray, int, float)):
+        return np.allclose(a, b, rtol=rtol, atol=atol)
+    return a == b # for strings, objects
+
+def have_same_elements(list1, list2, close: bool=None, rtol=1e-6, atol=1e-6) -> bool:
+    """
+    Checks if two lists contain the same elements, regardless of order.
+
+    If close=True, lists can only contain numeric values.
+    """
+    if len(list1) != len(list2):
+        return False
+    # Convert elements to a comparable form and sort them
+    sorted_list1 = sorted(list1, key=lambda x: str(type(x)) + str(x))
+    sorted_list2 = sorted(list2, key=lambda x: str(type(x)) + str(x))
+
+    if close:
+        return all(is_close(a, b, rtol, atol) for a, b in zip(sorted_list1,
+                                                              sorted_list2))
+    return all(equals(a, b) for a, b in zip(sorted_list1, sorted_list2))
