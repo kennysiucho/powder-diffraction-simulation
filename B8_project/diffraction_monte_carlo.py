@@ -131,6 +131,45 @@ class DiffractionMonteCarlo:
         atom_pos_in_uc = np.array(atom_pos_in_uc)
         return atoms_in_uc, atom_pos_in_uc
 
+    def _get_scattering_vecs_and_angles(self,
+                                        n: int,
+                                        min_angle_deg: float,
+                                        max_angle_deg: float):
+        """
+        Generates random scattering vectors and their angles. Discards those outside
+        angle range of interest.
+
+        TODO: Add weighting function
+
+        Parameters
+        ----------
+        n : int
+            Number of random vectors to generate initially. The number of vectors
+            returned will be less after filtering.
+        min_angle_deg, max_angle_deg : float
+            Minimum/maximum angle in degrees.
+
+        Returns
+        -------
+        scattering_vecs, two_thetas : np.ndarray
+            List of scattering vectors and their corresponding scattering angles.
+        """
+        k_vecs = self.k() * utils.random_uniform_unit_vectors(n, 3)
+        k_primes = self.k() * utils.random_uniform_unit_vectors(n, 3)
+        scattering_vecs = k_primes - k_vecs
+
+        # Compute scattering angle
+        dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
+        two_thetas = np.degrees(np.arccos(dot_products / self.k() ** 2))
+
+        # Discard trials with scattering angle out of range of interest
+        angles_accepted = np.where(np.logical_and(two_thetas >= min_angle_deg,
+                                                  two_thetas <= max_angle_deg))
+        scattering_vecs = scattering_vecs[angles_accepted]
+        two_thetas = two_thetas[angles_accepted]
+
+        return scattering_vecs, two_thetas
+
     # TODO: change this take a list of all atoms
     def calculate_diffraction_pattern(self,
                                       form_factors: Mapping[int, FormFactorProtocol],
@@ -195,9 +234,9 @@ class DiffractionMonteCarlo:
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            k_vecs = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
-            k_primes = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
-            scattering_vecs = k_primes - k_vecs
+            scattering_vecs, two_thetas_batch = (
+                self._get_scattering_vecs_and_angles(trials_per_batch, min_angle_deg,
+                                                     max_angle_deg))
 
             # all_atom_pos.shape = (n_atoms, 3)
             # all_scattering_lengths = (n_atoms,)
@@ -205,7 +244,7 @@ class DiffractionMonteCarlo:
             # structure_factors.shape = (batch_trials, )
             # k•r[i, j] = scattering_vec[i][k] • all_atom_pos[j][k]
 
-            # dot_products.shape = (batch_trials, n_atoms)
+            # dot_products.shape = (# trials after filter, n_atoms)
             dot_products = np.einsum("ik,jk", scattering_vecs, all_atom_pos)
 
             # Evaluate form factors for each element
@@ -216,28 +255,20 @@ class DiffractionMonteCarlo:
             all_form_factors = np.array([form_factors_evaluated[atom] for atom in
                                          all_atoms]).T
 
-            # exp_terms.shape = (batch_trials, n_atoms)
+            # exp_terms.shape = (# trials, n_atoms)
             exps = np.exp(1j * dot_products)
             exp_terms = np.multiply(all_form_factors, exps)
 
-            # structure_factors.shape = (batch_trials, )
+            # structure_factors.shape = (# trials, )
             structure_factors = np.sum(exp_terms, axis=1)
 
-            dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
-            two_theta_batch = np.degrees(np.arccos(dot_products / self.k()**2))
             intensity_batch = np.abs(structure_factors)**2
 
-            stats.total_trials += trials_per_batch
-
-            angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_deg,
-                                                      two_theta_batch < max_angle_deg))
-            two_theta_batch = two_theta_batch[angles_accepted]
-            intensity_batch = intensity_batch[angles_accepted]
-
-            bins = np.searchsorted(two_thetas, two_theta_batch)
+            bins = np.searchsorted(two_thetas, two_thetas_batch)
             intensities[bins] += intensity_batch
 
-            stats.accepted_data_points += two_theta_batch.shape[0]
+            stats.total_trials += two_thetas_batch.shape[0]
+            stats.accepted_data_points += two_thetas_batch.shape[0]
 
         intensities /= np.max(intensities)
 
@@ -302,19 +333,8 @@ class DiffractionMonteCarlo:
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            k_vecs = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
-            k_primes = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
-            scattering_vecs = k_primes - k_vecs
-
-            # Compute scattering angle
-            dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
-            two_theta_batch = np.degrees(np.arccos(dot_products / self.k() ** 2))
-
-            # Discard trials with scattering angle out of range of interest
-            angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_deg,
-                                                      two_theta_batch < max_angle_deg))
-            two_theta_batch = two_theta_batch[angles_accepted]
-            scattering_vecs = scattering_vecs[angles_accepted]
+            scattering_vecs, two_thetas_batch = self._get_scattering_vecs_and_angles(
+                trials_per_batch, min_angle_deg, max_angle_deg)
 
             # Compute lattice portion of structure factors
             # scattering_vecs.shape = (# trials filtered, 3)
@@ -351,11 +371,11 @@ class DiffractionMonteCarlo:
                                             structure_factors_basis)
             intensity_batch = np.abs(structure_factors) ** 2
 
-            bins = np.searchsorted(two_thetas, two_theta_batch)
+            bins = np.searchsorted(two_thetas, two_thetas_batch)
             intensities[bins] += intensity_batch
 
-            stats.total_trials += two_theta_batch.shape[0]
-            stats.accepted_data_points += two_theta_batch.shape[0]
+            stats.total_trials += two_thetas_batch.shape[0]
+            stats.accepted_data_points += two_thetas_batch.shape[0]
 
         intensities /= np.max(intensities)
 
@@ -400,19 +420,9 @@ class DiffractionMonteCarlo:
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            k_vecs = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
-            k_primes = self.k() * utils.random_uniform_unit_vectors(trials_per_batch, 3)
-            scattering_vecs = k_primes - k_vecs
-
-            # Compute scattering angle
-            dot_products = np.einsum("ij,ij->i", k_vecs, k_primes)
-            two_theta_batch = np.degrees(np.arccos(dot_products / self.k() ** 2))
-
-            # Discard trials with scattering angle out of range of interest
-            angles_accepted = np.where(np.logical_and(two_theta_batch > min_angle_deg,
-                                                      two_theta_batch < max_angle_deg))
-            two_theta_batch = two_theta_batch[angles_accepted]
-            scattering_vecs = scattering_vecs[angles_accepted]
+            scattering_vecs, two_thetas_batch = self._get_scattering_vecs_and_angles(
+                trials_per_batch, min_angle_deg, max_angle_deg
+            )
 
             # Compute basis portion of structure factors
             # scattering_vecs.shape = (# trials filtered, 3)
@@ -467,11 +477,11 @@ class DiffractionMonteCarlo:
 
             intensity_batch = np.abs(structure_factors) ** 2
 
-            bins = np.searchsorted(two_thetas, two_theta_batch)
+            bins = np.searchsorted(two_thetas, two_thetas_batch)
             intensities[bins] += intensity_batch
 
-            stats.total_trials += two_theta_batch.shape[0]
-            stats.accepted_data_points += two_theta_batch.shape[0]
+            stats.total_trials += two_thetas_batch.shape[0]
+            stats.accepted_data_points += two_thetas_batch.shape[0]
 
         intensities /= np.max(intensities)
 

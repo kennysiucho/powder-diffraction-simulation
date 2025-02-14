@@ -5,13 +5,14 @@ This module contains unit tests for the diffraction_monte_carlo.py module.
 import pytest
 import numpy as np
 import numpy.testing as nptest
-
+import matplotlib.pyplot as plt
 from B8_project.file_reading import read_lattice, read_basis, \
     read_neutron_scattering_lengths
 from B8_project.crystal import UnitCell
 from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo
 from B8_project import utils
 
+RUN_VISUAL_TESTS = False
 
 @pytest.fixture(name="diffraction_monte_carlo")
 def fixture_diffraction_monte_carlo():
@@ -101,6 +102,66 @@ def test_atoms_and_pos_in_uc(diffraction_monte_carlo):
 
     assert utils.have_same_elements(res, expected_res, close=True) is True
 
+def test_get_scattering_vecs_and_angles_angle_range(diffraction_monte_carlo):
+    """
+    Tests that the scattering angles are within desired angle range.
+    """
+    min_angle_deg = 20
+    max_angle_deg = 60
+    _, angles = diffraction_monte_carlo._get_scattering_vecs_and_angles( # pylint: disable=protected-access
+        1000, min_angle_deg, max_angle_deg
+    )
+    assert np.all((angles >= min_angle_deg) & (angles <= max_angle_deg))
+
+def test_scattering_vec_magnitude_distribution(diffraction_monte_carlo):
+    """
+    Visual test to check distribution of magnitude of scattering vectors, normalized
+    for initial/scatter k vectors of length 1.
+    """
+    if not RUN_VISUAL_TESTS:
+        pytest.skip("Skipped test: visual tests are off.")
+    vecs, _ = diffraction_monte_carlo._get_scattering_vecs_and_angles( # pylint: disable=protected-access
+        100000, 0, 180
+    )
+    mags = np.linalg.norm(vecs, axis=1) / diffraction_monte_carlo.k()
+    print(mags)
+    plt.hist(mags, bins=100)
+    plt.xlabel("Magnitude of scattering vector")
+    plt.ylabel("Frequency")
+    plt.title("Distribution of magnitudes of scattering vectors. Should range from "
+              "0->2 \nwith linearly increasing frequency")
+    plt.show()
+
+def test_scattering_angle_distribution(diffraction_monte_carlo):
+    """
+    Visual test to check distribution of magnitude of scattering vectors
+    """
+    if not RUN_VISUAL_TESTS:
+        pytest.skip("Skipped test: visual tests are off.")
+    _, angles = diffraction_monte_carlo._get_scattering_vecs_and_angles( # pylint: disable=protected-access
+        100000, 0, 180
+    )
+    plt.hist(angles, bins=100)
+    plt.xlabel("Scattering angle (deg)")
+    plt.ylabel("Frequency")
+    plt.title("Distribution of scattering angles - should be sin(x) shaped")
+    plt.show()
+
+def test_scattering_angles_calculation(diffraction_monte_carlo, mocker):
+    """
+    Test that the method calculates the scattering angle correctly.
+    """
+    mocker.patch(
+        "B8_project.utils.random_uniform_unit_vectors",
+        side_effect=[np.array([[1, 0, 0], [1, 0, 0], [1, 0, 0]]),
+                     np.array([[1, 0, 0], [0, 1, 0], [-1, 0, 0]])]
+    )
+    _, angles = diffraction_monte_carlo._get_scattering_vecs_and_angles( # pylint: disable=protected-access
+        3, 0, 180
+    )
+    expected_angles = np.array([0., 90., 180.])
+    nptest.assert_allclose(angles, expected_angles)
+
 def test_monte_carlo_calculate_diffraction_pattern(
         diffraction_monte_carlo, nacl_nd_form_factors, mocker):
     """
@@ -127,10 +188,10 @@ def test_monte_carlo_calculate_diffraction_pattern(
 
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
                                     180.])
-    expected_intensities = np.array([0.000000e+00, 8.349908e-05, 0.000000e+00,
-                                     2.231075e-04, 7.179199e-06, 6.286620e-06,
+    expected_intensities = np.array([0.000000e+00, 3.118890e-04, 0.000000e+00,
+                                     1.179717e-03, 3.824213e-05, 7.736132e-06,
                                      0.000000e+00, 0.000000e+00, 1.000000e+00,
-                                     2.489788e-05])
+                                     1.699957e-05])
 
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
     nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
@@ -159,10 +220,10 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
 
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
                                     180.])
-    expected_intensities = np.array([0.000000e+00, 8.349908e-05, 0.000000e+00,
-                                     2.231075e-04, 7.179199e-06, 6.286620e-06,
+    expected_intensities = np.array([0.000000e+00, 3.118890e-04, 0.000000e+00,
+                                     1.179717e-03, 3.824213e-05, 7.736132e-06,
                                      0.000000e+00, 0.000000e+00, 1.000000e+00,
-                                     2.489788e-05])
+                                     1.699957e-05])
 
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
     nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
