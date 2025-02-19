@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import Mapping
 import numpy as np
 from B8_project import utils
-from B8_project.crystal import UnitCell, UnitCellVarieties, ReplacementProbability
+from B8_project.crystal import Atom, UnitCell, UnitCellVarieties, ReplacementProbability
 from B8_project.form_factor import FormFactorProtocol
 
 
@@ -172,10 +172,10 @@ class DiffractionMonteCarlo:
 
     # TODO: change this take a list of all atoms
     def calculate_diffraction_pattern(self,
+                                      atoms: list[Atom],
                                       form_factors: Mapping[int, FormFactorProtocol],
                                       target_accepted_trials: int = 5000,
                                       trials_per_batch: int = 1000,
-                                      unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
                                       min_angle_deg: float = 0.0,
                                       max_angle_deg: float = 180.0,
                                       angle_bins: int = 100):
@@ -189,6 +189,8 @@ class DiffractionMonteCarlo:
 
         Parameters
         ----------
+        atoms : list[Atom]
+            List of all atoms in the crystal.
         form_factors : Mapping[int, FormFactorProtocol]
             Dictionary mapping atomic number to associated NeutronFormFactor or
             XRayFormFactor.
@@ -196,9 +198,6 @@ class DiffractionMonteCarlo:
             Target number of accepted trials.
         trials_per_batch : int
             Number of trials calculated at once using NumPy methods.
-        unit_cell_reps : tuple[int, int, int]
-            How many times to repeat the unit cell in x, y, z directions, forming the
-            crystal powder for diffraction.
         min_angle_deg, max_angle_deg : float
             Minimum/maximum scattering angle in degrees for a scattering trial to be
             accepted.
@@ -215,18 +214,10 @@ class DiffractionMonteCarlo:
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
         intensities = np.zeros(angle_bins)
 
-        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
-
-        atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
-
-        # Compute list of positions and scattering lengths of all atoms in the crystal
-        n_unit_cells = unit_cell_pos.shape[0]
-        n_atoms_per_uc = atom_pos_in_uc.shape[0]
-        all_atom_pos = np.repeat(unit_cell_pos, n_atoms_per_uc, axis=0) + np.tile(
-            atom_pos_in_uc, (n_unit_cells, 1))
-        all_atoms = np.tile(atoms_in_uc, n_unit_cells)
-
         stats = DiffractionMonteCarloRunStats()
+
+        all_atom_pos = np.array([np.array(atom.position) for atom in atoms])
+        all_atoms = np.array([atom.atomic_number for atom in atoms])
 
         while stats.accepted_data_points < target_accepted_trials:
 
