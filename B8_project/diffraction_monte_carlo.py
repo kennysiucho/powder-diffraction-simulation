@@ -434,7 +434,6 @@ class DiffractionMonteCarlo:
                                                            probability))
         atomic_numbers_vars, probs \
             = uc_vars.atomic_number_lists()
-        print(probs)
 
         stats = DiffractionMonteCarloRunStats()
 
@@ -497,8 +496,6 @@ class DiffractionMonteCarlo:
             # structure_factors_lattice.shape = (# trials filtered,)
             structure_factors = np.sum(
                 np.multiply(exp_terms_lattice, structure_factors_basis_random), axis=1)
-
-            # TODO: test to Sanity check to ensure concentration in alloy is as expected
 
             intensity_batch = np.abs(structure_factors) ** 2
 
