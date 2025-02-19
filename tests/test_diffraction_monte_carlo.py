@@ -8,7 +8,7 @@ import numpy.testing as nptest
 import matplotlib.pyplot as plt
 from B8_project.file_reading import read_lattice, read_basis, \
     read_neutron_scattering_lengths
-from B8_project.crystal import UnitCell
+from B8_project.crystal import UnitCell, Atom
 from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo
 from B8_project import utils
 
@@ -186,6 +186,64 @@ def test_scattering_angles_calculation(diffraction_monte_carlo_nacl, mocker):
     )
     expected_angles = np.array([0., 90., 180.])
     nptest.assert_allclose(angles, expected_angles)
+
+GAAS_A = 0.565315
+scattering_vecs_gaas = np.array([
+    [4 * np.pi / GAAS_A, 0., 0.], # (200) reciprocal lattice vector for NaCl
+    [0., 4 * np.pi / GAAS_A, 0.], # (020)
+    # (002), pointed in the wrong direction
+    [4 * np.pi / GAAS_A / np.sqrt(2), 4 * np.pi / GAAS_A / np.sqrt(2), 0.],
+    [6 * np.pi / GAAS_A, -4 * np.pi / GAAS_A, 2 * np.pi / GAAS_A] # (3,-2,1)
+])
+scattering_angles_gaas = np.array([
+    25.1336118,
+    25.1336118,
+    25.1336118,
+    48.039411
+])
+
+def test_diffraction_spectrum_known_vecs(
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors, mocker):
+    """
+    Check calculation of diffraction spectrum of crystal against manual calculation
+    using hand-picked reciprocal lattice vectors.
+    """
+    mocker.patch(
+        "B8_project.diffraction_monte_carlo.DiffractionMonteCarlo"
+        "._get_scattering_vecs_and_angles",
+        side_effect=[(scattering_vecs_gaas, scattering_angles_gaas)]
+    )
+
+    # (2x1x1) unit cell reps
+    unit_cell_pos = np.array([[0, 0, 0], [GAAS_A, 0, 0]])
+    atoms = []
+    for uc_pos in unit_cell_pos:
+        for atom in diffraction_monte_carlo_gaas.unit_cell.atoms:
+            atoms.append(Atom(atom.atomic_number, uc_pos + np.array(atom.position) *
+                              diffraction_monte_carlo_gaas.unit_cell.lattice_constants))
+
+    two_thetas, intensities = (
+        diffraction_monte_carlo_gaas.calculate_diffraction_pattern(
+            atoms,
+            ingaas_nd_form_factors,
+            target_accepted_trials=4,
+            trials_per_batch=4,
+            min_angle_deg=0.0,
+            max_angle_deg=180.0,
+            angle_bins=10
+        ))
+
+    expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
+                                    180.])
+    expected_structure_factors = np.array([5.664, 5.664,
+                                           1.16874088 - 6.47419018j, 0.])
+    expected_intensities = np.zeros(expected_two_thetas.shape)
+    expected_intensities[1] = np.sum(np.abs(expected_structure_factors)[0:2]**2)
+    expected_intensities /= np.max(expected_intensities)
+    # expected_intensities is just [0, 1, 0, 0...]
+
+    nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6, atol=1e-8)
+    nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6, atol=1e-8)
 
 def test_monte_carlo_calculate_diffraction_pattern(
         diffraction_monte_carlo_nacl, nacl_nd_form_factors, mocker):
