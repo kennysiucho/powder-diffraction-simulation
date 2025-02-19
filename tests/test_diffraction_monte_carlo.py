@@ -258,12 +258,19 @@ def test_monte_carlo_calculate_diffraction_pattern(
         side_effect=[random_unit_vectors_1, random_unit_vectors_2],
     )
 
+    unit_cell_pos = diffraction_monte_carlo_nacl._unit_cell_positions((8, 8, 8))
+    atoms = []
+    for uc_pos in unit_cell_pos:
+        for atom in diffraction_monte_carlo_nacl.unit_cell.atoms:
+            atoms.append(Atom(atom.atomic_number, uc_pos + np.array(atom.position) *
+                              diffraction_monte_carlo_nacl.unit_cell.lattice_constants))
+
     # Run one batch of 10 trials without any filtering based on angle or intensity
     two_thetas, intensities = diffraction_monte_carlo_nacl.calculate_diffraction_pattern(
+        atoms,
         nacl_nd_form_factors,
         target_accepted_trials=10,
         trials_per_batch=10,
-        unit_cell_reps=(8, 8, 8),
         min_angle_deg=0,
         max_angle_deg=180,
         angle_bins=10
@@ -271,10 +278,10 @@ def test_monte_carlo_calculate_diffraction_pattern(
 
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
                                     180.])
-    expected_intensities = np.array([0.000000e+00, 3.118890e-04, 0.000000e+00,
+    expected_intensities = np.array([3.118890e-04, 0.000000e+00,
                                      1.179717e-03, 3.824213e-05, 7.736132e-06,
                                      0.000000e+00, 0.000000e+00, 1.000000e+00,
-                                     1.699957e-05])
+                                     1.699957e-05, 0.000000e+00])
 
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
     nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
@@ -303,10 +310,10 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
 
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
                                     180.])
-    expected_intensities = np.array([0.000000e+00, 3.118890e-04, 0.000000e+00,
+    expected_intensities = np.array([3.118890e-04, 0.000000e+00,
                                      1.179717e-03, 3.824213e-05, 7.736132e-06,
                                      0.000000e+00, 0.000000e+00, 1.000000e+00,
-                                     1.699957e-05])
+                                     1.699957e-05, 0.000000e+00])
 
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
     nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)

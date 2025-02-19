@@ -255,7 +255,7 @@ class DiffractionMonteCarlo:
 
             intensity_batch = np.abs(structure_factors)**2
 
-            bins = np.searchsorted(two_thetas, two_thetas_batch)
+            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
 
             stats.total_trials += two_thetas_batch.shape[0]
@@ -362,7 +362,7 @@ class DiffractionMonteCarlo:
                                             structure_factors_basis)
             intensity_batch = np.abs(structure_factors) ** 2
 
-            bins = np.searchsorted(two_thetas, two_thetas_batch)
+            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
 
             stats.total_trials += two_thetas_batch.shape[0]
@@ -430,7 +430,6 @@ class DiffractionMonteCarlo:
             form_factors_vars = np.array([[form_factors_evaluated[atom] for atom in
                                            uc] for uc in atomic_numbers_vars])
             form_factors_vars = np.transpose(form_factors_vars, axes=(2,0,1))
-            # print(form_factors_vars.shape)
 
             # exp_terms.shape = (# trials filtered, varieties, # atoms in a unit cell)
             exps = np.exp(1j * dot_products_basis)
@@ -468,7 +467,7 @@ class DiffractionMonteCarlo:
 
             intensity_batch = np.abs(structure_factors) ** 2
 
-            bins = np.searchsorted(two_thetas, two_thetas_batch)
+            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
 
             stats.total_trials += two_thetas_batch.shape[0]
