@@ -365,6 +365,31 @@ class TestUnitCellVarieties:
             # Compare floats
             np.testing.assert_allclose(expected_float, actual_float)
 
+    @staticmethod
+    def test_drawing_from_distribution_gives_correct_concentration(uc_vars):
+        """
+        Test if drawing unit cells from probability distribution gives the correct
+        concentration, barring random noise
+        """
+        rng = np.random.default_rng()
+        random_indices = rng.choice(np.arange(len(uc_vars.unit_cell_varieties)),
+                                    size=100000,
+                                    p=uc_vars.probabilities)
+
+        ga_or_in_cnt = 0
+        in_cnt = 0
+        for i in random_indices:
+            for atom in uc_vars.unit_cell_varieties[i].atoms:
+                if atom.atomic_number == 31:
+                    ga_or_in_cnt += 1
+                elif atom.atomic_number == 49:
+                    ga_or_in_cnt += 1
+                    in_cnt += 1
+
+        nptest.assert_allclose(in_cnt / ga_or_in_cnt,
+                               uc_vars.replacement_prob.probability,
+                               rtol=1e-2)
+
 class TestReciprocalLatticeVector:
     """
     Unit tests for the `ReciprocalLatticeVector` class.
