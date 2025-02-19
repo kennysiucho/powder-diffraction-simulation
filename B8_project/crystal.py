@@ -13,6 +13,7 @@ Classes
     - ReciprocalLatticeVector: A class to represent a reciprocal lattice vector.
 """
 
+from math import fmod
 from dataclasses import dataclass
 from copy import deepcopy
 import numpy as np
@@ -58,19 +59,21 @@ class Atom:
         Shift position
         ==============
 
-        Shifts the `position` of an `Atom` instance by `shift`, and returns this new
-        `Atom` instance.
+        Shifts the `position` of an `Atom` instance by `shift` (modulo 1.), and returns
+        this new `Atom` instance.
 
         Parameters
         ----------
-            - shift (tuple[float, float, float]): the amount the the `position`
-            attribute is shifted by.
+            - shift (tuple[float, float, float]): the amount the `position`
+            attribute is shifted by. Modulo 1.0
 
         Returns
         -------
             - (Atom): an `Atom` instance.
         """
-        return Atom(self.atomic_number, utils.add_tuples(self.position, shift))
+        pos = utils.add_tuples(self.position, shift)
+        pos = tuple(fmod(x, 1.0) for x in pos)
+        return Atom(self.atomic_number, pos)
 
     def scale_position(self, scale_factor: tuple[float, float, float]) -> "Atom":
         """

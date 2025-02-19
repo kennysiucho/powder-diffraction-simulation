@@ -10,9 +10,6 @@ import numpy as np
 
 def duplicate_elements(original_list: list, num_duplicates: int) -> list:
     """
-    Duplicate elements
-    ==================
-
     Duplicates each element in the list and place the duplicate(s) next to the original element.
 
     Parameters
@@ -31,9 +28,6 @@ def add_tuples(
     tuple_1: tuple[float, float, float], tuple_2: tuple[float, float, float]
 ) -> tuple[float, float, float]:
     """
-    Add tuples
-    ==========
-
     Adds two tuples element-wise. Both tuples should contain 3 floats.
 
     Parameters
@@ -53,9 +47,6 @@ def dot_product_tuples(
     tuple_1: tuple[float, float, float], tuple_2: tuple[float, float, float]
 ) -> float:
     """
-    Dot product tuples
-    ==================
-
     Computes the dot product of two tuples. Both tuples should have three elements.
 
     Parameters
@@ -76,9 +67,6 @@ def dot_product_tuples(
 
 def gaussian(x, mean, width, amplitude):
     """
-    Gaussian
-    ========
-
     Evaluates a Gaussian function at a given coordinate, `x`. The gaussian function is
     given by f(x) = amplitude * exp(0.5 * ((x - mean)/width)^2).
     """
@@ -86,9 +74,6 @@ def gaussian(x, mean, width, amplitude):
 
 def random_uniform_unit_vector(dims: int):
     """
-    Random uniform unit vector
-    ==========================
-
     Returns a list of length `dims` representing a unit vector uniformly and randomly
     selected from the unit sphere.
     """
@@ -98,9 +83,6 @@ def random_uniform_unit_vector(dims: int):
 
 def random_uniform_unit_vectors(n: int, dims: int):
     """
-    Random uniform unit vectors
-    ===========================
-
     Returns a NumPy array of shape `(n, dims)` consisting of `n` unit vectors,
     each uniformly and randomly selected
     from the unit sphere.
@@ -108,3 +90,40 @@ def random_uniform_unit_vectors(n: int, dims: int):
     vecs = np.random.normal(size=(n, dims))
     mag = np.linalg.norm(vecs, axis=1, keepdims=True)
     return vecs / mag
+
+def equals(a, b) -> bool:
+    """
+    Checks if two elements (lists, arrays, objects) are equal.
+    """
+    if not isinstance(a, type(b)):
+        return False
+    if isinstance(a, np.ndarray) and isinstance(b, np.ndarray): # Compare NumPy arrays
+        return np.array_equal(a, b)
+    return a == b  # For lists, scalars, strings, and objects
+
+def is_close(a, b, rtol=1e-6, atol=1e-6) -> bool:
+    """
+    Checks if two objects are close (applicable for lists, arrays, int, float)
+    """
+    if not isinstance(a, type(b)):
+        return False
+    if isinstance(a, (list, np.ndarray, int, float)):
+        return np.allclose(a, b, rtol=rtol, atol=atol)
+    return a == b # for strings, objects
+
+def have_same_elements(list1, list2, close: bool=None, rtol=1e-6, atol=1e-6) -> bool:
+    """
+    Checks if two lists contain the same elements, regardless of order.
+
+    If close=True, lists can only contain numeric values.
+    """
+    if len(list1) != len(list2):
+        return False
+    # Convert elements to a comparable form and sort them
+    sorted_list1 = sorted(list1, key=lambda x: str(type(x)) + str(x))
+    sorted_list2 = sorted(list2, key=lambda x: str(type(x)) + str(x))
+
+    if close:
+        return all(is_close(a, b, rtol, atol) for a, b in zip(sorted_list1,
+                                                              sorted_list2))
+    return all(equals(a, b) for a, b in zip(sorted_list1, sorted_list2))

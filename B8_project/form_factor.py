@@ -42,6 +42,23 @@ class FormFactorProtocol(Protocol):
         """
         ...  # pylint: disable=W2301
 
+    def evaluate_form_factors(self, k_vectors: np.ndarray) -> np.ndarray:
+        """
+        Evaluate form factors given array of wave vectors. The way the form factor is
+        calculated varies depending on the class that implements the form factor
+        interface.
+
+        Parameters
+        ----------
+        k_vectors : (N, 3) np.ndarray
+            List of wave vectors (units nm^-1)
+
+        Returns
+        -------
+        form_factors : (N, ) np.ndarray
+            Array containing the calculated form factors for each wave vector.
+        """
+
 
 @dataclass
 class NeutronFormFactor:
@@ -58,10 +75,6 @@ class NeutronFormFactor:
     Attributes
     ----------
         - neutron_scattering_length (float): The neutron scattering length of an atom.
-
-    Methods
-    -------
-    TODO: add methods.
     """
 
     neutron_scattering_length: float
@@ -79,6 +92,23 @@ class NeutronFormFactor:
         factor.
         """
         return self.neutron_scattering_length
+
+    def evaluate_form_factors(self, k_vectors: np.ndarray) -> np.ndarray:
+        """
+        Returns a list of scattering lengths, since the ND form factor only depends on
+        the neutron scattering length of an atom.
+
+        Parameters
+        ----------
+        k_vectors : (N, 3) np.ndarray
+            List of wave vectors (units nm^-1)
+
+        Returns
+        -------
+        form_factors : (N, ) np.ndarray
+            Array containing the calculated form factors for each wave vector.
+        """
+        return np.ones(k_vectors.shape[0]) * self.neutron_scattering_length
 
 
 @dataclass
@@ -104,11 +134,6 @@ class XRayFormFactor:
         - b1, b2, b3, b4 (float): Inversely proportional to the to the squared width of
         Gaussian 1, 2, 3, 4 respectively.
         - c (float): The constant term.
-
-    Methods
-    -------
-        - evaluate_form_factor:
-            TODO: add documentation.
     """
 
     a1: float
@@ -121,6 +146,10 @@ class XRayFormFactor:
     b4: float
     c: float
 
+    def __post_init__(self):
+        self.a = [self.a1, self.a2, self.a3, self.a4]
+        self.b = [self.b1, self.b2, self.b3, self.b4]
+
     def evaluate_form_factor(
         self, reciprocal_lattice_vector: ReciprocalLatticeVector
     ) -> float:
@@ -132,15 +161,34 @@ class XRayFormFactor:
         """
         reciprocal_lattice_vector_magnitude = reciprocal_lattice_vector.magnitude()
 
-        a = [self.a1, self.a2, self.a3, self.a4]
-        b = [self.b1, self.b2, self.b3, self.b4]
-        c = self.c
-
         form_factor = 0
         for i in range(4):
-            form_factor += a[i] * np.exp(
-                -b[i] * (reciprocal_lattice_vector_magnitude / (4 * np.pi)) ** 2
+            form_factor += self.a[i] * np.exp(
+                -self.b[i] * (reciprocal_lattice_vector_magnitude / (4 * np.pi)) ** 2
             )
 
-        form_factor += c
+        form_factor += self.c
         return form_factor
+
+    def evaluate_form_factors(self, k_vectors: np.ndarray) -> np.ndarray:
+        """
+        Returns a list of X-ray form factors given list of wave vectors.
+
+        Parameters
+        ----------
+        k_vectors : (N, 3) np.ndarray
+            List of wave vectors (units nm^-1)
+
+        Returns
+        -------
+        form_factors : (N, ) np.ndarray
+            Array containing the calculated form factors for each wave vector.
+        """
+        form_factors = np.zeros(k_vectors.shape[0])
+        for i in range(4):
+            mag_squared = np.sum(np.square(k_vectors), axis=1)
+            form_factors += self.a[i] * np.exp(
+                -self.b[i] * mag_squared / (4 * np.pi) ** 2
+            )
+        form_factors += self.c
+        return form_factors
