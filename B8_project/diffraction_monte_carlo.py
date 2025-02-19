@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import Mapping
 import numpy as np
 from B8_project import utils
-from B8_project.crystal import UnitCell, UnitCellVarieties, ReplacementProbability
+from B8_project.crystal import Atom, UnitCell, UnitCellVarieties, ReplacementProbability
 from B8_project.form_factor import FormFactorProtocol
 
 
@@ -172,10 +172,10 @@ class DiffractionMonteCarlo:
 
     # TODO: change this take a list of all atoms
     def calculate_diffraction_pattern(self,
+                                      atoms: list[Atom],
                                       form_factors: Mapping[int, FormFactorProtocol],
                                       target_accepted_trials: int = 5000,
                                       trials_per_batch: int = 1000,
-                                      unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
                                       min_angle_deg: float = 0.0,
                                       max_angle_deg: float = 180.0,
                                       angle_bins: int = 100):
@@ -189,6 +189,8 @@ class DiffractionMonteCarlo:
 
         Parameters
         ----------
+        atoms : list[Atom]
+            List of all atoms in the crystal.
         form_factors : Mapping[int, FormFactorProtocol]
             Dictionary mapping atomic number to associated NeutronFormFactor or
             XRayFormFactor.
@@ -196,9 +198,6 @@ class DiffractionMonteCarlo:
             Target number of accepted trials.
         trials_per_batch : int
             Number of trials calculated at once using NumPy methods.
-        unit_cell_reps : tuple[int, int, int]
-            How many times to repeat the unit cell in x, y, z directions, forming the
-            crystal powder for diffraction.
         min_angle_deg, max_angle_deg : float
             Minimum/maximum scattering angle in degrees for a scattering trial to be
             accepted.
@@ -207,26 +206,18 @@ class DiffractionMonteCarlo:
 
         Returns
         -------
-        two_thetas : (target_accepted_trials,) ndarray
+        two_thetas : (angle_bins,) ndarray
             the left edges of the bins, evenly spaced within angle range specified
-        intensities : (target_accepted_trials,) ndarray
+        intensities : (angle_bins,) ndarray
             intensity calculated for each bin
         """
-        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
+        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
 
-        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
-
-        atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
-
-        # Compute list of positions and scattering lengths of all atoms in the crystal
-        n_unit_cells = unit_cell_pos.shape[0]
-        n_atoms_per_uc = atom_pos_in_uc.shape[0]
-        all_atom_pos = np.repeat(unit_cell_pos, n_atoms_per_uc, axis=0) + np.tile(
-            atom_pos_in_uc, (n_unit_cells, 1))
-        all_atoms = np.tile(atoms_in_uc, n_unit_cells)
-
         stats = DiffractionMonteCarloRunStats()
+
+        all_atom_pos = np.array([np.array(atom.position) for atom in atoms])
+        all_atoms = np.array([atom.atomic_number for atom in atoms])
 
         while stats.accepted_data_points < target_accepted_trials:
 
@@ -264,7 +255,7 @@ class DiffractionMonteCarlo:
 
             intensity_batch = np.abs(structure_factors)**2
 
-            bins = np.searchsorted(two_thetas, two_thetas_batch)
+            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
 
             stats.total_trials += two_thetas_batch.shape[0]
@@ -313,12 +304,12 @@ class DiffractionMonteCarlo:
 
         Returns
         -------
-        two_thetas : (`target_accepted_trials`,) ndarray
+        two_thetas : (angle_bins,) ndarray
             The left edges of the bins, evenly spaced within angle range specified
-        intensities : (`target_accepted_trials`,) ndarray
+        intensities : (angle_bins,) ndarray
             Intensity calculated for each bin
         """
-        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
+        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
 
         unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
@@ -371,7 +362,7 @@ class DiffractionMonteCarlo:
                                             structure_factors_basis)
             intensity_batch = np.abs(structure_factors) ** 2
 
-            bins = np.searchsorted(two_thetas, two_thetas_batch)
+            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
 
             stats.total_trials += two_thetas_batch.shape[0]
@@ -394,9 +385,44 @@ class DiffractionMonteCarlo:
             max_angle_deg: float = 180.0,
             angle_bins: int = 100):
         """
-        TODO: update docstring, add tests
+        Calculates the neutron diffraction spectrum using a Monte Carlo method for a
+        random occupation crystal.
+
+        The crystal is constructed by selecting from the unit cell varieties
+        according to their probability distribution to give the desired concentration.
+
+        Parameters
+        ----------
+        atom_from : int
+            Atomic number of the element to be substituted out.
+        atom_to : int
+            Atomic number of the element to be substituted in.
+        probability : float
+            Probability for an atom to be substituted.
+        form_factors : Mapping[int, FormFactorProtocol]
+            Dictionary mapping atomic number to associated NeutronFormFactor or
+            XRayFormFactor.
+        target_accepted_trials : int
+            Target number of accepted trials.
+        trials_per_batch : int
+            Number of trials calculated at once using NumPy methods
+        unit_cell_reps : tuple[int, int, int]
+            How many times to repeat the unit cell in x, y, z directions, forming the
+            crystal powder for diffraction.
+        min_angle_deg, max_angle_deg : float
+            Minimum/maximum scattering angle in degrees for a scattering trial to be
+            accepted
+        angle_bins : int
+            Number of bins for scattering angles
+
+        Returns
+        -------
+        two_thetas : (angle_bins,) ndarray
+            The left edges of the bins, evenly spaced within angle range specified
+        intensities : (angle_bins,) ndarray
+            Intensity calculated for each bin
         """
-        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
+        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
 
         unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
@@ -408,7 +434,6 @@ class DiffractionMonteCarlo:
                                                            probability))
         atomic_numbers_vars, probs \
             = uc_vars.atomic_number_lists()
-        print(probs)
 
         stats = DiffractionMonteCarloRunStats()
 
@@ -439,7 +464,6 @@ class DiffractionMonteCarlo:
             form_factors_vars = np.array([[form_factors_evaluated[atom] for atom in
                                            uc] for uc in atomic_numbers_vars])
             form_factors_vars = np.transpose(form_factors_vars, axes=(2,0,1))
-            # print(form_factors_vars.shape)
 
             # exp_terms.shape = (# trials filtered, varieties, # atoms in a unit cell)
             exps = np.exp(1j * dot_products_basis)
@@ -473,11 +497,9 @@ class DiffractionMonteCarlo:
             structure_factors = np.sum(
                 np.multiply(exp_terms_lattice, structure_factors_basis_random), axis=1)
 
-            # TODO: test to Sanity check to ensure concentration in alloy is as expected
-
             intensity_batch = np.abs(structure_factors) ** 2
 
-            bins = np.searchsorted(two_thetas, two_thetas_batch)
+            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
 
             stats.total_trials += two_thetas_batch.shape[0]
