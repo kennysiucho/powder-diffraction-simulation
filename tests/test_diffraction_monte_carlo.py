@@ -230,11 +230,10 @@ def test_diffraction_spectrum_known_vecs(
             trials_per_batch=4,
             min_angle_deg=0.0,
             max_angle_deg=180.0,
-            angle_bins=10
+            angle_bins=9
         ))
 
-    expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
-                                    180.])
+    expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
     expected_structure_factors = np.array([5.664, 5.664,
                                            1.16874088 - 6.47419018j, 0.])
     expected_intensities = np.zeros(expected_two_thetas.shape)
@@ -273,15 +272,13 @@ def test_monte_carlo_calculate_diffraction_pattern(
         trials_per_batch=10,
         min_angle_deg=0,
         max_angle_deg=180,
-        angle_bins=10
+        angle_bins=9
     )
 
-    expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
-                                    180.])
-    expected_intensities = np.array([3.118890e-04, 0.000000e+00,
-                                     1.179717e-03, 3.824213e-05, 7.736132e-06,
-                                     0.000000e+00, 0.000000e+00, 1.000000e+00,
-                                     1.699957e-05, 0.000000e+00])
+    expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
+    expected_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
+                                     3.824213e-05, 7.736132e-06, 0.000000e+00,
+                                     0.000000e+00, 1.000000e+00, 1.699957e-05])
 
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
     nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
@@ -305,15 +302,13 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
             unit_cell_reps=(8, 8, 8),
             min_angle_deg=0,
             max_angle_deg=180,
-            angle_bins=10
+            angle_bins=9
         ))
 
-    expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.,
-                                    180.])
-    expected_intensities = np.array([3.118890e-04, 0.000000e+00,
-                                     1.179717e-03, 3.824213e-05, 7.736132e-06,
-                                     0.000000e+00, 0.000000e+00, 1.000000e+00,
-                                     1.699957e-05, 0.000000e+00])
+    expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
+    expected_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
+                                     3.824213e-05, 7.736132e-06, 0.000000e+00,
+                                     0.000000e+00, 1.000000e+00, 1.699957e-05])
 
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
     nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)

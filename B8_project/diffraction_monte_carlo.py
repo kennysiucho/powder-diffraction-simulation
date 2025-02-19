@@ -206,12 +206,12 @@ class DiffractionMonteCarlo:
 
         Returns
         -------
-        two_thetas : (target_accepted_trials,) ndarray
+        two_thetas : (angle_bins,) ndarray
             the left edges of the bins, evenly spaced within angle range specified
-        intensities : (target_accepted_trials,) ndarray
+        intensities : (angle_bins,) ndarray
             intensity calculated for each bin
         """
-        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
+        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
 
         stats = DiffractionMonteCarloRunStats()
@@ -304,12 +304,12 @@ class DiffractionMonteCarlo:
 
         Returns
         -------
-        two_thetas : (`target_accepted_trials`,) ndarray
+        two_thetas : (angle_bins,) ndarray
             The left edges of the bins, evenly spaced within angle range specified
-        intensities : (`target_accepted_trials`,) ndarray
+        intensities : (angle_bins,) ndarray
             Intensity calculated for each bin
         """
-        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
+        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
 
         unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
@@ -387,7 +387,7 @@ class DiffractionMonteCarlo:
         """
         TODO: update docstring, add tests
         """
-        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins)
+        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
 
         unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
