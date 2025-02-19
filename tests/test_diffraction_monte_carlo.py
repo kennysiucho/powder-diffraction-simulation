@@ -14,6 +14,50 @@ from B8_project import utils
 
 RUN_VISUAL_TESTS = False
 
+random_unit_vectors_1 = np.array(
+    [
+        [-0.40044041, -0.24037489, 0.88423266],
+        [0.12157585, -0.98785375, -0.09676926],
+        [0.22134359, -0.89937977, -0.3769921],
+        [0.14452089, -0.57825636, -0.80295286],
+        [0.27381633, 0.78604012, 0.55422518],
+        [0.49786666, 0.86040003, -0.10881442],
+        [-0.25020022, 0.0722504, -0.96549455],
+        [0.22147444, -0.97182729, 0.08062746],
+        [0.85740459, -0.34541421, 0.38150543],
+        [-0.22353788, 0.00877532, 0.97465574],
+    ]
+)
+random_unit_vectors_2 = np.array(
+    [
+        [0.55110704, -0.01638334, -0.83427371],
+        [0.34531261, -0.28696691, -0.89353746],
+        [-0.06524188, -0.89451913, -0.44224316],
+        [0.97776524, 0.18597073, -0.09690211],
+        [0.25050435, -0.52246139, 0.81503476],
+        [0.69015485, -0.33681997, 0.64049871],
+        [-0.35305807, -0.00383988, -0.93559353],
+        [0.77693291, -0.58287346, -0.23797853],
+        [0.46626091, 0.85543081, 0.2254748],
+        [-0.06581907, 0.22353627, -0.97247076],
+    ]
+)
+
+GAAS_A = 0.565315
+scattering_vecs_gaas = np.array([
+    [4 * np.pi / GAAS_A, 0., 0.], # (200) reciprocal lattice vector for NaCl
+    [0., 4 * np.pi / GAAS_A, 0.], # (020)
+    # (002), pointed in the wrong direction
+    [4 * np.pi / GAAS_A / np.sqrt(2), 4 * np.pi / GAAS_A / np.sqrt(2), 0.],
+    [6 * np.pi / GAAS_A, -4 * np.pi / GAAS_A, 2 * np.pi / GAAS_A] # (3,-2,1)
+])
+scattering_angles_gaas = np.array([
+    25.1336118,
+    25.1336118,
+    25.1336118,
+    48.039411
+])
+
 @pytest.fixture(name="diffraction_monte_carlo_nacl")
 def fixture_diffraction_monte_carlo_nacl():
     """
@@ -65,35 +109,6 @@ def fixture_ingaas_nd_form_factors():
         49: all_nd_form_factors[49]
     }
     yield nd_form_factors
-
-random_unit_vectors_1 = np.array(
-    [
-        [-0.40044041, -0.24037489, 0.88423266],
-        [0.12157585, -0.98785375, -0.09676926],
-        [0.22134359, -0.89937977, -0.3769921],
-        [0.14452089, -0.57825636, -0.80295286],
-        [0.27381633, 0.78604012, 0.55422518],
-        [0.49786666, 0.86040003, -0.10881442],
-        [-0.25020022, 0.0722504, -0.96549455],
-        [0.22147444, -0.97182729, 0.08062746],
-        [0.85740459, -0.34541421, 0.38150543],
-        [-0.22353788, 0.00877532, 0.97465574],
-    ]
-)
-random_unit_vectors_2 = np.array(
-    [
-        [0.55110704, -0.01638334, -0.83427371],
-        [0.34531261, -0.28696691, -0.89353746],
-        [-0.06524188, -0.89451913, -0.44224316],
-        [0.97776524, 0.18597073, -0.09690211],
-        [0.25050435, -0.52246139, 0.81503476],
-        [0.69015485, -0.33681997, 0.64049871],
-        [-0.35305807, -0.00383988, -0.93559353],
-        [0.77693291, -0.58287346, -0.23797853],
-        [0.46626091, 0.85543081, 0.2254748],
-        [-0.06581907, 0.22353627, -0.97247076],
-    ]
-)
 
 def test_unit_cell_positions(diffraction_monte_carlo_nacl):
     """
@@ -186,21 +201,6 @@ def test_scattering_angles_calculation(diffraction_monte_carlo_nacl, mocker):
     )
     expected_angles = np.array([0., 90., 180.])
     nptest.assert_allclose(angles, expected_angles)
-
-GAAS_A = 0.565315
-scattering_vecs_gaas = np.array([
-    [4 * np.pi / GAAS_A, 0., 0.], # (200) reciprocal lattice vector for NaCl
-    [0., 4 * np.pi / GAAS_A, 0.], # (020)
-    # (002), pointed in the wrong direction
-    [4 * np.pi / GAAS_A / np.sqrt(2), 4 * np.pi / GAAS_A / np.sqrt(2), 0.],
-    [6 * np.pi / GAAS_A, -4 * np.pi / GAAS_A, 2 * np.pi / GAAS_A] # (3,-2,1)
-])
-scattering_angles_gaas = np.array([
-    25.1336118,
-    25.1336118,
-    25.1336118,
-    48.039411
-])
 
 def test_diffraction_spectrum_known_vecs(
         diffraction_monte_carlo_gaas, ingaas_nd_form_factors, mocker):
