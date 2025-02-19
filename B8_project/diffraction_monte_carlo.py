@@ -385,7 +385,42 @@ class DiffractionMonteCarlo:
             max_angle_deg: float = 180.0,
             angle_bins: int = 100):
         """
-        TODO: update docstring, add tests
+        Calculates the neutron diffraction spectrum using a Monte Carlo method for a
+        random occupation crystal.
+
+        The crystal is constructed by selecting from the unit cell varieties
+        according to their probability distribution to give the desired concentration.
+
+        Parameters
+        ----------
+        atom_from : int
+            Atomic number of the element to be substituted out.
+        atom_to : int
+            Atomic number of the element to be substituted in.
+        probability : float
+            Probability for an atom to be substituted.
+        form_factors : Mapping[int, FormFactorProtocol]
+            Dictionary mapping atomic number to associated NeutronFormFactor or
+            XRayFormFactor.
+        target_accepted_trials : int
+            Target number of accepted trials.
+        trials_per_batch : int
+            Number of trials calculated at once using NumPy methods
+        unit_cell_reps : tuple[int, int, int]
+            How many times to repeat the unit cell in x, y, z directions, forming the
+            crystal powder for diffraction.
+        min_angle_deg, max_angle_deg : float
+            Minimum/maximum scattering angle in degrees for a scattering trial to be
+            accepted
+        angle_bins : int
+            Number of bins for scattering angles
+
+        Returns
+        -------
+        two_thetas : (angle_bins,) ndarray
+            The left edges of the bins, evenly spaced within angle range specified
+        intensities : (angle_bins,) ndarray
+            Intensity calculated for each bin
         """
         two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
