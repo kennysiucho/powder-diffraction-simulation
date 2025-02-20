@@ -67,7 +67,8 @@ def fixture_diffraction_monte_carlo_nacl():
     nacl_lattice = read_lattice("tests/data/NaCl_lattice.csv")
     nacl_basis = read_basis("tests/data/NaCl_basis.csv")
     unit_cell = UnitCell.new_unit_cell(nacl_basis, nacl_lattice)
-    nd = DiffractionMonteCarlo(unit_cell, 0.123)
+    nd = DiffractionMonteCarlo(unit_cell, 0.123,
+                               min_angle_deg=0.0, max_angle_deg=180.0)
     yield nd
 
 @pytest.fixture(name="diffraction_monte_carlo_gaas")
@@ -79,7 +80,8 @@ def fixture_diffraction_monte_carlo_gaas():
     lattice = read_lattice("tests/data/GaAs_lattice.csv")
     basis = read_basis("tests/data/GaAs_basis.csv")
     unit_cell = UnitCell.new_unit_cell(basis, lattice)
-    nd = DiffractionMonteCarlo(unit_cell, 0.123)
+    nd = DiffractionMonteCarlo(unit_cell, 0.123,
+                               min_angle_deg=0.0, max_angle_deg=180.0)
     yield nd
 
 @pytest.fixture(name="nacl_nd_form_factors")
@@ -148,9 +150,11 @@ def test_get_scattering_vecs_and_angles_angle_range(diffraction_monte_carlo_nacl
     """
     min_angle_deg = 20
     max_angle_deg = 60
-    _, angles = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles( # pylint: disable=protected-access
-        1000, min_angle_deg, max_angle_deg
-    )
+    diffraction_monte_carlo_nacl.set_angle_range(min_angle_deg=min_angle_deg,
+                                                 max_angle_deg=max_angle_deg)
+
+    _, angles = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles(1000) # pylint: disable=protected-access
+
     assert np.all((angles >= min_angle_deg) & (angles <= max_angle_deg))
 
 def test_scattering_vec_magnitude_distribution(diffraction_monte_carlo_nacl):
@@ -160,9 +164,7 @@ def test_scattering_vec_magnitude_distribution(diffraction_monte_carlo_nacl):
     """
     if not RUN_VISUAL_TESTS:
         pytest.skip("Skipped test: visual tests are off.")
-    vecs, _ = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles( # pylint: disable=protected-access
-        100000, 0, 180
-    )
+    vecs, _ = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles(100000) # pylint: disable=protected-access
     mags = np.linalg.norm(vecs, axis=1) / diffraction_monte_carlo_nacl.k()
     print(mags)
     plt.hist(mags, bins=100)
@@ -178,9 +180,8 @@ def test_scattering_angle_distribution(diffraction_monte_carlo_nacl):
     """
     if not RUN_VISUAL_TESTS:
         pytest.skip("Skipped test: visual tests are off.")
-    _, angles = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles( # pylint: disable=protected-access
-        100000, 0, 180
-    )
+    _, angles = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles(100000) # pylint: disable=protected-access
+
     plt.hist(angles, bins=100)
     plt.xlabel("Scattering angle (deg)")
     plt.ylabel("Frequency")
@@ -196,9 +197,7 @@ def test_scattering_angles_calculation(diffraction_monte_carlo_nacl, mocker):
         side_effect=[np.array([[1, 0, 0], [1, 0, 0], [1, 0, 0]]),
                      np.array([[1, 0, 0], [0, 1, 0], [-1, 0, 0]])]
     )
-    _, angles = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles( # pylint: disable=protected-access
-        3, 0, 180
-    )
+    _, angles = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles(3) # pylint: disable=protected-access
     expected_angles = np.array([0., 90., 180.])
     nptest.assert_allclose(angles, expected_angles)
 
@@ -228,8 +227,6 @@ def test_diffraction_spectrum_known_vecs(
             ingaas_nd_form_factors,
             target_accepted_trials=4,
             trials_per_batch=4,
-            min_angle_deg=0.0,
-            max_angle_deg=180.0,
             angle_bins=9
         ))
 
@@ -270,8 +267,6 @@ def test_monte_carlo_calculate_diffraction_pattern(
         nacl_nd_form_factors,
         target_accepted_trials=10,
         trials_per_batch=10,
-        min_angle_deg=0,
-        max_angle_deg=180,
         angle_bins=9
     )
 
@@ -300,8 +295,6 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
             target_accepted_trials=10,
             trials_per_batch=10,
             unit_cell_reps=(8, 8, 8),
-            min_angle_deg=0,
-            max_angle_deg=180,
             angle_bins=9
         ))
 
@@ -333,8 +326,6 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(8, 8, 8),
-            min_angle_deg=0,
-            max_angle_deg=180,
             angle_bins=10
         ))
 
@@ -347,8 +338,6 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(8, 8, 8),
-            min_angle_deg=0,
-            max_angle_deg=180,
             angle_bins=10
         ))
 
@@ -382,8 +371,6 @@ def test_ideal_crystal_matches_list(
             ingaas_nd_form_factors,
             target_accepted_trials=1000,
             trials_per_batch=1000,
-            min_angle_deg=0,
-            max_angle_deg=180,
             angle_bins=10
         )
     )
@@ -394,8 +381,6 @@ def test_ideal_crystal_matches_list(
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(8, 8, 8),
-            min_angle_deg=0,
-            max_angle_deg=180,
             angle_bins=10
         ))
 
@@ -437,8 +422,6 @@ def test_random_occupation_matches_list(diffraction_monte_carlo_gaas,
             ingaas_nd_form_factors,
             target_accepted_trials=1000,
             trials_per_batch=1000,
-            min_angle_deg=0,
-            max_angle_deg=180,
             angle_bins=10
         )
     )
@@ -452,8 +435,6 @@ def test_random_occupation_matches_list(diffraction_monte_carlo_gaas,
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(2, 2, 2),
-            min_angle_deg=0,
-            max_angle_deg=180,
             angle_bins=10
         )
     )

@@ -82,10 +82,19 @@ class DiffractionMonteCarlo:
         The unit cell of the crystal
     wavelength : float
         The wavelength of the incident neutrons (in nm)
+    _min_angle_deg, _max_angle_deg : float
+        Defines angle range of interest. Needed to compute inverse CDF for weighting
+        function.
     """
-    def __init__(self, unit_cell: UnitCell, wavelength: float):
+    def __init__(self,
+                 unit_cell: UnitCell,
+                 wavelength: float,
+                 min_angle_deg: float=0.,
+                 max_angle_deg: float=180.):
         self.unit_cell = unit_cell
         self.wavelength = wavelength
+        self._min_angle_deg = min_angle_deg
+        self._max_angle_deg = max_angle_deg
 
     def k(self):
         """
@@ -131,23 +140,16 @@ class DiffractionMonteCarlo:
         atom_pos_in_uc = np.array(atom_pos_in_uc)
         return atoms_in_uc, atom_pos_in_uc
 
-    def _get_scattering_vecs_and_angles(self,
-                                        n: int,
-                                        min_angle_deg: float,
-                                        max_angle_deg: float):
+    def _get_scattering_vecs_and_angles(self, n: int):
         """
-        Generates random scattering vectors and their angles. Discards those outside
-        angle range of interest.
-
-        TODO: Add weighting function
+        Generates random scattering vectors and their angles by sampling k and k'
+        from a sphere uniformly. Discards those outside angle range of interest.
 
         Parameters
         ----------
         n : int
             Number of random vectors to generate initially. The number of vectors
             returned will be less after filtering.
-        min_angle_deg, max_angle_deg : float
-            Minimum/maximum angle in degrees.
 
         Returns
         -------
@@ -163,21 +165,19 @@ class DiffractionMonteCarlo:
         two_thetas = np.degrees(np.arccos(dot_products / self.k() ** 2))
 
         # Discard trials with scattering angle out of range of interest
-        angles_accepted = np.where(np.logical_and(two_thetas >= min_angle_deg,
-                                                  two_thetas <= max_angle_deg))
+        angles_accepted = np.where(np.logical_and(two_thetas >= self._min_angle_deg,
+                                                  two_thetas <= self._max_angle_deg))
         scattering_vecs = scattering_vecs[angles_accepted]
         two_thetas = two_thetas[angles_accepted]
 
         return scattering_vecs, two_thetas
 
-    # TODO: change this take a list of all atoms
+    def _get_scattering_vecs_and_angles_weighted(self,
     def calculate_diffraction_pattern(self,
                                       atoms: list[Atom],
                                       form_factors: Mapping[int, FormFactorProtocol],
                                       target_accepted_trials: int = 5000,
                                       trials_per_batch: int = 1000,
-                                      min_angle_deg: float = 0.0,
-                                      max_angle_deg: float = 180.0,
                                       angle_bins: int = 100):
         """
         Calculates the neutron diffraction spectrum using a Monte Carlo method.
@@ -198,9 +198,6 @@ class DiffractionMonteCarlo:
             Target number of accepted trials.
         trials_per_batch : int
             Number of trials calculated at once using NumPy methods.
-        min_angle_deg, max_angle_deg : float
-            Minimum/maximum scattering angle in degrees for a scattering trial to be
-            accepted.
         angle_bins : int
             Number of bins for scattering angles.
 
@@ -211,7 +208,8 @@ class DiffractionMonteCarlo:
         intensities : (angle_bins,) ndarray
             intensity calculated for each bin
         """
-        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins + 1)[:-1]
+        two_thetas = np.linspace(self._min_angle_deg, self._max_angle_deg,
+                                 angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
 
         stats = DiffractionMonteCarloRunStats()
@@ -226,8 +224,7 @@ class DiffractionMonteCarlo:
                 print(stats)
 
             scattering_vecs, two_thetas_batch = (
-                self._get_scattering_vecs_and_angles(trials_per_batch, min_angle_deg,
-                                                     max_angle_deg))
+                self._get_scattering_vecs_and_angles(trials_per_batch))
 
             # all_atom_pos.shape = (n_atoms, 3)
             # all_scattering_lengths = (n_atoms,)
@@ -272,8 +269,6 @@ class DiffractionMonteCarlo:
             target_accepted_trials: int = 5000,
             trials_per_batch: int = 1000,
             unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
-            min_angle_deg: float = 0.0,
-            max_angle_deg: float = 180.0,
             angle_bins: int = 100):
         """
         Calculates the neutron diffraction spectrum using a Monte Carlo method,
@@ -296,9 +291,6 @@ class DiffractionMonteCarlo:
         unit_cell_reps : tuple[int, int, int]
             How many times to repeat the unit cell in x, y, z directions, forming the
             crystal powder for diffraction.
-        min_angle_deg, max_angle_deg : float
-            Minimum/maximum scattering angle in degrees for a scattering trial to be
-            accepted
         angle_bins : int
             Number of bins for scattering angles
 
@@ -309,7 +301,8 @@ class DiffractionMonteCarlo:
         intensities : (angle_bins,) ndarray
             Intensity calculated for each bin
         """
-        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins + 1)[:-1]
+        two_thetas = np.linspace(self._min_angle_deg, self._max_angle_deg,
+                                 angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
 
         unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
@@ -325,7 +318,7 @@ class DiffractionMonteCarlo:
                 print(stats)
 
             scattering_vecs, two_thetas_batch = self._get_scattering_vecs_and_angles(
-                trials_per_batch, min_angle_deg, max_angle_deg)
+                trials_per_batch)
 
             # Compute lattice portion of structure factors
             # scattering_vecs.shape = (# trials filtered, 3)
@@ -381,8 +374,6 @@ class DiffractionMonteCarlo:
             target_accepted_trials: int = 5000,
             trials_per_batch: int = 1000,
             unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
-            min_angle_deg: float = 0.0,
-            max_angle_deg: float = 180.0,
             angle_bins: int = 100):
         """
         Calculates the neutron diffraction spectrum using a Monte Carlo method for a
@@ -409,9 +400,6 @@ class DiffractionMonteCarlo:
         unit_cell_reps : tuple[int, int, int]
             How many times to repeat the unit cell in x, y, z directions, forming the
             crystal powder for diffraction.
-        min_angle_deg, max_angle_deg : float
-            Minimum/maximum scattering angle in degrees for a scattering trial to be
-            accepted
         angle_bins : int
             Number of bins for scattering angles
 
@@ -422,7 +410,8 @@ class DiffractionMonteCarlo:
         intensities : (angle_bins,) ndarray
             Intensity calculated for each bin
         """
-        two_thetas = np.linspace(min_angle_deg, max_angle_deg, angle_bins + 1)[:-1]
+        two_thetas = np.linspace(self._min_angle_deg, self._max_angle_deg,
+                                 angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
 
         unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
@@ -446,8 +435,7 @@ class DiffractionMonteCarlo:
                 print(stats)
 
             scattering_vecs, two_thetas_batch = self._get_scattering_vecs_and_angles(
-                trials_per_batch, min_angle_deg, max_angle_deg
-            )
+                trials_per_batch)
 
             # Compute basis portion of structure factors
             # scattering_vecs.shape = (# trials filtered, 3)

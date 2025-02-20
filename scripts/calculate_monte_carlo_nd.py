@@ -34,34 +34,32 @@ if CALCULATE_SPECTRUM:
     basis = file_reading.read_basis(BASIS_FILE)
 
     unit_cell = unit_cell.UnitCell.new_unit_cell(basis, lattice)
-    nd = DiffractionMonteCarlo(unit_cell, 0.123)
+    diffraction = DiffractionMonteCarlo(unit_cell,
+                                        0.123,
+                                        min_angle_deg=18,
+                                        max_angle_deg=57)
 
     all_nd_form_factors = file_reading.read_neutron_scattering_lengths(
         "data/neutron_scattering_lengths.csv")
     nd_form_factors = {}
-    for atom in nd.unit_cell.atoms:
+    for atom in diffraction.unit_cell.atoms:
         nd_form_factors[atom.atomic_number] = all_nd_form_factors[atom.atomic_number]
     nd_form_factors[49] = all_nd_form_factors[49]
 
     all_xray_form_factors = file_reading.read_xray_form_factors(
         "data/x_ray_form_factors.csv")
     xrd_form_factors = {}
-    for atom in nd.unit_cell.atoms:
+    for atom in diffraction.unit_cell.atoms:
         xrd_form_factors[atom.atomic_number] = all_xray_form_factors[atom.atomic_number]
     xrd_form_factors[49] = all_xray_form_factors[49]
 
     two_thetas, intensities = (
-        nd.calculate_diffraction_pattern_random_occupation(
-            31,
-            49,
-            0.25,
+        diffraction.calculate_diffraction_pattern_ideal_crystal(
             xrd_form_factors,
-            target_accepted_trials=1000000,
+            target_accepted_trials=10_000_000,
             unit_cell_reps=(10, 10, 10),
             trials_per_batch=1000,
-            min_angle_deg=18,
-            max_angle_deg=57,
-            angle_bins=200))
+            angle_bins=60))
     np.savetxt('two_thetas.txt', two_thetas)
     np.savetxt('intensities.txt', intensities)
 else:
@@ -75,6 +73,7 @@ else:
 plt.plot(two_thetas, intensities, color='k', label="Intensity")
 plt.xlabel("Scattering angle (2θ) (deg)")
 plt.ylabel("Normalized intensity")
-plt.title("In_0.25Ga_0.75As Neutron Diffraction Spectrum")
+# plt.title("In_0.25Ga_0.75As Neutron Diffraction Spectrum")
+plt.title("GaAs Neutron Diffraction Spectrum")
 plt.legend()
 plt.show()
