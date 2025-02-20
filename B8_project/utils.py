@@ -1,8 +1,5 @@
 """
 This module includes useful functions that perform arithmetic operations.
-
-Functions:
-TODO: add functions.
 """
 
 import random
