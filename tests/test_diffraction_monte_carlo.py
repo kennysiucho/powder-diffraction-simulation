@@ -6,6 +6,7 @@ import pytest
 import numpy as np
 import numpy.testing as nptest
 import matplotlib.pyplot as plt
+import scipy
 from B8_project.file_reading import read_lattice, read_basis, \
     read_neutron_scattering_lengths
 from B8_project.crystal import UnitCell, Atom
@@ -286,6 +287,30 @@ def test_weighted_sampling_angles_natural_distribution(diffraction_monte_carlo_n
     plt.xlim(0, 180)
     plt.ylabel("Normalized frequency")
     plt.title("Distribution of scattering angles - should be sin(x) shaped")
+    plt.show()
+
+def test_weighted_sampling_angles_gaussians(diffraction_monte_carlo_nacl):
+    """
+    Visual test for verifying if scattering angle follows the specified distribution
+    (sum of Gaussians) arbitrary angle range.
+    """
+    if not RUN_VISUAL_TESTS:
+        pytest.skip("Skipped test: visual tests are off.")
+    min_angle = 20
+    max_angle = 70
+    diffraction_monte_carlo_nacl.set_angle_range(min_angle, max_angle)
+    pdf = WeightingFunction.get_gaussians_at_peaks([22, 26, 36, 44, 46, 54], 0.1, 1)
+    diffraction_monte_carlo_nacl.set_pdf(pdf)
+    _, angles = (diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles_weighted( # pylint: disable=protected-access
+        500000))
+    plt.hist(angles, bins=100, density=True)
+    x_axis = np.linspace(min_angle, max_angle, 300)
+    norm, _ = scipy.integrate.quad(pdf, min_angle, max_angle)
+    plt.plot(x_axis, pdf(x_axis) / norm, "--", label="Target")
+    plt.xlabel("Scattering angle (deg)")
+    plt.ylabel("Normalized frequency")
+    plt.title("Distribution of scattering angles - should follow target distribution")
+    plt.legend()
     plt.show()
 
 def test_diffraction_spectrum_known_vecs(
