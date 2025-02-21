@@ -144,6 +144,35 @@ def test_atoms_and_pos_in_uc(diffraction_monte_carlo_nacl):
 
     assert utils.have_same_elements(res, expected_res, close=True) is True
 
+def theoretical_inverse_cdf_natural_distribution(y: [float, np.ndarray],
+                                                 min_x: float,
+                                                 max_x: float):
+    """
+    The inverse CDF of the natural distribution for the scattering angle.
+    i.e. PDF = sin(two_theta)
+    """
+    return np.degrees(
+        np.arccos(np.cos(np.radians(min_x)) -
+                  y * (np.cos(np.radians(min_x)) - np.cos(np.radians(max_x))))
+    )
+
+def test_inverse_cdf_natural_distribution(diffraction_monte_carlo_nacl):
+    """
+    Test whether the computed inverse CDF for the natural distribution of scattering
+    angles matches the theoretical inverse CDF.
+    """
+    min_angle = 25
+    max_angle = 135
+    diffraction_monte_carlo_nacl.set_angle_range(min_angle, max_angle)
+
+    inputs = np.linspace(0, 1, 200)
+    outputs = diffraction_monte_carlo_nacl._inverse_cdf(inputs) # pylint: disable=protected-access
+    expected_outputs = theoretical_inverse_cdf_natural_distribution(
+        inputs, min_angle, max_angle)
+
+    assert np.all((outputs >= min_angle) & (outputs <= max_angle))
+    nptest.assert_allclose(outputs, expected_outputs)
+
 def test_get_scattering_vecs_and_angles_angle_range(diffraction_monte_carlo_nacl):
     """
     Tests that the scattering angles are within desired angle range.

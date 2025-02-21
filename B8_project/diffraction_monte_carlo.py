@@ -16,12 +16,25 @@ Classes
 
 import time
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Mapping, Callable
 import numpy as np
+import scipy
 from B8_project import utils
 from B8_project.crystal import Atom, UnitCell, UnitCellVarieties, ReplacementProbability
 from B8_project.form_factor import FormFactorProtocol
 
+class WeightingFunction:
+    """
+    A class containing predefined weighting functions for sampling scattering angles.
+    Weighting functions used for Monte Carlo calculations must be from this class.
+    """
+    @staticmethod
+    def natural_distribution(two_theta: [float, np.ndarray]) -> [float, np.ndarray]:
+        """
+        The "natural distribution" of scattering angles, i.e. the angle between k and
+        k', if k and k' are each sampled randomly and uniformly from a sphere.
+        """
+        return 360. / np.pi * np.sin(np.radians(two_theta))
 
 @dataclass
 class DiffractionMonteCarloRunStats:
@@ -85,22 +98,60 @@ class DiffractionMonteCarlo:
     _min_angle_deg, _max_angle_deg : float
         Defines angle range of interest. Needed to compute inverse CDF for weighting
         function.
+    _pdf: Callable[[np.ndarray], ndarray]
+        A probability density function on the angle domain. Can be not normalized.
+    _inverse_cdf: Callable[[np.ndarray], ndarray]
+        The inverse CDF for given pdf. Numerically computed.
     """
     def __init__(self,
                  unit_cell: UnitCell,
                  wavelength: float,
+                 pdf: Callable[[np.ndarray], np.ndarray]=None,
                  min_angle_deg: float=0.,
                  max_angle_deg: float=180.):
         self.unit_cell = unit_cell
         self.wavelength = wavelength
         self._min_angle_deg = min_angle_deg
         self._max_angle_deg = max_angle_deg
+        self._pdf = None
+        self._inverse_cdf = None
+        if pdf is not None:
+            self.set_pdf(pdf)
+        else:
+            self.set_pdf(WeightingFunction.natural_distribution)
 
     def k(self):
         """
         Returns 2pi / wavelength.
         """
         return 2 * np.pi / self.wavelength
+
+    def set_pdf(self, pdf: Callable):
+        """
+        Updates weighting function and recomputes inverse CDF.
+        """
+        self._pdf = pdf
+        self._compute_inverse_cdf()
+
+    def set_angle_range(self, min_angle_deg: float=None, max_angle_deg: float=None):
+        """
+        Sets angle range of interest and recomputes inverse CDF.
+        """
+        self._min_angle_deg = min_angle_deg
+        self._max_angle_deg = max_angle_deg
+        self._compute_inverse_cdf()
+
+    def _compute_inverse_cdf(self):
+        x_vals = np.linspace(self._min_angle_deg, self._max_angle_deg, 1000)
+        pdf_vals = self._pdf(x_vals)
+
+        # Compute CDF by integrating
+        cdf_vals = scipy.integrate.cumulative_simpson(pdf_vals, x=x_vals, initial=0.)
+        cdf_vals /= cdf_vals[-1]  # Normalize CDF
+
+        # Return the interpolation of the inverse of the CDF
+        inverse_cdf_func = scipy.interpolate.PchipInterpolator(cdf_vals, x_vals)
+        self._inverse_cdf = inverse_cdf_func
 
     def _unit_cell_positions(self, unit_cell_reps: tuple[int, int, int]):
         """
