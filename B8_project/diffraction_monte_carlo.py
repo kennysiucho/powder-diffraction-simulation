@@ -34,7 +34,7 @@ class WeightingFunction:
         The "natural distribution" of scattering angles, i.e. the angle between k and
         k', if k and k' are each sampled randomly and uniformly from a sphere.
         """
-        return 360. / np.pi * np.sin(np.radians(two_theta))
+        return np.pi / 360. * np.sin(np.radians(two_theta))
 
 @dataclass
 class DiffractionMonteCarloRunStats:
@@ -223,7 +223,28 @@ class DiffractionMonteCarlo:
 
         return scattering_vecs, two_thetas
 
-    def _get_scattering_vecs_and_angles_weighted(self,
+    def _get_scattering_vecs_and_angles_weighted(self, n: int):
+        """
+        Generates random scattering vectors according to the weighting function for
+        the scattering angle. The scattering angle uniquely corresponds to the
+        magnitude, and the scattering vectors' directions are spherically uniform.
+
+        Parameters
+        ----------
+        n : int
+            Number of random vectors to generate.
+
+        Returns
+        -------
+        scattering_vecs, two_thetas : np.ndarray
+            List of scattering vectors and their corresponding scattering angles.
+        """
+        two_thetas = self._inverse_cdf(np.random.uniform(size=n))
+        magnitudes = 2 * self.k() * np.sin(np.radians(two_thetas) / 2)
+        unit_vecs = utils.random_uniform_unit_vectors(n, 3)
+        scattering_vecs = magnitudes[:, np.newaxis] * unit_vecs
+        return scattering_vecs, two_thetas
+
     def calculate_diffraction_pattern(self,
                                       atoms: list[Atom],
                                       form_factors: Mapping[int, FormFactorProtocol],
