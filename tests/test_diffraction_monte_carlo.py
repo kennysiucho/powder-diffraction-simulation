@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from B8_project.file_reading import read_lattice, read_basis, \
     read_neutron_scattering_lengths
 from B8_project.crystal import UnitCell, Atom
-from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo
+from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo, WeightingFunction
 from B8_project import utils
 
 RUN_VISUAL_TESTS = False
@@ -156,23 +156,6 @@ def theoretical_inverse_cdf_natural_distribution(y: [float, np.ndarray],
                   y * (np.cos(np.radians(min_x)) - np.cos(np.radians(max_x))))
     )
 
-def test_inverse_cdf_natural_distribution(diffraction_monte_carlo_nacl):
-    """
-    Test whether the computed inverse CDF for the natural distribution of scattering
-    angles matches the theoretical inverse CDF.
-    """
-    min_angle = 25
-    max_angle = 135
-    diffraction_monte_carlo_nacl.set_angle_range(min_angle, max_angle)
-
-    inputs = np.linspace(0, 1, 200)
-    outputs = diffraction_monte_carlo_nacl._inverse_cdf(inputs) # pylint: disable=protected-access
-    expected_outputs = theoretical_inverse_cdf_natural_distribution(
-        inputs, min_angle, max_angle)
-
-    assert np.all((outputs >= min_angle) & (outputs <= max_angle))
-    nptest.assert_allclose(outputs, expected_outputs)
-
 def test_get_scattering_vecs_and_angles_angle_range(diffraction_monte_carlo_nacl):
     """
     Tests that the scattering angles are within desired angle range.
@@ -193,14 +176,17 @@ def test_scattering_vec_magnitude_distribution(diffraction_monte_carlo_nacl):
     """
     if not RUN_VISUAL_TESTS:
         pytest.skip("Skipped test: visual tests are off.")
-    vecs, _ = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles(100000) # pylint: disable=protected-access
+    vecs, _ = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles(500000) # pylint: disable=protected-access
     mags = np.linalg.norm(vecs, axis=1) / diffraction_monte_carlo_nacl.k()
-    print(mags)
-    plt.hist(mags, bins=100)
-    plt.xlabel("Magnitude of scattering vector")
-    plt.ylabel("Frequency")
+    plt.hist(mags, bins=100, density=True)
+    x_axis = np.linspace(0, 2, 200)
+    plt.plot(x_axis, x_axis / 2, "--",
+             label="Theoretical")
+    plt.xlabel("Magnitude of scattering vector / k")
+    plt.ylabel("Normalized Frequency")
     plt.title("Distribution of magnitudes of scattering vectors. Should range from "
               "0->2 \nwith linearly increasing frequency")
+    plt.legend()
     plt.show()
 
 def test_scattering_angle_distribution(diffraction_monte_carlo_nacl):
@@ -209,12 +195,16 @@ def test_scattering_angle_distribution(diffraction_monte_carlo_nacl):
     """
     if not RUN_VISUAL_TESTS:
         pytest.skip("Skipped test: visual tests are off.")
-    _, angles = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles(100000) # pylint: disable=protected-access
+    _, angles = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles(500000) # pylint: disable=protected-access
 
-    plt.hist(angles, bins=100)
+    plt.hist(angles, bins=100, density=True)
+    x_axis = np.linspace(0, 180, 200)
+    plt.plot(x_axis, WeightingFunction.natural_distribution(x_axis), "--",
+             label="Theoretical")
     plt.xlabel("Scattering angle (deg)")
-    plt.ylabel("Frequency")
+    plt.ylabel("Normalized frequency")
     plt.title("Distribution of scattering angles - should be sin(x) shaped")
+    plt.legend()
     plt.show()
 
 def test_scattering_angles_calculation(diffraction_monte_carlo_nacl, mocker):
@@ -229,6 +219,63 @@ def test_scattering_angles_calculation(diffraction_monte_carlo_nacl, mocker):
     _, angles = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles(3) # pylint: disable=protected-access
     expected_angles = np.array([0., 90., 180.])
     nptest.assert_allclose(angles, expected_angles)
+
+def test_inverse_cdf_natural_distribution(diffraction_monte_carlo_nacl):
+    """
+    Test whether the computed inverse CDF for the natural distribution of scattering
+    angles matches the theoretical inverse CDF.
+    """
+    min_angle = 25
+    max_angle = 135
+    diffraction_monte_carlo_nacl.set_angle_range(min_angle, max_angle)
+
+    inputs = np.linspace(0, 1, 200)
+    outputs = diffraction_monte_carlo_nacl._inverse_cdf(inputs) # pylint: disable=protected-access
+    expected_outputs = theoretical_inverse_cdf_natural_distribution(
+        inputs, min_angle, max_angle)
+
+    assert np.all((outputs >= min_angle) & (outputs <= max_angle))
+    nptest.assert_allclose(outputs, expected_outputs)
+
+def test_weighted_sampling_magnitudes_natural_distribution(diffraction_monte_carlo_nacl):
+    """
+    Visual test for verifying if scattering magnitude follows expected linear
+    distribution, for arbitrary angle range.
+    """
+    if not RUN_VISUAL_TESTS:
+        pytest.skip("Skipped test: visual tests are off.")
+    min_angle = 20
+    max_angle = 70
+    diffraction_monte_carlo_nacl.set_angle_range(min_angle, max_angle)
+    vecs, _ = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles_weighted( # pylint: disable=protected-access
+        500000)
+    mags = np.linalg.norm(vecs, axis=1) / diffraction_monte_carlo_nacl.k()
+    plt.hist(mags, bins=100, density=True)
+    plt.xlabel("Magnitude of scattering vector / k")
+    plt.xlim(0, 2)
+    plt.ylabel("Normalized frequency")
+    plt.title("Distribution of magnitudes of scattering vectors. Should be linearly"
+              "increasing")
+    plt.show()
+
+def test_weighted_sampling_angles_natural_distribution(diffraction_monte_carlo_nacl):
+    """
+    Visual test for verifying if scattering angle follows sin(two_theta) distribution,
+    for arbitrary angle range.
+    """
+    if not RUN_VISUAL_TESTS:
+        pytest.skip("Skipped test: visual tests are off.")
+    min_angle = 20
+    max_angle = 120
+    diffraction_monte_carlo_nacl.set_angle_range(min_angle, max_angle)
+    _, angles = diffraction_monte_carlo_nacl._get_scattering_vecs_and_angles_weighted( # pylint: disable=protected-access
+        500000)
+    plt.hist(angles, bins=100, density=True)
+    plt.xlabel("Scattering angle (deg)")
+    plt.xlim(0, 180)
+    plt.ylabel("Normalized frequency")
+    plt.title("Distribution of scattering angles - should be sin(x) shaped")
+    plt.show()
 
 def test_diffraction_spectrum_known_vecs(
         diffraction_monte_carlo_gaas, ingaas_nd_form_factors, mocker):
