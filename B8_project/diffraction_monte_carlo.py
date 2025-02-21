@@ -165,7 +165,12 @@ class DiffractionMonteCarlo:
         cdf_vals /= cdf_vals[-1]  # Normalize CDF
 
         # Return the interpolation of the inverse of the CDF
-        inverse_cdf_func = scipy.interpolate.PchipInterpolator(cdf_vals, x_vals)
+        try:
+            inverse_cdf_func = scipy.interpolate.PchipInterpolator(cdf_vals, x_vals)
+        except ValueError as exc:
+            raise ValueError("Inverse CDF interpolation failed. Possibly because PDF"
+                             "is negative or too close to zero at certain points.") \
+                from exc
         self._inverse_cdf = inverse_cdf_func
 
     def _unit_cell_positions(self, unit_cell_reps: tuple[int, int, int]):
