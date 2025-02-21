@@ -112,6 +112,17 @@ def fixture_ingaas_nd_form_factors():
     }
     yield nd_form_factors
 
+def test_get_gaussians_at_peaks():
+    """
+    Test if get_gaussians_at_peaks gives expected weighting function.
+    """
+    pdf = WeightingFunction.get_gaussians_at_peaks([22, 33], 0.1, 3)
+    def expected_pdf(x):
+        return (0.1 + np.exp(-0.5 * ((x - 22) / 3) ** 2) +
+                np.exp(-0.5 * ((x - 33) / 3) ** 2))
+    x_axis = np.linspace(0, 180, 200)
+    nptest.assert_allclose(pdf(x_axis), expected_pdf(x_axis))
+
 def test_unit_cell_positions(diffraction_monte_carlo_nacl):
     """
     Tests output of _unit_cell_positions. Order does not matter.

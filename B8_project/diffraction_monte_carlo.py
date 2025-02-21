@@ -36,6 +36,21 @@ class WeightingFunction:
         """
         return np.pi / 360. * np.sin(np.radians(two_theta))
 
+    @staticmethod
+    def get_gaussians_at_peaks(locations: list[float], constant: float=0.1,
+                               sigma: float=3):
+        """
+        Returns a weighting function consisting of Gaussians at the specified locations
+        on top of a constant function
+        """
+        def gaussians(two_theta: [float, np.ndarray]) -> [float, np.ndarray]:
+            result = constant * np.ones_like(two_theta)
+            for location in locations:
+                result += np.exp(-0.5 * ((two_theta - location) / sigma) ** 2)
+            return result
+        return gaussians
+
+
 @dataclass
 class DiffractionMonteCarloRunStats:
     """
