@@ -175,7 +175,7 @@ class DiffractionMonteCarlo:
         try:
             inverse_cdf_func = scipy.interpolate.PchipInterpolator(cdf_vals, x_vals)
         except ValueError as exc:
-            raise ValueError("Inverse CDF interpolation failed. Possibly because PDF"
+            raise ValueError("Inverse CDF interpolation failed. Possibly because PDF "
                              "is negative or too close to zero at certain points.") \
                 from exc
         self._inverse_cdf = inverse_cdf_func
