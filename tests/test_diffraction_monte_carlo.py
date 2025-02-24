@@ -366,7 +366,7 @@ def test_monte_carlo_calculate_diffraction_pattern(
         side_effect=[random_unit_vectors_1, random_unit_vectors_2],
     )
 
-    unit_cell_pos = diffraction_monte_carlo_nacl._unit_cell_positions((8, 8, 8))
+    unit_cell_pos = diffraction_monte_carlo_nacl._unit_cell_positions((8, 8, 8)) # pylint: disable=protected-access
     atoms = []
     for uc_pos in unit_cell_pos:
         for atom in diffraction_monte_carlo_nacl.unit_cell.atoms:
