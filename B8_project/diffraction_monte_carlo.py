@@ -368,7 +368,8 @@ class DiffractionMonteCarlo:
             target_accepted_trials: int = 5000,
             trials_per_batch: int = 1000,
             unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
-            angle_bins: int = 100):
+            angle_bins: int = 100,
+            weighted: bool=False):
         """
         Calculates the neutron diffraction spectrum using a Monte Carlo method,
         assuming the crystal consists of the same unit cell throughout (ideal crystal).
@@ -392,6 +393,9 @@ class DiffractionMonteCarlo:
             crystal powder for diffraction.
         angle_bins : int
             Number of bins for scattering angles
+        weighted : bool
+            Whether to draw scattering vectors from a sphere or via inverse transform
+            sampling using pdf.
 
         Returns
         -------
@@ -416,8 +420,12 @@ class DiffractionMonteCarlo:
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            scattering_vecs, two_thetas_batch = self._get_scattering_vecs_and_angles(
-                trials_per_batch)
+            if weighted:
+                scattering_vecs, two_thetas_batch = (
+                    self._get_scattering_vecs_and_angles_weighted(trials_per_batch))
+            else:
+                scattering_vecs, two_thetas_batch = (
+                    self._get_scattering_vecs_and_angles(trials_per_batch))
 
             # Compute lattice portion of structure factors
             # scattering_vecs.shape = (# trials filtered, 3)
@@ -459,6 +467,13 @@ class DiffractionMonteCarlo:
 
             stats.total_trials += two_thetas_batch.shape[0]
             stats.accepted_data_points += two_thetas_batch.shape[0]
+
+        if weighted:
+            # Re-normalize intensity distribution
+            renormalization = np.ones_like(intensities)
+            renormalization /= self._pdf(two_thetas)
+            renormalization *= WeightingFunction.natural_distribution(two_thetas)
+            intensities *= renormalization
 
         intensities /= np.max(intensities)
 
