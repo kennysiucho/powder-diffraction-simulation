@@ -29,6 +29,13 @@ class WeightingFunction:
     Weighting functions used for Monte Carlo calculations must be from this class.
     """
     @staticmethod
+    def uniform(two_theta: [float, np.ndarray]) -> [float, np.ndarray]:
+        """
+        The uniform distribution. Not normalized.
+        """
+        return np.ones_like(two_theta)
+
+    @staticmethod
     def natural_distribution(two_theta: [float, np.ndarray]) -> [float, np.ndarray]:
         """
         The "natural distribution" of scattering angles, i.e. the angle between k and
