@@ -31,10 +31,11 @@ for atom in diff.unit_cell.atoms:
     xrd_form_factors[atom.atomic_number] = all_xray_form_factors[atom.atomic_number]
 xrd_form_factors[49] = all_xray_form_factors[49]
 
-vecs, _ = diff._get_uniform_scattering_vecs_and_angles_single(10000, 35.8379)
+# exact peak = 35.8379, 42.2958
+vecs, _ = diff._get_uniform_scattering_vecs_and_angles_single(10000, 42.2958)
 
 # Prepare crystal
-unit_cell_pos = diff._unit_cell_positions((4, 4, 4))
+unit_cell_pos = diff._unit_cell_positions((10, 10, 10))
 all_atoms = []
 all_atom_pos = []
 for uc_pos in unit_cell_pos:
@@ -61,6 +62,7 @@ def evaluate_intensities(form_factors):
     return intensities
 
 intensities = evaluate_intensities(xrd_form_factors)
+# intensities /= np.max(intensities)
 
 fig = plt.figure(figsize=(8, 8))
 ax = fig.add_subplot(111, projection='3d')
