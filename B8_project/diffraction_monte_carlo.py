@@ -272,6 +272,40 @@ class DiffractionMonteCarlo:
         scattering_vecs = magnitudes[:, np.newaxis] * unit_vecs
         return scattering_vecs, two_thetas
 
+    def _get_uniform_scattering_vecs_and_angles_single(self, n: int, angle: float):
+        """
+        Generates scattering vectors all with the specified scattering angle,
+        approximately evenly spaced on a sphere. (Using Fibonacci lattice)
+
+        Parameters
+        ----------
+        n : int
+            Number of random vectors to generate.
+        angle : float
+            Scattering angle.
+
+        Returns
+        -------
+        scattering_vecs, two_thetas : np.ndarray
+            List of scattering vectors and their corresponding scattering angles.
+        """
+        two_thetas = np.ones(n)
+        magnitude = 2 * self.k() * np.sin(np.radians(angle) / 2)
+
+        def fibonacci_sphere():
+            """Generate approximately uniform unit vectors on a sphere."""
+            indices = np.arange(0, n) + 0.5
+            phi = np.pi * (1 + 5 ** 0.5)  # Golden angle
+            theta = phi * indices  # Spiral angles
+            z = 1 - (2 * indices / n)  # Uniform spacing in z
+            r = np.sqrt(1 - z ** 2)  # Radius at each z level
+            x = r * np.cos(theta)
+            y = r * np.sin(theta)
+            return np.column_stack((x, y, z))
+
+        scattering_vecs = fibonacci_sphere() * magnitude
+        return scattering_vecs, two_thetas
+
     def calculate_diffraction_pattern(self,
                                       atoms: list[Atom],
                                       form_factors: Mapping[int, FormFactorProtocol],
