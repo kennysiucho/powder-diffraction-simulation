@@ -37,7 +37,7 @@ GaAs_super_cell_3 = super_cell.SuperCell.new_super_cell(
 ).to_unit_cell()
 
 # Diffraction parameters
-WAVELENGTH = 0.1
+WAVELENGTH = 1.
 MIN_DEFLECTION_ANGLE = 20
 MAX_DEFLECTION_ANGLE = 60
 INTENSITY_CUTOFF = 0.001
