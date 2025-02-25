@@ -63,7 +63,7 @@ scattering_angles_gaas = np.array([
 def fixture_diffraction_monte_carlo_nacl():
     """
     Returns instance of `DiffractionMonteCarlo`, containing data for NaCl and
-    wavelength of 0.123nm
+    wavelength of 0.123Å
     """
     nacl_lattice = read_lattice("tests/data/NaCl_lattice.csv")
     nacl_basis = read_basis("tests/data/NaCl_basis.csv")
@@ -76,7 +76,7 @@ def fixture_diffraction_monte_carlo_nacl():
 def fixture_diffraction_monte_carlo_gaas():
     """
     Returns instance of `DiffractionMonteCarlo`, containing data for GaAs and
-    wavelength of 0.123nm
+    wavelength of 0.123Å
     """
     lattice = read_lattice("tests/data/GaAs_lattice.csv")
     basis = read_basis("tests/data/GaAs_basis.csv")

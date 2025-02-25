@@ -189,7 +189,7 @@ def calculate_miller_peaks(
         - x_ray_form_factors (Mapping[int, XRayFormFactor]): a mapping from atomic
         numbers to a class which represents an X-ray form factor.
         - wavelength (float): the wavelength of incident particles, given in
-        nanometers (nm).
+        angstroms (Å).
         - min_deflection_angle (float), max_deflection_angle (float): these
         parameters specify the range of deflection angles to be plotted.
         - intensity_cutoff (float): The minimum intensity needed for a peak to be
@@ -269,7 +269,7 @@ def plot_diffraction_pattern(
     diffraction_type: str,
     neutron_form_factors: Mapping[int, NeutronFormFactor],
     x_ray_form_factors: Mapping[int, XRayFormFactor],
-    wavelength: float = 0.1,
+    wavelength: float = 1.0,
     min_deflection_angle: float = 10,
     max_deflection_angle: float = 170,
     peak_width: float = 0.1,
@@ -302,7 +302,7 @@ def plot_diffraction_pattern(
         - x_ray_form_factors (Mapping[int, XRayFormFactor]): a mapping from atomic
         numbers to a class which represents an X-ray form factor.
         - wavelength (float): the wavelength of incident particles, given in
-        nanometers (nm).
+        angstroms (Å).
         - min_deflection_angle (float), max_deflection_angle (float): these
         parameters specify the range of deflection angles to be plotted.
         - peak_width (float): The width of the intensity peaks. This parameter is
@@ -388,7 +388,7 @@ def plot_diffraction_pattern(
             x_values,
             y_values,
             label=f"{unit_cell.material}, {diffraction_type}, "
-            f"λ = {round(wavelength, 4)}nm",
+            f"λ = {round(wavelength, 4)}Å",
             linewidth=line_width,
         )
 
@@ -431,7 +431,7 @@ def plot_superimposed_diffraction_patterns(
     unit_cells_with_diffraction_types: list[tuple[UnitCell, str]],
     neutron_form_factors: Mapping[int, NeutronFormFactor],
     x_ray_form_factors: Mapping[int, XRayFormFactor],
-    wavelength: float = 0.1,
+    wavelength: float = 1.0,
     min_deflection_angle: float = 10,
     max_deflection_angle: float = 170,
     peak_width: float = 0.1,
@@ -467,7 +467,7 @@ def plot_superimposed_diffraction_patterns(
         - x_ray_form_factors (Mapping[int, XRayFormFactor]): a mapping from atomic
         numbers to a class which represents an X-ray form factor.
         - wavelength (float): the wavelength of incident particles, given in
-        nanometers (nm). Default value is 0.1nm.
+        angstroms (Å). Default value is 1Å.
         - min_deflection_angle (float), max_deflection_angle (float): these
         parameters specify the range of deflection angles to be plotted. Default values
         are 10°, 170° respectively.
@@ -540,7 +540,7 @@ def plot_superimposed_diffraction_patterns(
                 x_values,
                 y_values,
                 label=f"{unit_cell.material}, {diffraction_type}"
-                f"λ = {round(current_wavelength, 4)}nm",
+                f"λ = {round(current_wavelength, 4)}Å",
                 linewidth=line_width,
                 alpha=opacity,
             )

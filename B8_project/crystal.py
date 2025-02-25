@@ -105,8 +105,7 @@ class UnitCell:
     ----------
         - material (str): The chemical formula of the crystal, e.g. "NaCl".
         - lattice_constants (tuple[float, float, float]): The side lengths (a, b, c) of
-        the unit cell in the (x, y, z) directions respectively, given in nanometers
-        (nm).
+        the unit cell in the (x, y, z) directions respectively, given in angstroms.
         - atoms(list[Atom]): A list of the atoms in the unit cell. Each atom is
         represented by an `Atom` instance.
 
@@ -220,7 +219,7 @@ class UnitCell:
                     - 3 -> Face centred.
                     - 4 -> Base centred.
                 - "a", "b", "c" (float): Side lengths of the unit cell in the x, y and z
-                directions respectively in nanometers (nm).
+                directions respectively in angstroms.
             - basis (tuple[list[int], list[tuple[float, float, float]]]): a tuple
             (atomic_numbers, atomic_positions) that represents the basis.
                 - atomic_numbers (list[int]): The atomic number of each atom in the
@@ -437,11 +436,11 @@ class ReciprocalLatticeVector:
     Methods
     -------
         - components: Returns the components of a reciprocal lattice vector, in
-        units of inverse nanometers (nm^-1). For miller indices (h, k, l) and lattice
+        units of inverse angstroms (Å^-1). For miller indices (h, k, l) and lattice
         constants (a, b, c), the components of a reciprocal lattice vector are
         (2π/a, 2π/b, 2π/c).
         - magnitude: Returns the magnitude of a reciprocal lattice vector, in
-        units of inverse nanometers (nm^-1).
+        units of inverse angstroms (Å^-1).
         - get_reciprocal_lattice_vectors: Returns a list of `ReciprocalLatticeVectors`
         with magnitude in between a specified minimum and maximum magnitude (i.e.
         returns a list of all reciprocal lattice vectors that lie within a spherical
