@@ -7,7 +7,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from B8_project import file_reading
-import B8_project.crystal as unit_cell
+from B8_project.crystal import UnitCell
 from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo, WeightingFunction
 
 two_thetas_file = Path("two_thetas.txt")
@@ -31,19 +31,19 @@ else:
 # pdf = WeightingFunction.uniform
 # pdf = WeightingFunction.natural_distribution
 
+LATTICE_FILE = "data/GaAs_lattice.csv"
+BASIS_FILE = "data/GaAs_basis.csv"
+
+lattice = file_reading.read_lattice(LATTICE_FILE)
+basis = file_reading.read_basis(BASIS_FILE)
+
+unit_cell = UnitCell.new_unit_cell(basis, lattice)
+diff = DiffractionMonteCarlo(unit_cell,
+                             1.23,
+                             min_angle_deg=18,
+                             max_angle_deg=60)
+
 if CALCULATE_SPECTRUM:
-    LATTICE_FILE = "data/GaAs_lattice.csv"
-    BASIS_FILE = "data/GaAs_basis.csv"
-
-    lattice = file_reading.read_lattice(LATTICE_FILE)
-    basis = file_reading.read_basis(BASIS_FILE)
-
-    unit_cell = unit_cell.UnitCell.new_unit_cell(basis, lattice)
-    diff = DiffractionMonteCarlo(unit_cell,
-                                 1.23,
-                                 min_angle_deg=18,
-                                 max_angle_deg=60)
-
     all_nd_form_factors = file_reading.read_neutron_scattering_lengths(
         "data/neutron_scattering_lengths.csv")
     nd_form_factors = {}
@@ -84,7 +84,7 @@ plt.axhline(0, linestyle="--", color="grey")
 plt.xlabel("Scattering angle (2θ) (deg)")
 plt.ylabel("Normalized intensity")
 # plt.title("In_0.25Ga_0.75As Neutron Diffraction Spectrum")
-plt.title("GaAs X-ray Diffraction Spectrum")
+plt.title(f"{unit_cell.material} Diffraction Spectrum")
 plt.legend()
 plt.grid(linestyle=":")
 plt.show()
