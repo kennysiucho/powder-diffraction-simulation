@@ -644,3 +644,84 @@ class DiffractionMonteCarlo:
         intensities /= np.max(intensities)
 
         return two_thetas, intensities
+
+    def calculate_diffraction_pattern_evenly_spaced(
+            self,
+            form_factors: Mapping[int, FormFactorProtocol],
+            unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
+            num_angles: int = 100,
+            points_per_angle: int = 10000):
+        """
+        Calculates the neutron diffraction spectrum assuming the crystal consists of
+        the same unit cell throughout (ideal crystal). For each scattering angle,
+        evaluates the intensity using approximately evenly spaced scattering vectors.
+
+
+        Parameters
+        ----------
+        form_factors : Mapping[int, FormFactorProtocol]
+            Dictionary mapping atomic number to associated NeutronFormFactor or
+            XRayFormFactor.
+        unit_cell_reps : tuple[int, int, int]
+            How many times to repeat the unit cell in x, y, z directions, forming the
+            crystal powder for diffraction.
+        num_angles : int
+            Number of angle values to evaluate between min and max angle.
+        points_per_angle : int
+            Number of evenly spaced scattering vectors to evaluate intensity for each
+            scattering angle.
+
+        Returns
+        -------
+        two_thetas : (num_angle,) ndarray
+            The list of angles evaluated.
+        intensities : (num_angle,) ndarray
+            Intensity calculated for each angle.
+        """
+        two_thetas = np.linspace(self._min_angle_deg, self._max_angle_deg, num_angles)
+        intensities = np.zeros(num_angles)
+        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
+        atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
+        start_time = time.time()
+        for i, ang in enumerate(two_thetas):
+            if i % (num_angles // 20) == 0:
+                eta = (time.time() - start_time) / i * (num_angles - i) if i != 0 else -1
+                print(f"Angles evaluated: {i}/{num_angles}, time remaining: {eta:.0f}s")
+
+            vecs, _ = self._get_uniform_scattering_vecs_and_angles_single(
+                points_per_angle, ang)
+            dot_products_lattice = np.einsum("ik,jk", vecs, unit_cell_pos)
+
+            # exp_terms.shape = (# trials filtered, # unit cells)
+            exp_terms_lattice = np.exp(1j * dot_products_lattice)
+
+            # structure_factors_lattice.shape = (# trials filtered,)
+            structure_factors_lattice = np.sum(exp_terms_lattice, axis=1)
+
+            # Compute basis portion of structure factors
+            # scattering_vecs.shape = (# trials filtered, 3)
+            # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
+            # dot_products_lattice.shape = (# trials filtered, # atoms in a unit cell)
+            dot_products_basis = np.einsum("ik,jk", vecs, atom_pos_in_uc)
+
+            # form_factors_basis.shape = (# trials filtered, # atoms in a unit cell)
+            form_factors_basis = np.stack(
+                [form_factors[atom].evaluate_form_factors(vecs) for atom in
+                 atoms_in_uc],
+                axis=1)
+
+            # exp_terms.shape = (# trials filtered, # atoms in a unit cell)
+            exps = np.exp(1j * dot_products_basis)
+            exp_terms_basis = np.multiply(form_factors_basis, exps)
+
+            # structure_factors_basis.shape = (# trials filtered,)
+            structure_factors_basis = np.sum(exp_terms_basis, axis=1)
+
+            structure_factors = np.multiply(structure_factors_lattice,
+                                            structure_factors_basis)
+            intensity_batch = np.abs(structure_factors) ** 2
+            intensities[i] = np.sum(intensity_batch)
+
+        intensities /= np.max(intensities)
+
+        return two_thetas, intensities
