@@ -687,6 +687,56 @@ class DiffractionMonteCarlo:
         intensity_batch = np.abs(structure_factors) ** 2
         return np.sum(intensity_batch)
 
+    def intensity_over_sphere(self,
+                              theta,
+                              phi,
+                              two_theta_deg: float,
+                              form_factors: Mapping[int, FormFactorProtocol],
+                              unit_cell_pos: np.ndarray,
+                              atom_pos_in_uc: np.ndarray,
+                              atoms_in_uc: np.ndarray):
+        mag = 2 * self.k() * np.sin(np.radians(two_theta_deg) / 2)
+        x = mag * np.sin(theta) * np.cos(phi)
+        y = mag * np.sin(theta) * np.sin(phi)
+        z = mag * np.cos(theta)
+        vec = np.array([x, y, z])
+        dot_products_lattice = np.einsum("j,ij", vec, unit_cell_pos)
+        # exp_terms.shape = (# unit cells)
+        exp_terms_lattice = np.exp(1j * dot_products_lattice)
+        structure_factor_lattice = np.sum(exp_terms_lattice)
+        # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
+        # dot_products_lattice.shape = (# atoms in a unit cell)
+        dot_products_basis = np.einsum("j,ij", vec, atom_pos_in_uc)
+        # form_factors_basis.shape = (# atoms in a unit cell)
+        form_factors_basis = np.array(
+            [form_factors[atom].evaluate_form_factors(np.array([vec])) for atom in
+             atoms_in_uc])
+        # exp_terms.shape = (# atoms in a unit cell)
+        exps = np.exp(1j * dot_products_basis)
+        exp_terms_basis = np.multiply(form_factors_basis, exps)
+        structure_factor_basis = np.sum(exp_terms_basis)
+        return np.abs(structure_factor_lattice * structure_factor_basis) ** 2
+
+    def _compute_intensity_integral(
+            self,
+            two_theta: float,
+            form_factors: Mapping[int, FormFactorProtocol],
+            unit_cell_pos: np.ndarray,
+            atom_pos_in_uc: np.ndarray,
+            atoms_in_uc: np.ndarray):
+        """
+        Computes the intensity for one scattering angle using scipy.integrate.dblquad.
+        """
+        def f(theta, phi):
+            return self.intensity_over_sphere(
+                theta, phi, two_theta, form_factors, unit_cell_pos, atom_pos_in_uc, atoms_in_uc
+            )
+
+        intensity = scipy.integrate.dblquad(f, 0, 2 * np.pi, 0, np.pi,
+                                            epsabs=1e-2, epsrel=1e-2)
+
+        return intensity
+
     def calculate_diffraction_pattern_evenly_spaced(
             self,
             form_factors: Mapping[int, FormFactorProtocol],
