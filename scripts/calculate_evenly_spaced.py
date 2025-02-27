@@ -34,8 +34,8 @@ basis = file_reading.read_basis(BASIS_FILE)
 unit_cell = UnitCell.new_unit_cell(basis, lattice)
 diff = DiffractionMonteCarlo(unit_cell,
                              1.23,
-                             min_angle_deg=18,
-                             max_angle_deg=60)
+                             min_angle_deg=43,
+                             max_angle_deg=48)
 
 if CALCULATE_SPECTRUM:
 
@@ -57,7 +57,7 @@ if CALCULATE_SPECTRUM:
         diff.calculate_diffraction_pattern_evenly_spaced(
             nd_form_factors,
             unit_cell_reps=(20, 20, 20),
-            num_angles=200,
+            num_angles=50,
             points_per_angle=10000))
     np.savetxt('two_thetas.txt', two_thetas)
     np.savetxt('intensities.txt', intensities)
