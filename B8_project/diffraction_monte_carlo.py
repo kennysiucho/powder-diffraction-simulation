@@ -645,6 +645,48 @@ class DiffractionMonteCarlo:
 
         return two_thetas, intensities
 
+    def _compute_intensity(
+            self,
+            vecs: np.ndarray,
+            form_factors: Mapping[int, FormFactorProtocol],
+            unit_cell_pos: np.ndarray,
+            atom_pos_in_uc: np.ndarray,
+            atoms_in_uc: np.ndarray):
+        """
+        Computes the intensity for one scattering angle using given scattering vectors.
+        """
+        dot_products_lattice = np.einsum("ik,jk", vecs, unit_cell_pos)
+
+        # exp_terms.shape = (# trials filtered, # unit cells)
+        exp_terms_lattice = np.exp(1j * dot_products_lattice)
+
+        # structure_factors_lattice.shape = (# trials filtered,)
+        structure_factors_lattice = np.sum(exp_terms_lattice, axis=1)
+
+        # Compute basis portion of structure factors
+        # scattering_vecs.shape = (# trials filtered, 3)
+        # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
+        # dot_products_lattice.shape = (# trials filtered, # atoms in a unit cell)
+        dot_products_basis = np.einsum("ik,jk", vecs, atom_pos_in_uc)
+
+        # form_factors_basis.shape = (# trials filtered, # atoms in a unit cell)
+        form_factors_basis = np.stack(
+            [form_factors[atom].evaluate_form_factors(vecs) for atom in
+             atoms_in_uc],
+            axis=1)
+
+        # exp_terms.shape = (# trials filtered, # atoms in a unit cell)
+        exps = np.exp(1j * dot_products_basis)
+        exp_terms_basis = np.multiply(form_factors_basis, exps)
+
+        # structure_factors_basis.shape = (# trials filtered,)
+        structure_factors_basis = np.sum(exp_terms_basis, axis=1)
+
+        structure_factors = np.multiply(structure_factors_lattice,
+                                        structure_factors_basis)
+        intensity_batch = np.abs(structure_factors) ** 2
+        return np.sum(intensity_batch)
+
     def calculate_diffraction_pattern_evenly_spaced(
             self,
             form_factors: Mapping[int, FormFactorProtocol],
@@ -687,40 +729,11 @@ class DiffractionMonteCarlo:
             if i % (num_angles // 20) == 0:
                 eta = (time.time() - start_time) / i * (num_angles - i) if i != 0 else -1
                 print(f"Angles evaluated: {i}/{num_angles}, time remaining: {eta:.0f}s")
-
             vecs, _ = self._get_uniform_scattering_vecs_and_angles_single(
                 points_per_angle, ang)
-            dot_products_lattice = np.einsum("ik,jk", vecs, unit_cell_pos)
-
-            # exp_terms.shape = (# trials filtered, # unit cells)
-            exp_terms_lattice = np.exp(1j * dot_products_lattice)
-
-            # structure_factors_lattice.shape = (# trials filtered,)
-            structure_factors_lattice = np.sum(exp_terms_lattice, axis=1)
-
-            # Compute basis portion of structure factors
-            # scattering_vecs.shape = (# trials filtered, 3)
-            # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
-            # dot_products_lattice.shape = (# trials filtered, # atoms in a unit cell)
-            dot_products_basis = np.einsum("ik,jk", vecs, atom_pos_in_uc)
-
-            # form_factors_basis.shape = (# trials filtered, # atoms in a unit cell)
-            form_factors_basis = np.stack(
-                [form_factors[atom].evaluate_form_factors(vecs) for atom in
-                 atoms_in_uc],
-                axis=1)
-
-            # exp_terms.shape = (# trials filtered, # atoms in a unit cell)
-            exps = np.exp(1j * dot_products_basis)
-            exp_terms_basis = np.multiply(form_factors_basis, exps)
-
-            # structure_factors_basis.shape = (# trials filtered,)
-            structure_factors_basis = np.sum(exp_terms_basis, axis=1)
-
-            structure_factors = np.multiply(structure_factors_lattice,
-                                            structure_factors_basis)
-            intensity_batch = np.abs(structure_factors) ** 2
-            intensities[i] = np.sum(intensity_batch)
+            intensities[i] = self._compute_intensity(
+                vecs, form_factors, unit_cell_pos, atom_pos_in_uc, atoms_in_uc
+            )
 
         intensities /= np.max(intensities)
 
