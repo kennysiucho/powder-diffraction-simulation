@@ -13,7 +13,7 @@ Classes
     A class to calculate diffraction patterns, with different optimizations
     based on the type of crystal
 """
-
+import heapq
 import time
 from dataclasses import dataclass
 from typing import Mapping, Callable
@@ -402,7 +402,9 @@ class DiffractionMonteCarlo:
         two_thetas : (angle_bins,) ndarray
             The left edges of the bins, evenly spaced within angle range specified
         intensities : (angle_bins,) ndarray
-            Intensity calculated for each bin
+            Intensity calculated for each bin\
+        stream : ndarray
+            Top 10000 intensity data points
         """
         two_thetas = np.linspace(self._min_angle_deg, self._max_angle_deg,
                                  angle_bins + 1)[:-1]
@@ -413,6 +415,7 @@ class DiffractionMonteCarlo:
         atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
 
         stats = DiffractionMonteCarloRunStats()
+        stream = TopIntensityStream(10000)
 
         while stats.accepted_data_points < target_accepted_trials:
 
@@ -468,6 +471,11 @@ class DiffractionMonteCarlo:
             stats.total_trials += two_thetas_batch.shape[0]
             stats.accepted_data_points += two_thetas_batch.shape[0]
 
+            # Add to stream
+            for i, inten in enumerate(intensity_batch):
+                stream.add(scattering_vecs[i][0], scattering_vecs[i][1],
+                           scattering_vecs[i][2], inten)
+
         if weighted:
             # Re-normalize intensity distribution
             renormalization = np.ones_like(intensities)
@@ -477,7 +485,7 @@ class DiffractionMonteCarlo:
 
         intensities /= np.max(intensities)
 
-        return two_thetas, intensities
+        return two_thetas, intensities, np.array(stream.get_top_n())
 
     def calculate_diffraction_pattern_random_occupation(
             self,
@@ -610,3 +618,18 @@ class DiffractionMonteCarlo:
         intensities /= np.max(intensities)
 
         return two_thetas, intensities
+
+class TopIntensityStream:
+    def __init__(self, N):
+        self.N = N
+        self.heap = []  # Min-heap to store top N elements
+
+    def add(self, x, y, z, f):
+        data_point = (x, y, z, f)
+        if len(self.heap) < self.N:
+            heapq.heappush(self.heap, (f, data_point))
+        elif f > self.heap[0][0]:
+            heapq.heappushpop(self.heap, (f, data_point))
+
+    def get_top_n(self):
+        return [point for _, point in sorted(self.heap, reverse=True)]
