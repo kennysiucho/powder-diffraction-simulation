@@ -737,6 +737,73 @@ class DiffractionMonteCarlo:
 
         return intensity
 
+    @staticmethod
+    def identify_local_maxima_sorted(Z):
+        """
+        Identifies the local maxima in a 2D array Z using scipy's maximum_filter and
+        returns a sorted list of indices based on the height of the maxima, from highest
+        to lowest.
+        """
+        # Apply a maximum filter to the 2D array (3x3 neighborhood)
+        local_maxima = (Z == scipy.ndimage.maximum_filter(Z, size=3))  # Local maxima mask
+        local_maxima_indices = np.array(
+            np.where(local_maxima))  # (2, N) array of indices
+        values_at_maxima = Z[local_maxima_indices[0], local_maxima_indices[1]]
+        sorted_indices = local_maxima_indices[:, np.argsort(values_at_maxima)[::-1]]
+        # Return the sorted indices as a list of tuples (row, col)
+        return list(map(tuple, sorted_indices.T))
+
+    def get_peaks(
+            self,
+            two_theta: float,
+            form_factors: Mapping[int, FormFactorProtocol],
+            unit_cell_pos: np.ndarray,
+            atom_pos_in_uc: np.ndarray,
+            atoms_in_uc: np.ndarray):
+        theta_vals = np.linspace(0, np.pi, 500)
+        phi_vals = np.linspace(0, 2 * np.pi, 500)
+        Theta, Phi = np.meshgrid(theta_vals, phi_vals)
+
+        f_vals = np.vectorize(lambda t, p: self.intensity_over_sphere(
+            t, p, two_theta, form_factors, unit_cell_pos, atom_pos_in_uc, atoms_in_uc
+        ))(Theta, Phi)
+
+        print("f_val done")
+        peaks = self.identify_local_maxima_sorted(f_vals)
+        print("peaks done")
+        theta_phi = [(Theta[i, j], Phi[i, j]) for i, j in peaks]
+        return theta_phi
+
+    def _compute_intensity_subdomain(
+            self,
+            two_theta: float,
+            form_factors: Mapping[int, FormFactorProtocol],
+            unit_cell_pos: np.ndarray,
+            atom_pos_in_uc: np.ndarray,
+            atoms_in_uc: np.ndarray):
+        peaks = self.get_peaks(two_theta, form_factors, unit_cell_pos, atom_pos_in_uc,
+                               atoms_in_uc)
+        def f(theta, phi):
+            return self.intensity_over_sphere(
+                theta, phi, two_theta, form_factors, unit_cell_pos, atom_pos_in_uc, atoms_in_uc
+            )
+
+        intensity = 0.
+        eps = 0.2
+        for i, (theta, phi) in enumerate(peaks[:50]):
+            too_close = False
+            for j in range(i):
+                if abs(theta - peaks[j][0]) <= eps and abs(phi - peaks[j][1]) <= eps:
+                    too_close = True
+                    break
+            if too_close:
+                continue
+            res, abserr = scipy.integrate.dblquad(f, phi - eps , phi + eps, theta - eps, theta + eps,
+                                            epsabs=1e-2, epsrel=1e-2)
+            print(i, res, abserr)
+            intensity += res
+        return intensity
+
     def calculate_diffraction_pattern_evenly_spaced(
             self,
             form_factors: Mapping[int, FormFactorProtocol],
