@@ -3,6 +3,7 @@ This script calculates the diffraction peaks for PrO2 using Monte Carlo and plot
 spectrum.
 """
 
+import time
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,9 +32,10 @@ else:
 # pdf = WeightingFunction.uniform
 # pdf = WeightingFunction.natural_distribution
 
+
 if CALCULATE_SPECTRUM:
-    LATTICE_FILE = "data/GaAs_lattice.csv"
-    BASIS_FILE = "data/GaAs_basis.csv"
+    LATTICE_FILE = "data/PrO2_lattice.csv"
+    BASIS_FILE = "data/PrO2_basis.csv"
 
     lattice = file_reading.read_lattice(LATTICE_FILE)
     basis = file_reading.read_basis(BASIS_FILE)
@@ -41,35 +43,37 @@ if CALCULATE_SPECTRUM:
     unit_cell = unit_cell.UnitCell.new_unit_cell(basis, lattice)
     diff = DiffractionMonteCarlo(unit_cell,
                                  1.23,
-                                 min_angle_deg=18,
-                                 max_angle_deg=60)
+                                 min_angle_deg=42,
+                                 max_angle_deg=50)
 
     all_nd_form_factors = file_reading.read_neutron_scattering_lengths(
         "data/neutron_scattering_lengths.csv")
     nd_form_factors = {}
     for atom in diff.unit_cell.atoms:
         nd_form_factors[atom.atomic_number] = all_nd_form_factors[atom.atomic_number]
-    nd_form_factors[49] = all_nd_form_factors[49]
+    # nd_form_factors[49] = all_nd_form_factors[49]
 
-    all_xray_form_factors = file_reading.read_xray_form_factors(
-        "data/x_ray_form_factors.csv")
-    xrd_form_factors = {}
-    for atom in diff.unit_cell.atoms:
-        xrd_form_factors[atom.atomic_number] = all_xray_form_factors[atom.atomic_number]
-    xrd_form_factors[49] = all_xray_form_factors[49]
+    # all_xray_form_factors = file_reading.read_xray_form_factors(
+    #     "data/x_ray_form_factors.csv")
+    # xrd_form_factors = {}
+    # for atom in diff.unit_cell.atoms:
+    #     xrd_form_factors[atom.atomic_number] = all_xray_form_factors[atom.atomic_number]
+    # xrd_form_factors[49] = all_xray_form_factors[49]
 
     # diffraction.set_pdf(pdf)
+    start_time = time.time()
 
-    two_thetas, intensities = (
+    two_thetas, intensities, _, _ = (
         diff.calculate_diffraction_pattern_ideal_crystal(
-            xrd_form_factors,
+            nd_form_factors,
             target_accepted_trials=10_000_000,
-            unit_cell_reps=(10, 10, 10),
+            unit_cell_reps=(20, 20, 20),
             trials_per_batch=1000,
-            angle_bins=200,
+            angle_bins=100,
             weighted=False))
     np.savetxt('two_thetas.txt', two_thetas)
     np.savetxt('intensities.txt', intensities)
+    print(f"Total run time = {time.time() - start_time}s")
 else:
     two_thetas = np.loadtxt("two_thetas.txt")
     intensities = np.loadtxt("intensities.txt")
