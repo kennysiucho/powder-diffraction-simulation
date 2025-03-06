@@ -361,6 +361,49 @@ class DiffractionMonteCarlo:
 
         return two_thetas, intensities
 
+    def compute_intensities_ideal_crystal(
+            self,
+            scattering_vecs: np.ndarray,
+            unit_cell_pos: np.ndarray,
+            atom_pos_in_uc: np.ndarray,
+            atoms_in_uc: np.ndarray,
+            form_factors: Mapping[int, FormFactorProtocol],
+    ):
+        # Compute intensities
+        # scattering_vecs.shape = (# trials filtered, 3)
+        # unit_cell_pos.shape = (# unit cells, 3)
+        # dot_products_lattice.shape = (# trials filtered, # unit cells)
+        dot_products_lattice = np.einsum("ik,jk", scattering_vecs, unit_cell_pos)
+
+        # exp_terms.shape = (# trials filtered, # unit cells)
+        exp_terms_lattice = np.exp(1j * dot_products_lattice)
+
+        # structure_factors_lattice.shape = (# trials filtered,)
+        structure_factors_lattice = np.sum(exp_terms_lattice, axis=1)
+
+        # Compute basis portion of structure factors
+        # scattering_vecs.shape = (# trials filtered, 3)
+        # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
+        # dot_products_lattice.shape = (# trials filtered, # atoms in a unit cell)
+        dot_products_basis = np.einsum("ik,jk", scattering_vecs, atom_pos_in_uc)
+
+        # form_factors_basis.shape = (# trials filtered, # atoms in a unit cell)
+        form_factors_basis = np.stack(
+            [form_factors[atom].evaluate_form_factors(scattering_vecs) for atom in
+             atoms_in_uc],
+            axis=1)
+
+        # exp_terms.shape = (# trials filtered, # atoms in a unit cell)
+        exps = np.exp(1j * dot_products_basis)
+        exp_terms_basis = np.multiply(form_factors_basis, exps)
+
+        # structure_factors_basis.shape = (# trials filtered,)
+        structure_factors_basis = np.sum(exp_terms_basis, axis=1)
+
+        structure_factors = np.multiply(structure_factors_lattice,
+                                        structure_factors_basis)
+        intensities = np.abs(structure_factors) ** 2
+        return intensities
 
     def calculate_diffraction_pattern_ideal_crystal(
             self,
@@ -369,7 +412,8 @@ class DiffractionMonteCarlo:
             trials_per_batch: int = 1000,
             unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
             angle_bins: int = 100,
-            weighted: bool=False):
+            weighted: bool = False,
+            num_top: int = 40000):
         """
         Calculates the neutron diffraction spectrum using a Monte Carlo method,
         assuming the crystal consists of the same unit cell throughout (ideal crystal).
@@ -396,6 +440,8 @@ class DiffractionMonteCarlo:
         weighted : bool
             Whether to draw scattering vectors from a sphere or via inverse transform
             sampling using pdf.
+        num_top : int
+            The top num_top scattering trials in intensity will be returned in stream.
 
         Returns
         -------
@@ -405,17 +451,20 @@ class DiffractionMonteCarlo:
             Intensity calculated for each bin\
         stream : ndarray
             Top 10000 intensity data points
+        counts : ndarray
+            Number of trials in each angle bin
         """
         two_thetas = np.linspace(self._min_angle_deg, self._max_angle_deg,
                                  angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
+        counts = np.zeros(angle_bins)
 
         unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
 
         atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
 
         stats = DiffractionMonteCarloRunStats()
-        stream = TopIntensityStream(10000)
+        stream = TopIntensityStream(40000)
 
         while stats.accepted_data_points < target_accepted_trials:
 
@@ -430,43 +479,17 @@ class DiffractionMonteCarlo:
                 scattering_vecs, two_thetas_batch = (
                     self._get_scattering_vecs_and_angles(trials_per_batch))
 
-            # Compute lattice portion of structure factors
-            # scattering_vecs.shape = (# trials filtered, 3)
-            # unit_cell_pos.shape = (# unit cells, 3)
-            # dot_products_lattice.shape = (# trials filtered, # unit cells)
-            dot_products_lattice = np.einsum("ik,jk", scattering_vecs, unit_cell_pos)
-
-            # exp_terms.shape = (# trials filtered, # unit cells)
-            exp_terms_lattice = np.exp(1j * dot_products_lattice)
-
-            # structure_factors_lattice.shape = (# trials filtered,)
-            structure_factors_lattice = np.sum(exp_terms_lattice, axis=1)
-
-            # Compute basis portion of structure factors
-            # scattering_vecs.shape = (# trials filtered, 3)
-            # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
-            # dot_products_lattice.shape = (# trials filtered, # atoms in a unit cell)
-            dot_products_basis = np.einsum("ik,jk", scattering_vecs, atom_pos_in_uc)
-
-            # form_factors_basis.shape = (# trials filtered, # atoms in a unit cell)
-            form_factors_basis = np.stack(
-                [form_factors[atom].evaluate_form_factors(scattering_vecs) for atom in
-                 atoms_in_uc],
-                axis=1)
-
-            # exp_terms.shape = (# trials filtered, # atoms in a unit cell)
-            exps = np.exp(1j * dot_products_basis)
-            exp_terms_basis = np.multiply(form_factors_basis, exps)
-
-            # structure_factors_basis.shape = (# trials filtered,)
-            structure_factors_basis = np.sum(exp_terms_basis, axis=1)
-
-            structure_factors = np.multiply(structure_factors_lattice,
-                                            structure_factors_basis)
-            intensity_batch = np.abs(structure_factors) ** 2
+            intensity_batch = self.compute_intensities_ideal_crystal(
+                scattering_vecs,
+                unit_cell_pos,
+                atom_pos_in_uc,
+                atoms_in_uc,
+                form_factors
+            )
 
             bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
+            counts += np.bincount(bins, minlength=counts.shape[0])
 
             stats.total_trials += two_thetas_batch.shape[0]
             stats.accepted_data_points += two_thetas_batch.shape[0]
@@ -483,9 +506,56 @@ class DiffractionMonteCarlo:
             renormalization *= WeightingFunction.natural_distribution(two_thetas)
             intensities *= renormalization
 
-        intensities /= np.max(intensities)
+        # intensities /= np.max(intensities)
 
-        return two_thetas, intensities, np.array(stream.get_top_n())
+        return two_thetas, intensities, np.array(stream.get_top_n()), counts
+
+    def neighborhood_intensity_ideal_crystal(
+            self,
+            points: np.ndarray,
+            two_thetas: np.ndarray,
+            form_factors: Mapping[int, FormFactorProtocol],
+            unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
+            sigma: float=0.05,
+            cnt_per_point: int=100
+    ):
+        intensities = np.zeros_like(two_thetas, dtype=float)
+        counts = np.zeros_like(two_thetas, dtype=int)
+        covariance = [[sigma**2, 0, 0],
+                      [0, sigma**2, 0],
+                      [0, 0, sigma**2]]
+        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
+        atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
+        start_time = time.time()
+        for i, point in enumerate(points):
+            # Sample less for smaller intensity - need weird renormalization
+            # cnt = round(cnt_per_point * (intensities_orig[i] / intensities_orig[0])**0.4)
+            cnt = cnt_per_point
+            if i % 1000 == 0:
+                print(f"Resampled {i}/{len(points)} points, cnt={cnt}, µs per trial="
+                f"{(time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)}")
+            scattering_vecs = np.random.multivariate_normal(point, covariance, cnt)
+            ks = np.linalg.norm(scattering_vecs, axis=1)
+            two_thetas_batch = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
+            # Some vectors may be out of range after resampling from Gaussian
+            in_angle_range = np.logical_and(two_thetas_batch > self._min_angle_deg,
+                                            two_thetas_batch < self._max_angle_deg)
+            scattering_vecs = scattering_vecs[in_angle_range]
+            two_thetas_batch = two_thetas_batch[in_angle_range]
+
+            intensity_batch = self.compute_intensities_ideal_crystal(
+                scattering_vecs,
+                unit_cell_pos,
+                atom_pos_in_uc,
+                atoms_in_uc,
+                form_factors
+            )
+
+            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
+            intensities[bins] += intensity_batch
+            counts += np.bincount(bins, minlength=counts.shape[0])
+
+        return intensities, counts
 
     def calculate_diffraction_pattern_random_occupation(
             self,
