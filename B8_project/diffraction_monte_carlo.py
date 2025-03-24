@@ -361,14 +361,17 @@ class DiffractionMonteCarlo:
 
         return two_thetas, intensities
 
+    @staticmethod
     def compute_intensities_ideal_crystal(
-            self,
             scattering_vecs: np.ndarray,
             unit_cell_pos: np.ndarray,
             atom_pos_in_uc: np.ndarray,
             atoms_in_uc: np.ndarray,
             form_factors: Mapping[int, FormFactorProtocol],
     ):
+        """
+        Computes the intensities for each scattering vector.
+        """
         # Compute intensities
         # scattering_vecs.shape = (# trials filtered, 3)
         # unit_cell_pos.shape = (# unit cells, 3)
@@ -464,7 +467,7 @@ class DiffractionMonteCarlo:
         atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
 
         stats = DiffractionMonteCarloRunStats()
-        stream = TopIntensityStream(40000)
+        stream = TopIntensityStream(num_top)
 
         while stats.accepted_data_points < target_accepted_trials:
 
@@ -479,7 +482,7 @@ class DiffractionMonteCarlo:
                 scattering_vecs, two_thetas_batch = (
                     self._get_scattering_vecs_and_angles(trials_per_batch))
 
-            intensity_batch = self.compute_intensities_ideal_crystal(
+            intensity_batch = DiffractionMonteCarlo.compute_intensities_ideal_crystal(
                 scattering_vecs,
                 unit_cell_pos,
                 atom_pos_in_uc,
@@ -557,6 +560,70 @@ class DiffractionMonteCarlo:
 
         return intensities, counts
 
+    @staticmethod
+    def compute_intensities_random_occupation(
+            scattering_vecs: np.ndarray,
+            unit_cell_pos: np.ndarray,
+            atom_pos_in_uc: np.ndarray,
+            atomic_numbers_vars: list[np.ndarray],
+            probs: list[float],
+            form_factors: Mapping[int, FormFactorProtocol],
+            rng: np.random.Generator
+    ):
+        """
+        Computes the intensities for each scattering vector.
+        """
+        # Compute basis portion of structure factors
+        # scattering_vecs.shape = (# trials filtered, 3)
+        # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
+        # dot_products_basis.shape = (# trials filtered, # atoms in a unit cell)
+        dot_products_basis = np.einsum("ik,jk", scattering_vecs, atom_pos_in_uc)
+
+        # form_factors_vars.shape = (# trials, varieties, # atoms in unit cell)
+        # atomic_numbers_vars.shape = (varieties, # atoms in unit cell)
+        form_factors_evaluated = {}
+        for atomic_number, form_factor in form_factors.items():
+            form_factors_evaluated[atomic_number] = (
+                form_factor.evaluate_form_factors(scattering_vecs))
+        form_factors_vars = np.array([[form_factors_evaluated[atom] for atom in
+                                       uc] for uc in atomic_numbers_vars])
+        form_factors_vars = np.transpose(form_factors_vars, axes=(2, 0, 1))
+
+        # exp_terms.shape = (# trials filtered, varieties, # atoms in a unit cell)
+        exps = np.exp(1j * dot_products_basis)
+        exp_terms_basis = np.einsum("ik,ijk->ijk", exps,
+                                    form_factors_vars)
+
+        # structure_factors_basis.shape = (# trials filtered, varieties)
+        structure_factors_basis = np.sum(exp_terms_basis, axis=2)
+
+        # Compute lattice portion of structure factors
+        # scattering_vecs.shape = (# trials filtered, 3)
+        # unit_cell_pos.shape = (# unit cells, 3)
+        # dot_products_lattice.shape = (# trials filtered, # unit cells)
+        dot_products_lattice = np.einsum("ik,jk", scattering_vecs, unit_cell_pos)
+
+        # exp_terms_lattice.shape = (# trials filtered, # unit cells)
+        exp_terms_lattice = np.exp(1j * dot_products_lattice)
+
+        # Each term of the lattice structure factor is multiplied with the basis
+        # structure factor of one of the unit cells
+
+        # structure_factors_basis.shape = (# trials filtered, varieties)
+        # structure_factors_basis_random.shape = (# trials filtered, # unit cells)
+        n_unit_cells = unit_cell_pos.shape[0]
+        n_uc_varieties = len(atomic_numbers_vars)
+        random_indices = rng.choice(np.arange(n_uc_varieties), size=n_unit_cells,
+                                    p=probs)
+        structure_factors_basis_random = structure_factors_basis[:, random_indices]
+
+        # structure_factors_lattice.shape = (# trials filtered,)
+        structure_factors = np.sum(
+            np.multiply(exp_terms_lattice, structure_factors_basis_random), axis=1)
+
+        intensities = np.abs(structure_factors) ** 2
+        return intensities
+
     def calculate_diffraction_pattern_random_occupation(
             self,
             atom_from: int,
@@ -566,7 +633,8 @@ class DiffractionMonteCarlo:
             target_accepted_trials: int = 5000,
             trials_per_batch: int = 1000,
             unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
-            angle_bins: int = 100):
+            angle_bins: int = 100,
+            num_top: int = 40000):
         """
         Calculates the neutron diffraction spectrum using a Monte Carlo method for a
         random occupation crystal.
@@ -594,6 +662,8 @@ class DiffractionMonteCarlo:
             crystal powder for diffraction.
         angle_bins : int
             Number of bins for scattering angles
+        num_top : int
+            The top num_top scattering trials in intensity will be returned in stream.
 
         Returns
         -------
@@ -601,10 +671,15 @@ class DiffractionMonteCarlo:
             The left edges of the bins, evenly spaced within angle range specified
         intensities : (angle_bins,) ndarray
             Intensity calculated for each bin
+        stream : ndarray
+            Top 10000 intensity data points
+        counts : ndarray
+            Number of trials in each angle bin
         """
         two_thetas = np.linspace(self._min_angle_deg, self._max_angle_deg,
                                  angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
+        counts = np.zeros(angle_bins)
 
         unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
 
@@ -617,6 +692,7 @@ class DiffractionMonteCarlo:
             = uc_vars.atomic_number_lists()
 
         stats = DiffractionMonteCarloRunStats()
+        stream = TopIntensityStream(num_top)
 
         rng = np.random.default_rng() # A NumPy Random Generator
 
@@ -629,65 +705,89 @@ class DiffractionMonteCarlo:
             scattering_vecs, two_thetas_batch = self._get_scattering_vecs_and_angles(
                 trials_per_batch)
 
-            # Compute basis portion of structure factors
-            # scattering_vecs.shape = (# trials filtered, 3)
-            # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
-            # dot_products_basis.shape = (# trials filtered, # atoms in a unit cell)
-            dot_products_basis = np.einsum("ik,jk", scattering_vecs, atom_pos_in_uc)
+            intensity_batch = DiffractionMonteCarlo.compute_intensities_random_occupation(
+                scattering_vecs,
+                unit_cell_pos,
+                atom_pos_in_uc,
+                atomic_numbers_vars,
+                probs,
+                form_factors,
+                rng
+            )
 
-            # form_factors_vars.shape = (# trials, varieties, # atoms in unit cell)
-            # atomic_numbers_vars.shape = (varieties, # atoms in unit cell)
-            form_factors_evaluated = {}
-            for atomic_number, form_factor in form_factors.items():
-                form_factors_evaluated[atomic_number] = (
-                    form_factor.evaluate_form_factors(scattering_vecs))
-            form_factors_vars = np.array([[form_factors_evaluated[atom] for atom in
-                                           uc] for uc in atomic_numbers_vars])
-            form_factors_vars = np.transpose(form_factors_vars, axes=(2,0,1))
-
-            # exp_terms.shape = (# trials filtered, varieties, # atoms in a unit cell)
-            exps = np.exp(1j * dot_products_basis)
-            exp_terms_basis = np.einsum("ik,ijk->ijk", exps,
-                                        form_factors_vars)
-
-            # structure_factors_basis.shape = (# trials filtered, varieties)
-            structure_factors_basis = np.sum(exp_terms_basis, axis=2)
-
-            # Compute lattice portion of structure factors
-            # scattering_vecs.shape = (# trials filtered, 3)
-            # unit_cell_pos.shape = (# unit cells, 3)
-            # dot_products_lattice.shape = (# trials filtered, # unit cells)
-            dot_products_lattice = np.einsum("ik,jk", scattering_vecs, unit_cell_pos)
-
-            # exp_terms_lattice.shape = (# trials filtered, # unit cells)
-            exp_terms_lattice = np.exp(1j * dot_products_lattice)
-
-            # Each term of the lattice structure factor is multiplied with the basis
-            # structure factor of one of the unit cells
-
-            # structure_factors_basis.shape = (# trials filtered, varieties)
-            # structure_factors_basis_random.shape = (# trials filtered, # unit cells)
-            n_unit_cells = unit_cell_pos.shape[0]
-            n_uc_varieties = len(atomic_numbers_vars)
-            random_indices = rng.choice(np.arange(n_uc_varieties), size=n_unit_cells,
-                                        p=probs)
-            structure_factors_basis_random = structure_factors_basis[:, random_indices]
-
-            # structure_factors_lattice.shape = (# trials filtered,)
-            structure_factors = np.sum(
-                np.multiply(exp_terms_lattice, structure_factors_basis_random), axis=1)
-
-            intensity_batch = np.abs(structure_factors) ** 2
+            # Add to stream
+            for i, inten in enumerate(intensity_batch):
+                stream.add(scattering_vecs[i][0], scattering_vecs[i][1],
+                           scattering_vecs[i][2], inten)
 
             bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
+            counts += np.bincount(bins, minlength=counts.shape[0])
 
             stats.total_trials += two_thetas_batch.shape[0]
             stats.accepted_data_points += two_thetas_batch.shape[0]
 
-        intensities /= np.max(intensities)
+        # intensities /= np.max(intensities)
 
-        return two_thetas, intensities
+        return two_thetas, intensities, np.array(stream.get_top_n()), counts
+
+    def neighborhood_intensity_random_occupation(
+            self,
+            atom_from: int,
+            atom_to: int,
+            probability: float,
+            points: np.ndarray,
+            two_thetas: np.ndarray,
+            form_factors: Mapping[int, FormFactorProtocol],
+            unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
+            sigma: float=0.05,
+            cnt_per_point: int=100
+    ):
+        intensities = np.zeros_like(two_thetas, dtype=float)
+        counts = np.zeros_like(two_thetas, dtype=int)
+        covariance = [[sigma**2, 0, 0],
+                      [0, sigma**2, 0],
+                      [0, 0, sigma**2]]
+        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
+        _, atom_pos_in_uc = self._atoms_and_pos_in_uc()
+        uc_vars = UnitCellVarieties(self.unit_cell,
+                                    ReplacementProbability(atom_from, atom_to,
+                                                           probability))
+        atomic_numbers_vars, probs \
+            = uc_vars.atomic_number_lists()
+        rng = np.random.default_rng()
+        start_time = time.time()
+        for i, point in enumerate(points):
+            # Sample less for smaller intensity - need weird renormalization
+            # cnt = round(cnt_per_point * (intensities_orig[i] / intensities_orig[0])**0.4)
+            cnt = cnt_per_point
+            if i % 1000 == 0:
+                print(f"Resampled {i}/{len(points)} points, cnt={cnt}, µs per trial="
+                f"{(time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)}")
+            scattering_vecs = np.random.multivariate_normal(point, covariance, cnt)
+            ks = np.linalg.norm(scattering_vecs, axis=1)
+            two_thetas_batch = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
+            # Some vectors may be out of range after resampling from Gaussian
+            in_angle_range = np.logical_and(two_thetas_batch > self._min_angle_deg,
+                                            two_thetas_batch < self._max_angle_deg)
+            scattering_vecs = scattering_vecs[in_angle_range]
+            two_thetas_batch = two_thetas_batch[in_angle_range]
+
+            intensity_batch = DiffractionMonteCarlo.compute_intensities_random_occupation(
+                scattering_vecs,
+                unit_cell_pos,
+                atom_pos_in_uc,
+                atomic_numbers_vars,
+                probs,
+                form_factors,
+                rng
+            )
+
+            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
+            intensities[bins] += intensity_batch
+            counts += np.bincount(bins, minlength=counts.shape[0])
+
+        return intensities, counts
 
 class TopIntensityStream:
     def __init__(self, N):
