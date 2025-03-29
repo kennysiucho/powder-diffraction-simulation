@@ -535,8 +535,10 @@ class DiffractionMonteCarlo:
             # cnt = round(cnt_per_point * (intensities_orig[i] / intensities_orig[0])**0.4)
             cnt = cnt_per_point
             if i % 1000 == 0:
+                per_trial = (time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)
                 print(f"Resampled {i}/{len(points)} points, cnt={cnt}, µs per trial="
-                f"{(time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)}")
+                f"{per_trial:.1f}, "
+                f"Time remaining={(per_trial * (len(points) - i) * cnt_per_point / 1e6):.0f}s")
             scattering_vecs = np.random.multivariate_normal(point, covariance, cnt)
             ks = np.linalg.norm(scattering_vecs, axis=1)
             two_thetas_batch = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
@@ -762,8 +764,10 @@ class DiffractionMonteCarlo:
             # cnt = round(cnt_per_point * (intensities_orig[i] / intensities_orig[0])**0.4)
             cnt = cnt_per_point
             if i % 1000 == 0:
+                per_trial = (time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)
                 print(f"Resampled {i}/{len(points)} points, cnt={cnt}, µs per trial="
-                f"{(time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)}")
+                      f"{per_trial:.1f}, "
+                      f"Time remaining={(per_trial * (len(points) - i) * cnt_per_point / 1e6):.0f}s")
             scattering_vecs = np.random.multivariate_normal(point, covariance, cnt)
             ks = np.linalg.norm(scattering_vecs, axis=1)
             two_thetas_batch = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
