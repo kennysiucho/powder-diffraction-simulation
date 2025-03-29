@@ -31,16 +31,17 @@ if CALCULATE_SPECTRUM:
 
     unit_cell = unit_cell.UnitCell.new_unit_cell(basis, lattice)
 
-    CONC = 0.6
+    CONC = 0.
     lat = 5.94863082 + CONC * (6.27514229 - 5.94863082)
     unit_cell.lattice_constants = (lat, lat, lat)
     print("Lattice constants:", unit_cell.lattice_constants)
 
     diff = DiffractionMonteCarlo(unit_cell,
                                  1.54,
-                                 min_angle_deg=30,
-                                 max_angle_deg=40)
+                                 min_angle_deg=25,
+                                 max_angle_deg=42)
 
+    # TODO: improve UI for reading form factors
     # all_nd_form_factors = file_reading.read_neutron_scattering_lengths(
     #     "data/neutron_scattering_lengths.csv")
     #     # nd_form_factors = {}
@@ -62,14 +63,12 @@ if CALCULATE_SPECTRUM:
 
     two_thetas, intensities, top, counts = (
         diff.calculate_diffraction_pattern_random_occupation(
-            atom_from,
-            atom_to,
-            prob,
+            atom_from, atom_to, prob,
             xrd_form_factors,
             target_accepted_trials=6_000_000,
             unit_cell_reps=(8, 8, 8),
             trials_per_batch=1000,
-            angle_bins=100))
+            angle_bins=200))
     plt.plot(two_thetas, intensities)
     plt.show()
     plt.plot(two_thetas, counts)
@@ -83,9 +82,7 @@ if CALCULATE_SPECTRUM:
     plt.plot(top[:, 3])
     plt.show()
     intensities_neigh, counts_neigh = diff.neighborhood_intensity_random_occupation(
-        atom_from,
-        atom_to,
-        prob,
+        atom_from, atom_to, prob,
         top[:, 0:3],
         two_thetas,
         xrd_form_factors,
@@ -115,7 +112,7 @@ plt.axhline(0, linestyle="--", color="grey")
 plt.xlabel("Scattering angle (2θ) (deg)")
 plt.ylabel("Intensity")
 # plt.title("In_0.25Ga_0.75As Neutron Diffraction Spectrum")
-plt.title("CsPbI3 XRD Diffraction Spectrum")
+plt.title("CsPbBr3 XRD Diffraction Spectrum")
 plt.legend()
 plt.grid(linestyle=":")
 plt.show()
