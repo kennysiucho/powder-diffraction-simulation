@@ -22,11 +22,6 @@ if two_thetas_file.is_file() or intensities_file.is_file():
 else:
     CALCULATE_SPECTRUM = True
 
-# pdf = WeightingFunction.get_gaussians_at_peaks(
-#         [21.72, 25.13, 35.84, 42.3, 51.58, 56.6], 0.4, 1)
-# pdf = WeightingFunction.uniform
-# pdf = WeightingFunction.natural_distribution
-
 if CALCULATE_SPECTRUM:
     LATTICE_FILE = "data/CsPbBr3_lattice.csv"
     BASIS_FILE = "data/CsPbBr3_basis.csv"
@@ -60,7 +55,6 @@ if CALCULATE_SPECTRUM:
         xrd_form_factors[atom.atomic_number] = all_xray_form_factors[atom.atomic_number]
     xrd_form_factors[53] = all_xray_form_factors[53]
 
-    # diffraction.set_pdf(pdf)
 
     start_time = time.time()
 
