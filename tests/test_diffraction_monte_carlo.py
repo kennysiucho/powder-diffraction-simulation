@@ -333,14 +333,16 @@ def test_diffraction_spectrum_known_vecs(
             atoms.append(Atom(atom.atomic_number, uc_pos + np.array(atom.position) *
                               diffraction_monte_carlo_gaas.unit_cell.lattice_constants))
 
-    two_thetas, intensities = (
+    two_thetas, intensities, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern(
             atoms,
             ingaas_nd_form_factors,
             target_accepted_trials=4,
             trials_per_batch=4,
-            angle_bins=9
+            angle_bins=9,
+            weighted=False
         ))
+    intensities /= np.max(intensities)
 
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
     expected_structure_factors = np.array([5.664, 5.664,
@@ -374,21 +376,25 @@ def test_monte_carlo_calculate_diffraction_pattern(
                               diffraction_monte_carlo_nacl.unit_cell.lattice_constants))
 
     # Run one batch of 10 trials without any filtering based on angle or intensity
-    two_thetas, intensities = diffraction_monte_carlo_nacl.calculate_diffraction_pattern(
+    two_thetas, intensities, _, _ \
+        = diffraction_monte_carlo_nacl.calculate_diffraction_pattern(
         atoms,
         nacl_nd_form_factors,
         target_accepted_trials=10,
         trials_per_batch=10,
-        angle_bins=9
+        angle_bins=9,
+        weighted=False
     )
 
+    intensities /= np.max(intensities)
+
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
-    expected_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
+    expected_normed_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
                                      3.824213e-05, 7.736132e-06, 0.000000e+00,
                                      0.000000e+00, 1.000000e+00, 1.699957e-05])
 
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
-    nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
+    nptest.assert_allclose(intensities, expected_normed_intensities, rtol=1e-6)
 
 def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
         diffraction_monte_carlo_nacl, nacl_nd_form_factors, mocker):
@@ -401,22 +407,25 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
         side_effect=[random_unit_vectors_1, random_unit_vectors_2],
     )
 
-    two_thetas, intensities = (
+    two_thetas, intensities, _, _ = (
         diffraction_monte_carlo_nacl.calculate_diffraction_pattern_ideal_crystal(
             nacl_nd_form_factors,
             target_accepted_trials=10,
             trials_per_batch=10,
             unit_cell_reps=(8, 8, 8),
-            angle_bins=9
+            angle_bins=9,
+            weighted=False
         ))
 
+    intensities /= np.max(intensities)
+
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
-    expected_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
+    expected_normed_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
                                      3.824213e-05, 7.736132e-06, 0.000000e+00,
                                      0.000000e+00, 1.000000e+00, 1.699957e-05])
 
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
-    nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
+    nptest.assert_allclose(intensities, expected_normed_intensities, rtol=1e-6)
 
 def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
         diffraction_monte_carlo_gaas, ingaas_nd_form_factors, mocker):
@@ -432,16 +441,17 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
                      random_uvs1, random_uvs2],
     )
 
-    _, intensities_ideal = (
+    _, intensities_ideal, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern_ideal_crystal(
             ingaas_nd_form_factors,
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(8, 8, 8),
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         ))
 
-    _, intensities_random = (
+    _, intensities_random, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern_random_occupation(
             31,
             49,
@@ -450,7 +460,8 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(8, 8, 8),
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         ))
 
     nptest.assert_allclose(intensities_ideal, intensities_random)
@@ -477,23 +488,25 @@ def test_ideal_crystal_matches_list(
             atoms.append(Atom(atom.atomic_number, uc_pos + np.array(atom.position) *
                               diffraction_monte_carlo_gaas.unit_cell.lattice_constants))
 
-    _, intensities_list = (
+    _, intensities_list, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern(
             atoms,
             ingaas_nd_form_factors,
             target_accepted_trials=1000,
             trials_per_batch=1000,
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         )
     )
 
-    _, intensities_ideal = (
+    _, intensities_ideal, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern_ideal_crystal(
             ingaas_nd_form_factors,
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(8, 8, 8),
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         ))
 
     nptest.assert_allclose(intensities_list, intensities_ideal)
@@ -528,17 +541,18 @@ def test_random_occupation_matches_list(diffraction_monte_carlo_gaas,
                 atoms.append(Atom(atom.atomic_number, uc_pos + np.array(atom.position) *
                                   diffraction_monte_carlo_gaas.unit_cell.lattice_constants))
 
-    _, intensities_list = (
+    _, intensities_list, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern(
             atoms,
             ingaas_nd_form_factors,
             target_accepted_trials=1000,
             trials_per_batch=1000,
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         )
     )
 
-    _, intensities_random = (
+    _, intensities_random, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern_random_occupation(
             31,
             49,
@@ -547,7 +561,8 @@ def test_random_occupation_matches_list(diffraction_monte_carlo_gaas,
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(2, 2, 2),
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         )
     )
 
