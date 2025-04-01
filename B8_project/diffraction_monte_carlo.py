@@ -380,6 +380,7 @@ class DiffractionMonteCarlo:
                                       target_accepted_trials: int = 5000,
                                       trials_per_batch: int = 1000,
                                       angle_bins: int = 100,
+                                      weighted: bool = True,
                                       num_top: int = 40000):
         """
         Calculates the neutron diffraction spectrum using a Monte Carlo method.
@@ -402,6 +403,9 @@ class DiffractionMonteCarlo:
             Number of trials calculated at once using NumPy methods.
         angle_bins : int
             Number of bins for scattering angles.
+        weighted : bool
+            Whether to draw scattering vectors from a sphere or via inverse transform
+            sampling using pdf.
         num_top : int
             The top num_top scattering trials in intensity will be returned in stream.
 
@@ -410,9 +414,9 @@ class DiffractionMonteCarlo:
         two_thetas : (angle_bins,) ndarray
             the left edges of the bins, evenly spaced within angle range specified
         intensities : (angle_bins,) ndarray
-            intensity calculated for each bin
+            intensity calculated for each bin (not normalized)
         stream : ndarray
-            Top 10000 intensity data points
+            Top num_top intensity data points
         counts : ndarray
             Number of trials in each angle bin
         """
@@ -433,8 +437,12 @@ class DiffractionMonteCarlo:
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            scattering_vecs, two_thetas_batch = (
-                self._get_scattering_vecs_and_angles(trials_per_batch))
+            if weighted:
+                scattering_vecs, two_thetas_batch = (
+                    self._get_scattering_vecs_and_angles_weighted(trials_per_batch))
+            else:
+                scattering_vecs, two_thetas_batch = (
+                    self._get_scattering_vecs_and_angles(trials_per_batch))
 
             intensity_batch = DiffractionMonteCarlo.compute_intensities(
                 scattering_vecs, all_atom_pos, all_atoms, form_factors
@@ -451,8 +459,6 @@ class DiffractionMonteCarlo:
             for i, inten in enumerate(intensity_batch):
                 stream.add(scattering_vecs[i][0], scattering_vecs[i][1],
                            scattering_vecs[i][2], inten)
-
-        intensities /= np.max(intensities)
 
         return two_thetas, intensities, np.array(stream.get_top_n()), counts
 
@@ -537,7 +543,7 @@ class DiffractionMonteCarlo:
         Returns
         -------
         intensities : (angle_bins,) ndarray
-            intensity calculated for each bin
+            intensity calculated for each bin (not normalized)
         counts : (angle_bins,) ndarray
             Number of resampled vectors in each bin. Mostly for diagnostics.
         """
@@ -668,9 +674,9 @@ class DiffractionMonteCarlo:
         two_thetas : (angle_bins,) ndarray
             The left edges of the bins, evenly spaced within angle range specified
         intensities : (angle_bins,) ndarray
-            Intensity calculated for each bin\
+            Intensity calculated for each bin (not normalized)
         stream : ndarray
-            Top 10000 intensity data points
+            Top num_top intensity data points
         counts : ndarray
             Number of trials in each angle bin
         """
@@ -725,8 +731,6 @@ class DiffractionMonteCarlo:
             renormalization /= self._pdf(two_thetas)
             renormalization *= WeightingFunction.natural_distribution(two_thetas)
             intensities *= renormalization
-
-        # intensities /= np.max(intensities)
 
         return two_thetas, intensities, np.array(stream.get_top_n()), counts
 
@@ -817,7 +821,7 @@ class DiffractionMonteCarlo:
         Returns
         -------
         intensities : (angle_bins,) ndarray
-            intensity calculated for each bin
+            intensity calculated for each bin (not normalized)
         counts : (angle_bins,) ndarray
             Number of resampled vectors in each bin. Mostly for diagnostics.
         """
@@ -933,6 +937,7 @@ class DiffractionMonteCarlo:
             trials_per_batch: int = 1000,
             unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
             angle_bins: int = 100,
+            weighted: bool = True,
             num_top: int = 40000):
         """
         Calculates the neutron diffraction spectrum using a Monte Carlo method for a
@@ -961,6 +966,9 @@ class DiffractionMonteCarlo:
             crystal powder for diffraction.
         angle_bins : int
             Number of bins for scattering angles
+        weighted : bool
+            Whether to draw scattering vectors from a sphere or via inverse transform
+            sampling using pdf.
         num_top : int
             The top num_top scattering trials in intensity will be returned in stream.
 
@@ -969,9 +977,9 @@ class DiffractionMonteCarlo:
         two_thetas : (angle_bins,) ndarray
             The left edges of the bins, evenly spaced within angle range specified
         intensities : (angle_bins,) ndarray
-            Intensity calculated for each bin
+            Intensity calculated for each bin (not normalized)
         stream : ndarray
-            Top 10000 intensity data points
+            Top num_top intensity data points
         counts : ndarray
             Number of trials in each angle bin
         """
@@ -1001,8 +1009,12 @@ class DiffractionMonteCarlo:
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            scattering_vecs, two_thetas_batch = self._get_scattering_vecs_and_angles(
-                trials_per_batch)
+            if weighted:
+                scattering_vecs, two_thetas_batch = (
+                    self._get_scattering_vecs_and_angles_weighted(trials_per_batch))
+            else:
+                scattering_vecs, two_thetas_batch = (
+                    self._get_scattering_vecs_and_angles(trials_per_batch))
 
             intensity_batch = DiffractionMonteCarlo.compute_intensities_random_occupation(
                 scattering_vecs,
@@ -1025,8 +1037,6 @@ class DiffractionMonteCarlo:
 
             stats.total_trials += two_thetas_batch.shape[0]
             stats.accepted_data_points += two_thetas_batch.shape[0]
-
-        # intensities /= np.max(intensities)
 
         return two_thetas, intensities, np.array(stream.get_top_n()), counts
 
@@ -1127,7 +1137,7 @@ class DiffractionMonteCarlo:
         Returns
         -------
         intensities : (angle_bins,) ndarray
-            intensity calculated for each bin
+            intensity calculated for each bin (not normalized)
         counts : (angle_bins,) ndarray
             Number of resampled vectors in each bin. Mostly for diagnostics.
         """
