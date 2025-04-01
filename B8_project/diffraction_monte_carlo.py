@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from typing import Mapping, Callable
 import numpy as np
 import scipy
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 from B8_project import utils
 from B8_project.crystal import Atom, UnitCell, UnitCellVarieties, ReplacementProbability
 from B8_project.form_factor import FormFactorProtocol
@@ -272,6 +274,69 @@ class DiffractionMonteCarlo:
         scattering_vecs = magnitudes[:, np.newaxis] * unit_vecs
         return scattering_vecs, two_thetas
 
+    def _plot_diagnostics(
+            self,
+            two_thetas: np.ndarray,
+            two_theta_cnts: np.ndarray,
+            spectrum: np.ndarray,
+            top_trials: np.ndarray | None
+    ):
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 6),
+                                            gridspec_kw={'width_ratios': [1, 1, 1.5]})
+        # brute-force diffraction spectrum
+        ax1.plot(two_thetas, spectrum)
+        ax1.set_ylim(bottom=0)
+        ax1.set_xlabel("Scattering angle (2θ) (deg)")
+        ax1.set_ylabel("Intensity")
+        ax1.set_title("Brute-force diffraction pattern")
+        ax1.grid(linestyle=":")
+
+        # Intensity of the top trials - tests for enough decay
+        if top_trials is not None:
+            ax2.plot(top_trials[:, 3])
+        ax2.set_ylim(bottom=0)
+        ax2.set_xlabel("Top trial #")
+        ax2.set_ylabel("Intensity")
+        ax2.set_title(
+            "Intensity should decay enough that subsequent trials are negligible")
+
+        if top_trials is not None:
+            # Create a second y-axis for the hexbin
+            ax3_2 = ax3.twinx()
+            ax3_2.zorder = 1
+            ax3.zorder = 2
+            ax3.patch.set_visible(False)
+            ks = np.linalg.norm(top_trials[:, 0:3], axis=1)
+            two_thetas_top = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
+            bins = np.searchsorted(two_thetas, two_thetas_top) - 1
+            top_distribution = np.bincount(bins, minlength=len(two_thetas)) / len(
+                two_thetas_top)
+            # Hexbin plot
+            hb = ax3_2.hexbin(two_thetas_top, top_trials[:, 3], gridsize=80, cmap='YlOrRd',
+                            norm=LogNorm())
+            cb = plt.colorbar(hb, ax=ax3_2, pad=0.15)
+            cb.set_label('Count')
+            ax3_2.set_ylabel('Intensity')
+            # Histogram of two_thetas for the top trials
+            ax3.plot(two_thetas, top_distribution, label='Top trials',
+                     color='C1')
+
+        # Histogram of two_thetas for all trials
+        ax3.plot(two_thetas, two_theta_cnts / np.sum(two_theta_cnts),
+                   label='All trials', color='C0')
+        ax3.set_ylim(bottom=0)
+        ax3.set_xlabel('Two Theta')
+        ax3.set_ylabel('Frequency')
+        ax3.legend()
+
+        if top_trials is None:
+            ax3.set_title('Histogram of angles of all trials')
+        else:
+            ax3.set_title('Histograms of angles of all/top trials w/ scatter plot')
+
+        plt.tight_layout()
+        plt.show()
+
     @staticmethod
     def compute_intensities(
             scattering_vecs: np.ndarray,
@@ -314,7 +379,8 @@ class DiffractionMonteCarlo:
                                       form_factors: Mapping[int, FormFactorProtocol],
                                       target_accepted_trials: int = 5000,
                                       trials_per_batch: int = 1000,
-                                      angle_bins: int = 100):
+                                      angle_bins: int = 100,
+                                      num_top: int = 40000):
         """
         Calculates the neutron diffraction spectrum using a Monte Carlo method.
 
@@ -336,6 +402,8 @@ class DiffractionMonteCarlo:
             Number of trials calculated at once using NumPy methods.
         angle_bins : int
             Number of bins for scattering angles.
+        num_top : int
+            The top num_top scattering trials in intensity will be returned in stream.
 
         Returns
         -------
@@ -343,12 +411,18 @@ class DiffractionMonteCarlo:
             the left edges of the bins, evenly spaced within angle range specified
         intensities : (angle_bins,) ndarray
             intensity calculated for each bin
+        stream : ndarray
+            Top 10000 intensity data points
+        counts : ndarray
+            Number of trials in each angle bin
         """
         two_thetas = np.linspace(self._min_angle_deg, self._max_angle_deg,
                                  angle_bins + 1)[:-1]
         intensities = np.zeros(angle_bins)
+        counts = np.zeros(angle_bins)
 
         stats = DiffractionMonteCarloRunStats()
+        stream = TopIntensityStream(num_top)
 
         all_atom_pos = np.array([np.array(atom.position) for atom in atoms])
         all_atoms = np.array([atom.atomic_number for atom in atoms])
@@ -368,20 +442,72 @@ class DiffractionMonteCarlo:
 
             bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
+            counts += np.bincount(bins, minlength=counts.shape[0])
 
             stats.total_trials += two_thetas_batch.shape[0]
             stats.accepted_data_points += two_thetas_batch.shape[0]
 
+            # Add to stream
+            for i, inten in enumerate(intensity_batch):
+                stream.add(scattering_vecs[i][0], scattering_vecs[i][1],
+                           scattering_vecs[i][2], inten)
+
         intensities /= np.max(intensities)
 
-        return two_thetas, intensities
+        return two_thetas, intensities, np.array(stream.get_top_n()), counts
+
+    def calculate_neighborhood_diffraction_pattern(
+            self,
+            atoms: list[Atom],
+            form_factors: Mapping[int, FormFactorProtocol],
+            angle_bins: int = 100,
+            brute_force_trials: int = 1_000_000,
+            num_top: int = 40000,
+            resample_cnt: int = 100,
+            sigma: float = 0.05,
+            plot_diagnostics: bool = False
+    ):
+        two_thetas, intensities, top, counts = (
+            self.calculate_diffraction_pattern(
+                atoms,
+                form_factors,
+                target_accepted_trials=brute_force_trials,
+                trials_per_batch=1000,
+                angle_bins=angle_bins,
+                num_top=num_top))
+
+        if plot_diagnostics:
+            self._plot_diagnostics(
+                two_thetas,
+                counts,
+                intensities,
+                top
+            )
+
+        intensities_neigh, counts_neigh = self.neighborhood_intensity(
+            top[:, 0:3],
+            two_thetas,
+            atoms,
+            form_factors,
+            sigma=sigma,
+            cnt_per_point=resample_cnt
+        )
+
+        if plot_diagnostics:
+            self._plot_diagnostics(
+                two_thetas,
+                counts_neigh,
+                intensities_neigh,
+                None
+            )
+
+        return two_thetas, intensities_neigh
 
     def neighborhood_intensity(
             self,
             points: np.ndarray,
             two_thetas: np.ndarray,
-            all_atom_pos: np.ndarray,
-            all_atoms: np.ndarray,
+            atoms: list[Atom],
             form_factors: Mapping[int, FormFactorProtocol],
             sigma: float=0.05,
             cnt_per_point: int=100
@@ -398,10 +524,8 @@ class DiffractionMonteCarlo:
             contributions to the diffraction spectrum.
         two_thetas : np.ndarray
             Left edges of angle bins.
-        all_atom_pos : np.ndarray
-            List of positions of the atoms.
-        all_atoms : np.ndarray
-            List of the atomic numbers of the atoms.
+        atoms : list[Atoms]
+            List of all atoms in crystal.
         form_factors : Mapping[int, FormFactorProtocol]
             Dictionary mapping atomic number to associated NeutronFormFactor or
             XRayFormFactor.
@@ -417,6 +541,8 @@ class DiffractionMonteCarlo:
         counts : (angle_bins,) ndarray
             Number of resampled vectors in each bin. Mostly for diagnostics.
         """
+        all_atom_pos = np.array([np.array(atom.position) for atom in atoms])
+        all_atoms = np.array([atom.atomic_number for atom in atoms])
         intensities = np.zeros_like(two_thetas, dtype=float)
         counts = np.zeros_like(two_thetas, dtype=int)
         covariance = [[sigma ** 2, 0, 0],
@@ -603,6 +729,58 @@ class DiffractionMonteCarlo:
         # intensities /= np.max(intensities)
 
         return two_thetas, intensities, np.array(stream.get_top_n()), counts
+
+    def calculate_neighborhood_diffraction_pattern_ideal_crystal(
+            self,
+            form_factors: Mapping[int, FormFactorProtocol],
+            angle_bins: int = 100,
+            brute_force_uc_reps: tuple[int, int, int] = (8, 8, 8),
+            neighbor_uc_reps: tuple[int, int, int] = (20, 20, 20),
+            brute_force_trials: int = 1_000_000,
+            num_top: int = 40000,
+            resample_cnt: int = 100,
+            weighted: bool = False,
+            sigma: float = 0.05,
+            plot_diagnostics: bool = False
+    ):
+        # TODO: condense these parameters into a dictionary? BruteParameters &
+        # TODO: NeighborParameters
+        two_thetas, intensities, top, counts = (
+            self.calculate_diffraction_pattern_ideal_crystal(
+                form_factors,
+                target_accepted_trials=brute_force_trials,
+                trials_per_batch=1000,
+                unit_cell_reps=brute_force_uc_reps,
+                angle_bins=angle_bins,
+                weighted=weighted,
+                num_top=num_top))
+
+        if plot_diagnostics:
+            self._plot_diagnostics(
+                two_thetas,
+                counts,
+                intensities,
+                top
+            )
+
+        intensities_neigh, counts_neigh = self.neighborhood_intensity_ideal_crystal(
+            top[:, 0:3],
+            two_thetas,
+            form_factors,
+            unit_cell_reps=neighbor_uc_reps,
+            sigma=sigma,
+            cnt_per_point=resample_cnt
+        )
+
+        if plot_diagnostics:
+            self._plot_diagnostics(
+                two_thetas,
+                counts_neigh,
+                intensities_neigh,
+                None
+            )
+
+        return two_thetas, intensities_neigh
 
     def neighborhood_intensity_ideal_crystal(
             self,
@@ -851,6 +1029,59 @@ class DiffractionMonteCarlo:
         # intensities /= np.max(intensities)
 
         return two_thetas, intensities, np.array(stream.get_top_n()), counts
+
+    def calculate_neighborhood_diffraction_pattern_random_occupation(
+            self,
+            atom_from: int,
+            atom_to: int,
+            probability: float,
+            form_factors: Mapping[int, FormFactorProtocol],
+            angle_bins: int = 100,
+            brute_force_uc_reps: tuple[int, int, int] = (8, 8, 8),
+            neighbor_uc_reps: tuple[int, int, int] = (20, 20, 20),
+            brute_force_trials: int = 1_000_000,
+            num_top: int = 40000,
+            resample_cnt: int = 100,
+            sigma: float = 0.05,
+            plot_diagnostics: bool = False
+    ):
+        two_thetas, intensities, top, counts = (
+            self.calculate_diffraction_pattern_random_occupation(
+                atom_from, atom_to, probability,
+                form_factors,
+                target_accepted_trials=brute_force_trials,
+                trials_per_batch=1000,
+                unit_cell_reps=brute_force_uc_reps,
+                angle_bins=angle_bins,
+                num_top=num_top))
+
+        if plot_diagnostics:
+            self._plot_diagnostics(
+                two_thetas,
+                counts,
+                intensities,
+                top
+            )
+
+        intensities_neigh, counts_neigh = self.neighborhood_intensity_random_occupation(
+            atom_from, atom_to, probability,
+            top[:, 0:3],
+            two_thetas,
+            form_factors,
+            unit_cell_reps=neighbor_uc_reps,
+            sigma=sigma,
+            cnt_per_point=resample_cnt
+        )
+
+        if plot_diagnostics:
+            self._plot_diagnostics(
+                two_thetas,
+                counts_neigh,
+                intensities_neigh,
+                None
+            )
+
+        return two_thetas, intensities_neigh
 
     def neighborhood_intensity_random_occupation(
             self,
