@@ -272,6 +272,43 @@ class DiffractionMonteCarlo:
         scattering_vecs = magnitudes[:, np.newaxis] * unit_vecs
         return scattering_vecs, two_thetas
 
+    @staticmethod
+    def compute_intensities(
+            scattering_vecs: np.ndarray,
+            all_atom_pos: np.ndarray,
+            all_atoms: np.ndarray,
+            form_factors: Mapping[int, FormFactorProtocol]
+    ):
+        """
+        Computes the intensities for each scattering vector.
+        """
+        # all_atom_pos.shape = (n_atoms, 3)
+        # all_scattering_lengths = (n_atoms,)
+        # scattering_vec.shape = (batch_trials, 3)
+        # structure_factors.shape = (batch_trials, )
+        # k•r[i, j] = scattering_vec[i][k] • all_atom_pos[j][k]
+
+        # dot_products.shape = (# trials after filter, n_atoms)
+        dot_products = np.einsum("ik,jk", scattering_vecs, all_atom_pos)
+
+        # Evaluate form factors for each element
+        form_factors_evaluated = {}
+        for atomic_number, form_factor in form_factors.items():
+            form_factors_evaluated[atomic_number] = (
+                form_factor.evaluate_form_factors(scattering_vecs))
+        all_form_factors = np.array([form_factors_evaluated[atom] for atom in
+                                     all_atoms]).T
+
+        # exp_terms.shape = (# trials, n_atoms)
+        exps = np.exp(1j * dot_products)
+        exp_terms = np.multiply(all_form_factors, exps)
+
+        # structure_factors.shape = (# trials, )
+        structure_factors = np.sum(exp_terms, axis=1)
+
+        intensities = np.abs(structure_factors) ** 2
+        return intensities
+
     def calculate_diffraction_pattern(self,
                                       atoms: list[Atom],
                                       form_factors: Mapping[int, FormFactorProtocol],
@@ -325,31 +362,9 @@ class DiffractionMonteCarlo:
             scattering_vecs, two_thetas_batch = (
                 self._get_scattering_vecs_and_angles(trials_per_batch))
 
-            # all_atom_pos.shape = (n_atoms, 3)
-            # all_scattering_lengths = (n_atoms,)
-            # scattering_vec.shape = (batch_trials, 3)
-            # structure_factors.shape = (batch_trials, )
-            # k•r[i, j] = scattering_vec[i][k] • all_atom_pos[j][k]
-
-            # dot_products.shape = (# trials after filter, n_atoms)
-            dot_products = np.einsum("ik,jk", scattering_vecs, all_atom_pos)
-
-            # Evaluate form factors for each element
-            form_factors_evaluated = {}
-            for atomic_number, form_factor in form_factors.items():
-                form_factors_evaluated[atomic_number] = (
-                    form_factor.evaluate_form_factors(scattering_vecs))
-            all_form_factors = np.array([form_factors_evaluated[atom] for atom in
-                                         all_atoms]).T
-
-            # exp_terms.shape = (# trials, n_atoms)
-            exps = np.exp(1j * dot_products)
-            exp_terms = np.multiply(all_form_factors, exps)
-
-            # structure_factors.shape = (# trials, )
-            structure_factors = np.sum(exp_terms, axis=1)
-
-            intensity_batch = np.abs(structure_factors)**2
+            intensity_batch = DiffractionMonteCarlo.compute_intensities(
+                scattering_vecs, all_atom_pos, all_atoms, form_factors
+            )
 
             bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
