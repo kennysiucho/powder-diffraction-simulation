@@ -386,6 +386,37 @@ class DiffractionMonteCarlo:
             sigma: float=0.05,
             cnt_per_point: int=100
     ):
+        """
+        Calculates the diffraction spectrum by randomly sampling near the supplied
+        points (scattering vectors), which are assumed to those with the largest
+        contributions to the diffraction spectrum.
+
+        Parameters
+        ----------
+        points : np.ndarray
+            List of scattering vectors. Assumed to be those with the largest
+            contributions to the diffraction spectrum.
+        two_thetas : np.ndarray
+            Left edges of angle bins.
+        all_atom_pos : np.ndarray
+            List of positions of the atoms.
+        all_atoms : np.ndarray
+            List of the atomic numbers of the atoms.
+        form_factors : Mapping[int, FormFactorProtocol]
+            Dictionary mapping atomic number to associated NeutronFormFactor or
+            XRayFormFactor.
+        sigma : float
+            Standard deviation of the 3D Gaussian for sampling around supplied points.
+        cnt_per_point : int
+            How many vectors to sample around each supplied point.
+
+        Returns
+        -------
+        intensities : (angle_bins,) ndarray
+            intensity calculated for each bin
+        counts : (angle_bins,) ndarray
+            Number of resampled vectors in each bin. Mostly for diagnostics.
+        """
         intensities = np.zeros_like(two_thetas, dtype=float)
         counts = np.zeros_like(two_thetas, dtype=int)
         covariance = [[sigma ** 2, 0, 0],
@@ -582,6 +613,36 @@ class DiffractionMonteCarlo:
             sigma: float=0.05,
             cnt_per_point: int=100
     ):
+        """
+        Calculates the diffraction spectrum by randomly sampling near the supplied
+        points (scattering vectors), which are assumed to those with the largest
+        contributions to the diffraction spectrum.
+
+        Parameters
+        ----------
+        points : np.ndarray
+            List of scattering vectors. Assumed to be those with the largest
+            contributions to the diffraction spectrum.
+        two_thetas : np.ndarray
+            Left edges of angle bins.
+        form_factors : Mapping[int, FormFactorProtocol]
+            Dictionary mapping atomic number to associated NeutronFormFactor or
+            XRayFormFactor.
+        unit_cell_reps : tuple[int, int, int]
+            How many times to repeat the unit cell in x, y, z directions, forming the
+            crystal powder for diffraction.
+        sigma : float
+            Standard deviation of the 3D Gaussian for sampling around supplied points.
+        cnt_per_point : int
+            How many vectors to sample around each supplied point.
+
+        Returns
+        -------
+        intensities : (angle_bins,) ndarray
+            intensity calculated for each bin
+        counts : (angle_bins,) ndarray
+            Number of resampled vectors in each bin. Mostly for diagnostics.
+        """
         intensities = np.zeros_like(two_thetas, dtype=float)
         counts = np.zeros_like(two_thetas, dtype=int)
         covariance = [[sigma**2, 0, 0],
@@ -803,6 +864,42 @@ class DiffractionMonteCarlo:
             sigma: float=0.05,
             cnt_per_point: int=100
     ):
+        """
+        Calculates the diffraction spectrum by randomly sampling near the supplied
+        points (scattering vectors), which are assumed to those with the largest
+        contributions to the diffraction spectrum.
+
+        Parameters
+        ----------
+        atom_from : int
+            Atomic number of the element to be substituted out.
+        atom_to : int
+            Atomic number of the element to be substituted in.
+        probability : float
+            Probability for an atom to be substituted.
+        points : np.ndarray
+            List of scattering vectors. Assumed to be those with the largest
+            contributions to the diffraction spectrum.
+        two_thetas : np.ndarray
+            Left edges of angle bins.
+        form_factors : Mapping[int, FormFactorProtocol]
+            Dictionary mapping atomic number to associated NeutronFormFactor or
+            XRayFormFactor.
+        unit_cell_reps : tuple[int, int, int]
+            How many times to repeat the unit cell in x, y, z directions, forming the
+            crystal powder for diffraction.
+        sigma : float
+            Standard deviation of the 3D Gaussian for sampling around supplied points.
+        cnt_per_point : int
+            How many vectors to sample around each supplied point.
+
+        Returns
+        -------
+        intensities : (angle_bins,) ndarray
+            intensity calculated for each bin
+        counts : (angle_bins,) ndarray
+            Number of resampled vectors in each bin. Mostly for diagnostics.
+        """
         intensities = np.zeros_like(two_thetas, dtype=float)
         counts = np.zeros_like(two_thetas, dtype=int)
         covariance = [[sigma**2, 0, 0],
