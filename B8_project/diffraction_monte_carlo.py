@@ -531,8 +531,6 @@ class DiffractionMonteCarlo:
         atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
         start_time = time.time()
         for i, point in enumerate(points):
-            # Sample less for smaller intensity - need weird renormalization
-            # cnt = round(cnt_per_point * (intensities_orig[i] / intensities_orig[0])**0.4)
             cnt = cnt_per_point
             if i % 1000 == 0:
                 per_trial = (time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)
@@ -760,8 +758,6 @@ class DiffractionMonteCarlo:
         rng = np.random.default_rng()
         start_time = time.time()
         for i, point in enumerate(points):
-            # Sample less for smaller intensity - need weird renormalization
-            # cnt = round(cnt_per_point * (intensities_orig[i] / intensities_orig[0])**0.4)
             cnt = cnt_per_point
             if i % 1000 == 0:
                 per_trial = (time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)
