@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from B8_project import file_reading
 import B8_project.crystal as unit_cell
-from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo, WeightingFunction
+from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo
 
 two_thetas_file = Path("two_thetas.txt")
 intensities_file = Path("intensities.txt")
@@ -61,54 +61,34 @@ if CALCULATE_SPECTRUM:
 
     atom_from, atom_to, prob = 35, 53, CONC
 
-    two_thetas, intensities, top, counts = (
-        diff.calculate_diffraction_pattern_random_occupation(
-            atom_from, atom_to, prob,
-            xrd_form_factors,
-            target_accepted_trials=6_000_000,
-            unit_cell_reps=(8, 8, 8),
-            trials_per_batch=1000,
-            angle_bins=200))
-    plt.plot(two_thetas, intensities)
-    plt.show()
-    plt.plot(two_thetas, counts)
-    plt.show()
-    ks = np.linalg.norm(top[:, 0:3], axis=1)
-    two_thetas_batch = np.degrees(np.arcsin(ks / 2 / diff.k()) * 2)
-    plt.hist(two_thetas_batch, bins=100)
-    plt.show()
-    plt.scatter(two_thetas_batch, top[:, 3], s=2)
-    plt.show()
-    plt.plot(top[:, 3])
-    plt.show()
-    intensities_neigh, counts_neigh = diff.neighborhood_intensity_random_occupation(
+    two_thetas, intensities = diff.calculate_neighborhood_diffraction_pattern_random_occupation(
         atom_from, atom_to, prob,
-        top[:, 0:3],
-        two_thetas,
         xrd_form_factors,
-        unit_cell_reps=(20, 20, 20),
-        cnt_per_point=80
+        angle_bins=200,
+        brute_force_uc_reps=(4, 4, 4),
+        neighbor_uc_reps=(8, 8, 8),
+        brute_force_trials=1_000_000,
+        num_top=10000,
+        resample_cnt=40,
+        plot_diagnostics=True
     )
-    plt.plot(two_thetas, counts_neigh)
-    plt.show()
-    # intensities_neigh *= WeightingFunction.natural_distribution(two_thetas) / counts_neigh
-    # intensities_neigh /= np.max(intensities_neigh)
-    print("Total neighbors sampled =", np.sum(counts_neigh))
+
+    # print("Total neighbors sampled =", np.sum(counts_neigh))
     print("Total run time =", time.time() - start_time, "s")
 
     np.savetxt('two_thetas.txt', two_thetas)
-    np.savetxt('intensities.txt', intensities_neigh)
+    np.savetxt('intensities.txt', intensities)
 else:
     two_thetas = np.loadtxt("two_thetas.txt")
-    intensities_neigh = np.loadtxt("intensities.txt")
+    intensities = np.loadtxt("intensities.txt")
 
 # two_thetas = two_thetas[::2]
 # intensities = (intensities[::2] + intensities[1::2]) / 2
 
-plt.scatter(two_thetas, intensities_neigh, s=3)
-plt.plot(two_thetas, intensities_neigh, color='k', label="Intensity")
+plt.scatter(two_thetas, intensities, s=3)
+plt.plot(two_thetas, intensities, color='k', label="Intensity")
 # plt.plot(two_thetas, pdf(two_thetas) / np.max(pdf(two_thetas)), "--", label="PDF")
-plt.axhline(0, linestyle="--", color="grey")
+plt.ylim(bottom=0)
 plt.xlabel("Scattering angle (2θ) (deg)")
 plt.ylabel("Intensity")
 # plt.title("In_0.25Ga_0.75As Neutron Diffraction Spectrum")
