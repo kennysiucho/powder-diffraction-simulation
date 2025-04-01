@@ -376,6 +376,51 @@ class DiffractionMonteCarlo:
 
         return two_thetas, intensities
 
+    def neighborhood_intensity(
+            self,
+            points: np.ndarray,
+            two_thetas: np.ndarray,
+            all_atom_pos: np.ndarray,
+            all_atoms: np.ndarray,
+            form_factors: Mapping[int, FormFactorProtocol],
+            sigma: float=0.05,
+            cnt_per_point: int=100
+    ):
+        intensities = np.zeros_like(two_thetas, dtype=float)
+        counts = np.zeros_like(two_thetas, dtype=int)
+        covariance = [[sigma ** 2, 0, 0],
+                      [0, sigma ** 2, 0],
+                      [0, 0, sigma ** 2]]
+        start_time = time.time()
+        for i, point in enumerate(points):
+            cnt = cnt_per_point
+            if i % 1000 == 0:
+                per_trial = (time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)
+                print(f"Resampled {i}/{len(points)} points, cnt={cnt}, µs per trial="
+                      f"{per_trial:.1f}, "
+                      f"Time remaining={(per_trial * (len(points) - i) * cnt_per_point / 1e6):.0f}s")
+            scattering_vecs = np.random.multivariate_normal(point, covariance, cnt)
+            ks = np.linalg.norm(scattering_vecs, axis=1)
+            two_thetas_batch = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
+            # Some vectors may be out of range after resampling from Gaussian
+            in_angle_range = np.logical_and(two_thetas_batch > self._min_angle_deg,
+                                            two_thetas_batch < self._max_angle_deg)
+            scattering_vecs = scattering_vecs[in_angle_range]
+            two_thetas_batch = two_thetas_batch[in_angle_range]
+
+            intensity_batch = self.compute_intensities(
+                scattering_vecs,
+                all_atom_pos,
+                all_atoms,
+                form_factors
+            )
+
+            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
+            intensities[bins] += intensity_batch
+            counts += np.bincount(bins, minlength=counts.shape[0])
+
+        return intensities, counts
+
     @staticmethod
     def compute_intensities_ideal_crystal(
             scattering_vecs: np.ndarray,
