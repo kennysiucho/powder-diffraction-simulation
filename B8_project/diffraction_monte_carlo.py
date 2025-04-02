@@ -470,6 +470,7 @@ class DiffractionMonteCarlo:
             brute_force_trials: int = 1_000_000,
             num_top: int = 40000,
             resample_cnt: int = 100,
+            weighted: bool = True,
             sigma: float = 0.05,
             plot_diagnostics: bool = False
     ):
@@ -480,7 +481,8 @@ class DiffractionMonteCarlo:
                 target_accepted_trials=brute_force_trials,
                 trials_per_batch=1000,
                 angle_bins=angle_bins,
-                num_top=num_top))
+                num_top=num_top,
+                weighted=weighted))
 
         if plot_diagnostics:
             self._plot_diagnostics(
@@ -1052,6 +1054,7 @@ class DiffractionMonteCarlo:
             brute_force_trials: int = 1_000_000,
             num_top: int = 40000,
             resample_cnt: int = 100,
+            weighted: bool = True,
             sigma: float = 0.05,
             plot_diagnostics: bool = False
     ):
@@ -1063,7 +1066,8 @@ class DiffractionMonteCarlo:
                 trials_per_batch=1000,
                 unit_cell_reps=brute_force_uc_reps,
                 angle_bins=angle_bins,
-                num_top=num_top))
+                num_top=num_top,
+                weighted=weighted))
 
         if plot_diagnostics:
             self._plot_diagnostics(
