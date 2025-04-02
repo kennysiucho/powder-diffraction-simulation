@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import scipy
 from B8_project.file_reading import read_lattice, read_basis, \
     read_neutron_scattering_lengths
-from B8_project.crystal import UnitCell, Atom
+from B8_project.crystal import UnitCell, Atom, UnitCellVarieties, ReplacementProbability
 from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo, WeightingFunction
 from B8_project import utils
 
@@ -58,6 +58,16 @@ scattering_angles_gaas = np.array([
     25.1336118,
     48.039411
 ])
+
+normal_offsets = np.array([
+    [0, 0, 0],
+    [0.05, 0, 0],
+    [0, -0.05, 0],
+    [0, 0, 0.03],
+    [0.1, 0.05, -0.1]
+])
+def mock_multivariate_normal(mean, cov, size):
+    return mean + normal_offsets[0:size]
 
 @pytest.fixture(name="diffraction_monte_carlo_nacl")
 def fixture_diffraction_monte_carlo_nacl():
@@ -313,8 +323,44 @@ def test_weighted_sampling_angles_gaussians(diffraction_monte_carlo_nacl):
     plt.legend()
     plt.show()
 
+@pytest.fixture(name="gaas_atom_list")
+def fixture_gaas_atom_list(diffraction_monte_carlo_gaas):
+    """
+    Returns list of Atoms for a (2x1x1)-rep GaAs crystal
+    """
+    unit_cell_pos = np.array([[0, 0, 0], [GAAS_A, 0, 0]])
+    atoms = []
+    for uc_pos in unit_cell_pos:
+        for atom in diffraction_monte_carlo_gaas.unit_cell.atoms:
+            atoms.append(Atom(atom.atomic_number, uc_pos + np.array(atom.position) *
+                              diffraction_monte_carlo_gaas.unit_cell.lattice_constants))
+    return atoms
+
+@pytest.fixture(name="gaas_atoms_pos_and_num")
+def fixture_gaas_atoms_pos_and_num(gaas_atom_list):
+    all_atom_pos = np.array([np.array(atom.position) for atom in gaas_atom_list])
+    all_atoms = np.array([atom.atomic_number for atom in gaas_atom_list])
+    return all_atom_pos, all_atoms
+
+def test_compute_intensities_arbitrary_known_vecs(
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors, gaas_atoms_pos_and_num
+):
+    """
+    Check calculation of intensities given hand-packed scattering vectors for arbitrary
+    crystal.
+    """
+    all_atom_pos, all_atoms = gaas_atoms_pos_and_num
+    intensities = diffraction_monte_carlo_gaas.compute_intensities(
+        scattering_vecs_gaas, all_atom_pos, all_atoms, ingaas_nd_form_factors
+    )
+    expected_structure_factors = np.array([5.664, 5.664,
+                                           1.16874088 - 6.47419018j, 0.])
+    expected_intensities = np.abs(expected_structure_factors)**2
+
+    nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6, atol=1e-8)
+
 def test_diffraction_spectrum_known_vecs(
-        diffraction_monte_carlo_gaas, ingaas_nd_form_factors, mocker):
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors, gaas_atom_list, mocker):
     """
     Check calculation of diffraction spectrum of crystal against manual calculation
     using hand-picked reciprocal lattice vectors.
@@ -325,22 +371,16 @@ def test_diffraction_spectrum_known_vecs(
         side_effect=[(scattering_vecs_gaas, scattering_angles_gaas)]
     )
 
-    # (2x1x1) unit cell reps
-    unit_cell_pos = np.array([[0, 0, 0], [GAAS_A, 0, 0]])
-    atoms = []
-    for uc_pos in unit_cell_pos:
-        for atom in diffraction_monte_carlo_gaas.unit_cell.atoms:
-            atoms.append(Atom(atom.atomic_number, uc_pos + np.array(atom.position) *
-                              diffraction_monte_carlo_gaas.unit_cell.lattice_constants))
-
-    two_thetas, intensities = (
+    two_thetas, intensities, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern(
-            atoms,
+            gaas_atom_list,
             ingaas_nd_form_factors,
             target_accepted_trials=4,
             trials_per_batch=4,
-            angle_bins=9
+            angle_bins=9,
+            weighted=False
         ))
+    intensities /= np.max(intensities)
 
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
     expected_structure_factors = np.array([5.664, 5.664,
@@ -374,21 +414,155 @@ def test_monte_carlo_calculate_diffraction_pattern(
                               diffraction_monte_carlo_nacl.unit_cell.lattice_constants))
 
     # Run one batch of 10 trials without any filtering based on angle or intensity
-    two_thetas, intensities = diffraction_monte_carlo_nacl.calculate_diffraction_pattern(
+    two_thetas, intensities, _, _ \
+        = diffraction_monte_carlo_nacl.calculate_diffraction_pattern(
         atoms,
         nacl_nd_form_factors,
         target_accepted_trials=10,
         trials_per_batch=10,
-        angle_bins=9
+        angle_bins=9,
+        weighted=False
     )
 
+    intensities /= np.max(intensities)
+
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
-    expected_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
+    expected_normed_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
                                      3.824213e-05, 7.736132e-06, 0.000000e+00,
                                      0.000000e+00, 1.000000e+00, 1.699957e-05])
 
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
-    nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
+    nptest.assert_allclose(intensities, expected_normed_intensities, rtol=1e-6)
+
+def test_neighborhood_intensity_arbitrary_crystal(
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors, gaas_atom_list, mocker
+):
+    """
+    Test calculation of neighborhood intensity given points to resample for arbitrary
+    crystal.
+    """
+    mocker.patch('numpy.random.multivariate_normal',
+                 side_effect=mock_multivariate_normal)
+
+    two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
+    intensities, counts = diffraction_monte_carlo_gaas.neighborhood_intensity(
+        scattering_vecs_gaas,
+        two_thetas,
+        gaas_atom_list,
+        ingaas_nd_form_factors,
+        sigma=0.05,
+        cnt_per_point=5
+    )
+
+    expected_intensities = np.array(
+        [0.00000000e+00, 1.01558111e+02, 1.60892739e-03, 0.00000000e+00,
+         0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+         0.00000000e+00])
+    expected_counts = np.array([0, 15, 5, 0, 0, 0, 0, 0, 0])
+    nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6, atol=1e-8)
+    nptest.assert_equal(counts, expected_counts)
+
+def test_neighborhood_spectrum_arbitrary_crystal(
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors, gaas_atom_list, mocker
+):
+    """
+    Test calculation of diffraction spectrum using neighborhood sampling method for
+    arbitrary crystal.
+    """
+    mocker.patch(
+        "B8_project.utils.random_uniform_unit_vectors",
+        side_effect=[random_unit_vectors_1, random_unit_vectors_2],
+    )
+    mocker.patch('numpy.random.multivariate_normal',
+                 side_effect=mock_multivariate_normal)
+
+    two_thetas, intensities = diffraction_monte_carlo_gaas.calculate_neighborhood_diffraction_pattern(
+        gaas_atom_list,
+        ingaas_nd_form_factors,
+        angle_bins=9,
+        brute_force_trials=10,
+        num_top=5,
+        resample_cnt=5,
+        weighted=False,
+        sigma=0.05,
+        plot_diagnostics=False
+    )
+    expected_two_thetas = np.array([0, 20, 40, 60, 80, 100, 120, 140, 160])
+    expected_intensities = np.array([
+        0., 0., 0., 2561.08533298, 1745.81467154,
+        0., 0., 3125.60321027, 0.
+    ])
+    nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6, atol=1e-8)
+    nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6, atol=1e-8)
+
+@pytest.fixture(name="ideal_crystal_gaas")
+def ideal_crystal_gaas_fixture():
+    """
+    Returns unit_cell_pos, atoms_in_uc, and atom_pos_in_uc for a ideal GaAs crystal of
+    (2x1x1) reps
+    """
+    unit_cell_pos = np.array([[0, 0, 0], [GAAS_A, 0, 0]])
+    atoms_in_uc = np.array([31, 31, 31, 31, 33, 33, 33, 33])
+    atom_pos_in_uc = GAAS_A * np.array([
+        [0., 0., 0.],
+        [0.5, 0.5, 0.],
+        [0.5, 0., 0.5],
+        [0., 0.5, 0.5],
+        [0.25, 0.25, 0.25],
+        [0.75, 0.75, 0.25],
+        [0.75, 0.25, 0.75],
+        [0.25, 0.75, 0.75]
+    ])
+    return unit_cell_pos, atoms_in_uc, atom_pos_in_uc
+
+@pytest.fixture(name="random_scattering_vecs_gaas")
+def fixture_random_scattering_vecs_gaas(diffraction_monte_carlo_gaas):
+    """
+    Returns scattering vectors computed from the pre-defined random unit vectors.
+    """
+    return ((random_unit_vectors_1 - random_unit_vectors_2)
+            * diffraction_monte_carlo_gaas.k())
+
+def test_compute_intensities_ideal_crystal(
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors, ideal_crystal_gaas,
+        random_scattering_vecs_gaas
+):
+    """
+    Tests calculation of intensities given scattering vectors for ideal crystal.
+    """
+    unit_cell_pos, atoms_in_uc, atom_pos_in_uc = ideal_crystal_gaas
+
+    intensities = diffraction_monte_carlo_gaas.compute_intensities_ideal_crystal(
+        random_scattering_vecs_gaas, unit_cell_pos,
+        atom_pos_in_uc, atoms_in_uc, ingaas_nd_form_factors
+    )
+    expected_intensities = np.array([
+        2.47784222e+00, 2.21738735e+03, 6.60613922e+01, 1.76709983e+02,
+        5.64541133e+02, 1.13523792e+03, 2.54167683e+01, 2.73226066e+01,
+        5.06043212e+02, 2.90075981e+03
+    ])
+    nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6, atol=1e-6)
+
+def test_compute_intensity_ideal_crystal_matches_arbitrary_crystal(
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors,
+        gaas_atoms_pos_and_num, ideal_crystal_gaas
+):
+    """
+    Tests compute intensity for ideal crystal matches that of arbitrary crystal.
+    """
+    vecs = ((utils.random_uniform_unit_vectors(100, 3) -
+            utils.random_uniform_unit_vectors(100, 3))
+            * diffraction_monte_carlo_gaas.k())
+    unit_cell_pos, atoms_in_uc, atom_pos_in_uc = ideal_crystal_gaas
+    all_atoms_pos, all_atoms = gaas_atoms_pos_and_num
+
+    intensities_ideal = diffraction_monte_carlo_gaas.compute_intensities_ideal_crystal(
+        vecs, unit_cell_pos, atom_pos_in_uc, atoms_in_uc, ingaas_nd_form_factors
+    )
+    intensities_arb = diffraction_monte_carlo_gaas.compute_intensities(
+        vecs, all_atoms_pos, all_atoms, ingaas_nd_form_factors
+    )
+    nptest.assert_allclose(intensities_ideal, intensities_arb, rtol=1e-6, atol=1e-6)
 
 def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
         diffraction_monte_carlo_nacl, nacl_nd_form_factors, mocker):
@@ -401,22 +575,95 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
         side_effect=[random_unit_vectors_1, random_unit_vectors_2],
     )
 
-    two_thetas, intensities = (
+    two_thetas, intensities, _, _ = (
         diffraction_monte_carlo_nacl.calculate_diffraction_pattern_ideal_crystal(
             nacl_nd_form_factors,
             target_accepted_trials=10,
             trials_per_batch=10,
             unit_cell_reps=(8, 8, 8),
-            angle_bins=9
+            angle_bins=9,
+            weighted=False
         ))
 
+    intensities /= np.max(intensities)
+
     expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
-    expected_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
+    expected_normed_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
                                      3.824213e-05, 7.736132e-06, 0.000000e+00,
                                      0.000000e+00, 1.000000e+00, 1.699957e-05])
 
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
-    nptest.assert_allclose(intensities, expected_intensities, rtol=1e-6)
+    nptest.assert_allclose(intensities, expected_normed_intensities, rtol=1e-6)
+
+def test_neighborhood_intensity_ideal_crystal_matches_arbitrary_crystal(
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors, gaas_atom_list, mocker
+):
+    """
+    Test calculation of neighborhood intensity given points to resample for ideal
+    crystal matches that of arbitrary crystal.
+    """
+    mocker.patch('numpy.random.multivariate_normal',
+                 side_effect=mock_multivariate_normal)
+
+    vecs = ((utils.random_uniform_unit_vectors(100, 3) -
+            utils.random_uniform_unit_vectors(100, 3))
+            * diffraction_monte_carlo_gaas.k())
+
+    two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
+    intensities_ideal, counts_ideal = (
+        diffraction_monte_carlo_gaas.neighborhood_intensity_ideal_crystal(
+        vecs, two_thetas, ingaas_nd_form_factors, (2, 1, 1),
+        sigma=0.05, cnt_per_point=5
+    ))
+    intensities_arb, counts_arb = diffraction_monte_carlo_gaas.neighborhood_intensity(
+        vecs, two_thetas, gaas_atom_list, ingaas_nd_form_factors,
+        sigma=0.05, cnt_per_point=5
+    )
+    nptest.assert_allclose(intensities_ideal, intensities_arb, rtol=1e-6, atol=1e-8)
+    nptest.assert_equal(counts_ideal, counts_arb)
+
+def test_neighborhood_spectrum_ideal_crystal_matches_arbitrary_crystal(
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors, gaas_atom_list, mocker
+):
+    """
+    Test calculation of diffraction spectrum using neighborhood sampling method for
+    ideal crystal matches that of arbitrary crystal.
+    """
+    mocker.patch(
+        "B8_project.utils.random_uniform_unit_vectors",
+        side_effect=[random_unit_vectors_1, random_unit_vectors_2,
+                     random_unit_vectors_1, random_unit_vectors_2],
+    )
+    mocker.patch('numpy.random.multivariate_normal',
+                 side_effect=mock_multivariate_normal)
+
+    two_thetas_ideal, intensities_ideal = (
+        diffraction_monte_carlo_gaas.calculate_neighborhood_diffraction_pattern_ideal_crystal(
+            ingaas_nd_form_factors,
+            angle_bins=9,
+            brute_force_uc_reps=(2, 1, 1),
+            neighbor_uc_reps=(2, 1, 1),
+            brute_force_trials=10,
+            num_top=5,
+            resample_cnt=5,
+            weighted=False,
+            sigma=0.05,
+            plot_diagnostics=False
+        ))
+    two_thetas_arb, intensities_arb = (
+        diffraction_monte_carlo_gaas.calculate_neighborhood_diffraction_pattern(
+            gaas_atom_list,
+            ingaas_nd_form_factors,
+            angle_bins=9,
+            brute_force_trials=10,
+            num_top=5,
+            resample_cnt=5,
+            weighted=False,
+            sigma=0.05,
+            plot_diagnostics=False
+        ))
+    nptest.assert_allclose(two_thetas_ideal, two_thetas_arb, rtol=1e-6, atol=1e-8)
+    nptest.assert_allclose(intensities_ideal, intensities_arb, rtol=1e-6, atol=1e-8)
 
 def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
         diffraction_monte_carlo_gaas, ingaas_nd_form_factors, mocker):
@@ -432,16 +679,17 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
                      random_uvs1, random_uvs2],
     )
 
-    _, intensities_ideal = (
+    _, intensities_ideal, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern_ideal_crystal(
             ingaas_nd_form_factors,
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(8, 8, 8),
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         ))
 
-    _, intensities_random = (
+    _, intensities_random, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern_random_occupation(
             31,
             49,
@@ -450,7 +698,8 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(8, 8, 8),
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         ))
 
     nptest.assert_allclose(intensities_ideal, intensities_random)
@@ -477,29 +726,97 @@ def test_ideal_crystal_matches_list(
             atoms.append(Atom(atom.atomic_number, uc_pos + np.array(atom.position) *
                               diffraction_monte_carlo_gaas.unit_cell.lattice_constants))
 
-    _, intensities_list = (
+    _, intensities_list, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern(
             atoms,
             ingaas_nd_form_factors,
             target_accepted_trials=1000,
             trials_per_batch=1000,
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         )
     )
 
-    _, intensities_ideal = (
+    _, intensities_ideal, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern_ideal_crystal(
             ingaas_nd_form_factors,
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(8, 8, 8),
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         ))
 
     nptest.assert_allclose(intensities_list, intensities_ideal)
 
-def test_random_occupation_matches_list(diffraction_monte_carlo_gaas,
-                                        ingaas_nd_form_factors, mocker):
+@pytest.fixture(name="two_rep_uc_pos_gaas")
+def fixture_two_rep_uc_pos_gaas(diffraction_monte_carlo_gaas):
+    """
+    Returns unit cell positions of a 2x2x2 GaAs crystal
+    """
+    return (np.vstack(np.mgrid[0:2, 0:2, 0:2]).reshape(3, -1).T
+     * diffraction_monte_carlo_gaas.unit_cell.lattice_constants)
+
+@pytest.fixture(name="two_rep_ingaas_one_indium_list")
+def fixture_two_rep_ingaas_one_indium_list(
+        diffraction_monte_carlo_gaas, two_rep_uc_pos_gaas):
+    """
+    Returns the list of atoms for a 2x2x2 GaAs crystal with one Ga atom substituted
+    for an In atom.
+    """
+    atoms = []
+    for i, uc_pos in enumerate(two_rep_uc_pos_gaas):
+        for atom in diffraction_monte_carlo_gaas.unit_cell.atoms:
+            if i == 1 and atom.position == (0, 0, 0):
+                # Substitute Ga with In
+                atoms.append(Atom(49, uc_pos + np.array(atom.position) *
+                                  diffraction_monte_carlo_gaas.unit_cell.lattice_constants))
+            else:
+                atoms.append(Atom(atom.atomic_number, uc_pos + np.array(atom.position) *
+                                  diffraction_monte_carlo_gaas.unit_cell.lattice_constants))
+    return atoms
+
+@pytest.fixture(name="ingaas_two_rep")
+def fixture_ingaas_two_rep(diffraction_monte_carlo_gaas):
+    """
+    Returns atom_pos_in_uc, atomic_numbers_vars, and probs for InGaAs
+    """
+    _, atom_pos_in_uc = diffraction_monte_carlo_gaas._atoms_and_pos_in_uc()
+    uc_vars = UnitCellVarieties(diffraction_monte_carlo_gaas.unit_cell,
+                                ReplacementProbability(31, 49, 0.1))
+    atomic_numbers_vars, probs = uc_vars.atomic_number_lists()
+    return atom_pos_in_uc, atomic_numbers_vars, probs
+
+def test_compute_intensities_random_occupation_matches_arbitrary_crystal(
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors,
+        ingaas_two_rep, two_rep_uc_pos_gaas,
+        two_rep_ingaas_one_indium_list,
+        random_scattering_vecs_gaas, mocker
+):
+    """
+    Tests calculation of intensities given scattering vectors for ideal crystal.
+    """
+    mock_rng = mocker.Mock()
+    mock_rng.choice.return_value = np.array([0, 1, 0, 0, 0, 0, 0, 0])
+    atom_pos_in_uc, atoms_in_uc_vars, probs = ingaas_two_rep
+    intensities_rand = diffraction_monte_carlo_gaas.compute_intensities_random_occupation(
+        random_scattering_vecs_gaas, two_rep_uc_pos_gaas, atom_pos_in_uc,
+        atoms_in_uc_vars, probs, ingaas_nd_form_factors, mock_rng
+    )
+
+    all_atom_pos = [atom.position for atom in two_rep_ingaas_one_indium_list]
+    all_atoms = [atom.atomic_number for atom in two_rep_ingaas_one_indium_list]
+    intensities_arb = diffraction_monte_carlo_gaas.compute_intensities(
+        random_scattering_vecs_gaas, all_atom_pos, all_atoms, ingaas_nd_form_factors
+    )
+
+    nptest.assert_allclose(intensities_rand, intensities_arb, rtol=1e-6, atol=1e-6)
+
+
+def test_random_occupation_matches_list(
+        diffraction_monte_carlo_gaas,
+        two_rep_ingaas_one_indium_list,
+        ingaas_nd_form_factors, mocker):
     """
     Test if the spectrum calculated by random occupation matches that of
     calculate_diffraction_pattern.
@@ -515,30 +832,20 @@ def test_random_occupation_matches_list(diffraction_monte_carlo_gaas,
     mock_rng.choice.return_value = np.array([0, 1, 0, 0, 0, 0, 0, 0])
     mocker.patch("numpy.random.default_rng", return_value=mock_rng)
 
-    unit_cell_pos = (np.vstack(np.mgrid[0:2, 0:2, 0:2]).reshape(3, -1).T
-                     * diffraction_monte_carlo_gaas.unit_cell.lattice_constants)
-    atoms = []
-    for i, uc_pos in enumerate(unit_cell_pos):
-        for atom in diffraction_monte_carlo_gaas.unit_cell.atoms:
-            if i == 1 and atom.position == (0, 0, 0):
-                # Substitute Ga with In
-                atoms.append(Atom(49, uc_pos + np.array(atom.position) *
-                                  diffraction_monte_carlo_gaas.unit_cell.lattice_constants))
-            else:
-                atoms.append(Atom(atom.atomic_number, uc_pos + np.array(atom.position) *
-                                  diffraction_monte_carlo_gaas.unit_cell.lattice_constants))
+    atoms = two_rep_ingaas_one_indium_list
 
-    _, intensities_list = (
+    _, intensities_list, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern(
             atoms,
             ingaas_nd_form_factors,
             target_accepted_trials=1000,
             trials_per_batch=1000,
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         )
     )
 
-    _, intensities_random = (
+    _, intensities_random, _, _ = (
         diffraction_monte_carlo_gaas.calculate_diffraction_pattern_random_occupation(
             31,
             49,
@@ -547,8 +854,88 @@ def test_random_occupation_matches_list(diffraction_monte_carlo_gaas,
             target_accepted_trials=1000,
             trials_per_batch=1000,
             unit_cell_reps=(2, 2, 2),
-            angle_bins=10
+            angle_bins=10,
+            weighted=False
         )
     )
 
     nptest.assert_allclose(intensities_list, intensities_random)
+
+
+def test_neighborhood_intensity_random_occupation_matches_arbitrary_crystal(
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors,
+        two_rep_ingaas_one_indium_list, mocker
+):
+    """
+    Test calculation of neighborhood intensity given points to resample for random
+    occupation crystal matches that of arbitrary crystal.
+    """
+    mock_rng = mocker.Mock()
+    mock_rng.choice.return_value = np.array([0, 1, 0, 0, 0, 0, 0, 0])
+    mocker.patch("numpy.random.default_rng", return_value=mock_rng)
+    mocker.patch('numpy.random.multivariate_normal',
+                 side_effect=mock_multivariate_normal)
+    vecs = ((utils.random_uniform_unit_vectors(100, 3) -
+             utils.random_uniform_unit_vectors(100, 3))
+            * diffraction_monte_carlo_gaas.k())
+
+    two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
+    intensities_rand, counts_rand = (
+        diffraction_monte_carlo_gaas.neighborhood_intensity_random_occupation(
+        31, 49, 0.1, vecs, two_thetas, ingaas_nd_form_factors, (2, 2, 2),
+        sigma=0.05, cnt_per_point=5
+    ))
+    intensities_arb, counts_arb = diffraction_monte_carlo_gaas.neighborhood_intensity(
+        vecs, two_thetas, two_rep_ingaas_one_indium_list, ingaas_nd_form_factors,
+        sigma=0.05, cnt_per_point=5
+    )
+    nptest.assert_allclose(intensities_rand, intensities_arb, rtol=1e-6, atol=1e-8)
+    nptest.assert_equal(counts_rand, counts_arb)
+
+def test_neighborhood_spectrum_random_occupation_matches_arbitrary_crystal(
+        diffraction_monte_carlo_gaas, ingaas_nd_form_factors,
+        two_rep_ingaas_one_indium_list, mocker
+):
+    """
+    Test diffraction spectrum for random occupation crystal matches that of arbitrary
+    crystal.
+    """
+    mocker.patch(
+        "B8_project.utils.random_uniform_unit_vectors",
+        side_effect=[random_unit_vectors_1, random_unit_vectors_2,
+                     random_unit_vectors_1, random_unit_vectors_2],
+    )
+    mock_rng = mocker.Mock()
+    mock_rng.choice.return_value = np.array([0, 1, 0, 0, 0, 0, 0, 0])
+    mocker.patch("numpy.random.default_rng", return_value=mock_rng)
+    mocker.patch('numpy.random.multivariate_normal',
+                 side_effect=mock_multivariate_normal)
+
+    two_thetas_rand, intensities_rand = (
+        diffraction_monte_carlo_gaas.calculate_neighborhood_diffraction_pattern_random_occupation(
+            31, 49, 0.1,
+            ingaas_nd_form_factors,
+            angle_bins=9,
+            brute_force_uc_reps=(2, 2, 2),
+            neighbor_uc_reps=(2, 2, 2),
+            brute_force_trials=10,
+            num_top=5,
+            resample_cnt=5,
+            weighted=False,
+            sigma=0.05,
+            plot_diagnostics=False
+        ))
+    two_thetas_arb, intensities_arb = (
+        diffraction_monte_carlo_gaas.calculate_neighborhood_diffraction_pattern(
+            two_rep_ingaas_one_indium_list,
+            ingaas_nd_form_factors,
+            angle_bins=9,
+            brute_force_trials=10,
+            num_top=5,
+            resample_cnt=5,
+            weighted=False,
+            sigma=0.05,
+            plot_diagnostics=False
+        ))
+    nptest.assert_allclose(two_thetas_rand, two_thetas_arb, rtol=1e-6, atol=1e-8)
+    nptest.assert_allclose(intensities_rand, intensities_arb, rtol=1e-6, atol=1e-8)

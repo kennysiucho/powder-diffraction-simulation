@@ -186,9 +186,9 @@ class XRayFormFactor:
         """
         form_factors = np.zeros(k_vectors.shape[0])
         for i in range(4):
-            mag_squared = np.sum(np.square(k_vectors), axis=1)
+            mag = np.linalg.norm(k_vectors, axis=1)
             form_factors += self.a[i] * np.exp(
-                -self.b[i] * mag_squared / (4 * np.pi) ** 2
+                -self.b[i] * (mag / (4 * np.pi)) ** 2
             )
         form_factors += self.c
         return form_factors
