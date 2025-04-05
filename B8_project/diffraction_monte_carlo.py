@@ -460,6 +460,13 @@ class DiffractionMonteCarlo:
                 stream.add(scattering_vecs[i][0], scattering_vecs[i][1],
                            scattering_vecs[i][2], inten)
 
+        if weighted:
+            # Re-normalize intensity distribution
+            renormalization = np.ones_like(intensities)
+            renormalization /= self._pdf(two_thetas)
+            renormalization *= WeightingFunction.natural_distribution(two_thetas)
+            intensities *= renormalization
+
         return two_thetas, intensities, np.array(stream.get_top_n()), counts
 
     def calculate_neighborhood_diffraction_pattern(
@@ -1039,6 +1046,13 @@ class DiffractionMonteCarlo:
 
             stats.total_trials += two_thetas_batch.shape[0]
             stats.accepted_data_points += two_thetas_batch.shape[0]
+
+        if weighted:
+            # Re-normalize intensity distribution
+            renormalization = np.ones_like(intensities)
+            renormalization /= self._pdf(two_thetas)
+            renormalization *= WeightingFunction.natural_distribution(two_thetas)
+            intensities *= renormalization
 
         return two_thetas, intensities, np.array(stream.get_top_n()), counts
 
