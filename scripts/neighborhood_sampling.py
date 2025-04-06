@@ -52,10 +52,9 @@ if CALCULATE_SPECTRUM:
     all_xray_form_factors = file_reading.read_xray_form_factors(
         "data/x_ray_form_factors.csv")
     xrd_form_factors = {}
-    for atom in diff.unit_cell.atoms:
+    for atom in diff._unit_cell.atoms:
         xrd_form_factors[atom.atomic_number] = all_xray_form_factors[atom.atomic_number]
     xrd_form_factors[53] = all_xray_form_factors[53]
-
 
     start_time = time.time()
 

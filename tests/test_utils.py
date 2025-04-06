@@ -10,8 +10,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import pytest
 from B8_project import utils
 from B8_project.crystal import Atom
-
-RUN_VISUAL_TESTS = False
+from tests.conftest import *
 
 def test_duplicate_elements_normal_operation():
     """
