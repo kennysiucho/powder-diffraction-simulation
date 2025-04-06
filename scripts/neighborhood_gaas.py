@@ -39,7 +39,7 @@ if CALCULATE_SPECTRUM:
     all_nd_form_factors = file_reading.read_neutron_scattering_lengths(
         "data/neutron_scattering_lengths.csv")
     nd_form_factors = {}
-    for atom in diff.unit_cell.atoms:
+    for atom in diff._unit_cell.atoms:
         nd_form_factors[atom.atomic_number] = all_nd_form_factors[atom.atomic_number]
     # nd_form_factors[49] = all_nd_form_factors[49]
 
