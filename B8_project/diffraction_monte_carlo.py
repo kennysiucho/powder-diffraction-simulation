@@ -17,12 +17,13 @@ import heapq
 import time
 from dataclasses import dataclass
 from typing import Mapping, Callable
+from abc import ABC, abstractmethod
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from B8_project import utils
-from B8_project.crystal import Atom, UnitCell, UnitCellVarieties, ReplacementProbability
+from B8_project import utils, file_reading
+from B8_project.crystal import UnitCell
 from B8_project.form_factor import FormFactorProtocol
 
 class WeightingFunction:
@@ -109,16 +110,20 @@ class DiffractionMonteCarloRunStats:
                         for key, val in self.__dict__.items()])
 
 
-class DiffractionMonteCarlo:
+class DiffractionMonteCarlo(ABC):
     """
     A class to calculate neutron diffraction patterns via Monte Carlo methods.
 
     Attributes
     ----------
-    unit_cell : UnitCell
-        The unit cell of the crystal
+    all_xray_form_factors : Mapping[int, FormFactorProtocol]
+        Dictionary containing all xray form factors.
+    all_nd_form_factors : Mapping[int, FormFactorProtocol]
+        Dictionary containing all neutron form factors.
     wavelength : float
         The wavelength of the incident neutrons (in nm)
+    _unit_cell : UnitCell
+        The unit cell of the crystal
     _min_angle_deg, _max_angle_deg : float
         Defines angle range of interest. Needed to compute inverse CDF for weighting
         function.
@@ -127,18 +132,29 @@ class DiffractionMonteCarlo:
     _inverse_cdf: Callable[[np.ndarray], ndarray]
         The inverse CDF for given pdf. Numerically computed.
     """
+    all_xray_form_factors: Mapping[int, FormFactorProtocol]
+    all_nd_form_factors: Mapping[int, FormFactorProtocol]
+    wavelength: float
+    _unit_cell: UnitCell
+    _min_angle_deg: float
+    _max_angle_deg: float
+    _pdf: Callable[[np.ndarray], np.ndarray] = None
+    _inverse_cdf: Callable[[np.ndarray], np.ndarray] = None
+
     def __init__(self,
-                 unit_cell: UnitCell,
                  wavelength: float,
                  pdf: Callable[[np.ndarray], np.ndarray]=None,
                  min_angle_deg: float=0.,
-                 max_angle_deg: float=180.):
-        self.unit_cell = unit_cell
+                 max_angle_deg: float=180.,
+                 unit_cell: UnitCell=None):
+        self.all_xray_form_factors = file_reading.read_xray_form_factors(
+            "data/x_ray_form_factors.csv")
+        self.all_nd_form_factors = file_reading.read_neutron_scattering_lengths(
+            "data/neutron_scattering_lengths.csv")
+        self._unit_cell = unit_cell
         self.wavelength = wavelength
         self._min_angle_deg = min_angle_deg
         self._max_angle_deg = max_angle_deg
-        self._pdf = None
-        self._inverse_cdf = None
         if pdf is not None:
             self.set_pdf(pdf)
         else:
@@ -202,7 +218,7 @@ class DiffractionMonteCarlo:
             np.mgrid[0:unit_cell_reps[0], 0:unit_cell_reps[1],
             0:unit_cell_reps[2]]).reshape(3, -1).T
         unit_cell_pos = unit_cell_pos.astype(np.float64)
-        np.multiply(unit_cell_pos, self.unit_cell.lattice_constants, out=unit_cell_pos)
+        np.multiply(unit_cell_pos, self._unit_cell.lattice_constants, out=unit_cell_pos)
         return unit_cell_pos
 
     def _atoms_and_pos_in_uc(self):
@@ -212,10 +228,10 @@ class DiffractionMonteCarlo:
         """
         atoms_in_uc = []
         atom_pos_in_uc = []
-        for atom in self.unit_cell.atoms:
+        for atom in self._unit_cell.atoms:
             atoms_in_uc.append(atom.atomic_number)
             atom_pos_in_uc.append(np.multiply(atom.position,
-                                              self.unit_cell.lattice_constants))
+                                              self._unit_cell.lattice_constants))
         atoms_in_uc = np.array(atoms_in_uc)
         atom_pos_in_uc = np.array(atom_pos_in_uc)
         return atoms_in_uc, atom_pos_in_uc
@@ -337,321 +353,24 @@ class DiffractionMonteCarlo:
         plt.tight_layout()
         plt.show()
 
-    @staticmethod
-    def compute_intensities(
-            scattering_vecs: np.ndarray,
-            all_atom_pos: np.ndarray,
-            all_atoms: np.ndarray,
-            form_factors: Mapping[int, FormFactorProtocol]
-    ):
-        """
-        Computes the intensities for each scattering vector.
-        """
-        # all_atom_pos.shape = (n_atoms, 3)
-        # all_scattering_lengths = (n_atoms,)
-        # scattering_vec.shape = (batch_trials, 3)
-        # structure_factors.shape = (batch_trials, )
-        # k•r[i, j] = scattering_vec[i][k] • all_atom_pos[j][k]
+    @abstractmethod
+    def compute_intensities(self,
+                            scattering_vecs: np.ndarray,
+                            form_factors: Mapping[int, FormFactorProtocol]):
+        """Compute intensities based on scattering vectors."""
+        pass
 
-        # dot_products.shape = (# trials after filter, n_atoms)
-        dot_products = np.einsum("ik,jk", scattering_vecs, all_atom_pos)
-
-        # Evaluate form factors for each element
-        form_factors_evaluated = {}
-        for atomic_number, form_factor in form_factors.items():
-            form_factors_evaluated[atomic_number] = (
-                form_factor.evaluate_form_factors(scattering_vecs))
-        all_form_factors = np.array([form_factors_evaluated[atom] for atom in
-                                     all_atoms]).T
-
-        # exp_terms.shape = (# trials, n_atoms)
-        exps = np.exp(1j * dot_products)
-        exp_terms = np.multiply(all_form_factors, exps)
-
-        # structure_factors.shape = (# trials, )
-        structure_factors = np.sum(exp_terms, axis=1)
-
-        intensities = np.abs(structure_factors) ** 2
-        return intensities
-
-    def calculate_diffraction_pattern(self,
-                                      atoms: list[Atom],
-                                      form_factors: Mapping[int, FormFactorProtocol],
-                                      target_accepted_trials: int = 5000,
-                                      trials_per_batch: int = 1000,
-                                      angle_bins: int = 100,
-                                      weighted: bool = True,
-                                      num_top: int = 40000):
-        """
-        Calculates the neutron diffraction spectrum using a Monte Carlo method.
-
-        For each Monte Carlo trial, randomly choose the incident and scattered k-
-        vectors. Sum over all atoms to calculate the structure factor and hence
-        intensity of this trial. If the scattering angle is within the range
-        specified then add this trial to the final result.
-
-        Parameters
-        ----------
-        atoms : list[Atom]
-            List of all atoms in the crystal.
-        form_factors : Mapping[int, FormFactorProtocol]
-            Dictionary mapping atomic number to associated NeutronFormFactor or
-            XRayFormFactor.
-        target_accepted_trials : int
-            Target number of accepted trials.
-        trials_per_batch : int
-            Number of trials calculated at once using NumPy methods.
-        angle_bins : int
-            Number of bins for scattering angles.
-        weighted : bool
-            Whether to draw scattering vectors from a sphere or via inverse transform
-            sampling using pdf.
-        num_top : int
-            The top num_top scattering trials in intensity will be returned in stream.
-
-        Returns
-        -------
-        two_thetas : (angle_bins,) ndarray
-            the left edges of the bins, evenly spaced within angle range specified
-        intensities : (angle_bins,) ndarray
-            intensity calculated for each bin (not normalized)
-        stream : ndarray
-            Top num_top intensity data points
-        counts : ndarray
-            Number of trials in each angle bin
-        """
-        two_thetas = np.linspace(self._min_angle_deg, self._max_angle_deg,
-                                 angle_bins + 1)[:-1]
-        intensities = np.zeros(angle_bins)
-        counts = np.zeros(angle_bins)
-
-        stats = DiffractionMonteCarloRunStats()
-        stream = TopIntensityStream(num_top)
-
-        all_atom_pos = np.array([np.array(atom.position) for atom in atoms])
-        all_atoms = np.array([atom.atomic_number for atom in atoms])
-
-        while stats.accepted_data_points < target_accepted_trials:
-
-            if time.time() - stats.prev_print_time_ > 5:
-                stats.prev_print_time_ = time.time()
-                print(stats)
-
-            if weighted:
-                scattering_vecs, two_thetas_batch = (
-                    self._get_scattering_vecs_and_angles_weighted(trials_per_batch))
-            else:
-                scattering_vecs, two_thetas_batch = (
-                    self._get_scattering_vecs_and_angles(trials_per_batch))
-
-            intensity_batch = DiffractionMonteCarlo.compute_intensities(
-                scattering_vecs, all_atom_pos, all_atoms, form_factors
-            )
-
-            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
-            intensities[bins] += intensity_batch
-            counts += np.bincount(bins, minlength=counts.shape[0])
-
-            stats.total_trials += two_thetas_batch.shape[0]
-            stats.accepted_data_points += two_thetas_batch.shape[0]
-
-            # Add to stream
-            for i, inten in enumerate(intensity_batch):
-                stream.add(scattering_vecs[i][0], scattering_vecs[i][1],
-                           scattering_vecs[i][2], inten)
-
-        if weighted:
-            # Re-normalize intensity distribution
-            renormalization = np.ones_like(intensities)
-            renormalization /= self._pdf(two_thetas)
-            renormalization *= WeightingFunction.natural_distribution(two_thetas)
-            intensities *= renormalization
-
-        return two_thetas, intensities, np.array(stream.get_top_n()), counts
-
-    def calculate_neighborhood_diffraction_pattern(
-            self,
-            atoms: list[Atom],
-            form_factors: Mapping[int, FormFactorProtocol],
-            angle_bins: int = 100,
-            brute_force_trials: int = 1_000_000,
-            num_top: int = 40000,
-            resample_cnt: int = 100,
-            weighted: bool = True,
-            sigma: float = 0.05,
-            plot_diagnostics: bool = False
-    ):
-        two_thetas, intensities, top, counts = (
-            self.calculate_diffraction_pattern(
-                atoms,
-                form_factors,
-                target_accepted_trials=brute_force_trials,
-                trials_per_batch=1000,
-                angle_bins=angle_bins,
-                num_top=num_top,
-                weighted=weighted))
-
-        if plot_diagnostics:
-            self._plot_diagnostics(
-                two_thetas,
-                counts,
-                intensities,
-                top
-            )
-
-        intensities_neigh, counts_neigh = self.neighborhood_intensity(
-            top[:, 0:3],
-            two_thetas,
-            atoms,
-            form_factors,
-            sigma=sigma,
-            cnt_per_point=resample_cnt
-        )
-
-        if plot_diagnostics:
-            self._plot_diagnostics(
-                two_thetas,
-                counts_neigh,
-                intensities_neigh,
-                None
-            )
-
-        return two_thetas, intensities_neigh
-
-    def neighborhood_intensity(
-            self,
-            points: np.ndarray,
-            two_thetas: np.ndarray,
-            atoms: list[Atom],
-            form_factors: Mapping[int, FormFactorProtocol],
-            sigma: float=0.05,
-            cnt_per_point: int=100
-    ):
-        """
-        Calculates the diffraction spectrum by randomly sampling near the supplied
-        points (scattering vectors), which are assumed to those with the largest
-        contributions to the diffraction spectrum.
-
-        Parameters
-        ----------
-        points : np.ndarray
-            List of scattering vectors. Assumed to be those with the largest
-            contributions to the diffraction spectrum.
-        two_thetas : np.ndarray
-            Left edges of angle bins.
-        atoms : list[Atoms]
-            List of all atoms in crystal.
-        form_factors : Mapping[int, FormFactorProtocol]
-            Dictionary mapping atomic number to associated NeutronFormFactor or
-            XRayFormFactor.
-        sigma : float
-            Standard deviation of the 3D Gaussian for sampling around supplied points.
-        cnt_per_point : int
-            How many vectors to sample around each supplied point.
-
-        Returns
-        -------
-        intensities : (angle_bins,) ndarray
-            intensity calculated for each bin (not normalized)
-        counts : (angle_bins,) ndarray
-            Number of resampled vectors in each bin. Mostly for diagnostics.
-        """
-        all_atom_pos = np.array([np.array(atom.position) for atom in atoms])
-        all_atoms = np.array([atom.atomic_number for atom in atoms])
-        intensities = np.zeros_like(two_thetas, dtype=float)
-        counts = np.zeros_like(two_thetas, dtype=int)
-        covariance = [[sigma ** 2, 0, 0],
-                      [0, sigma ** 2, 0],
-                      [0, 0, sigma ** 2]]
-        start_time = time.time()
-        for i, point in enumerate(points):
-            cnt = cnt_per_point
-            if i % 1000 == 0:
-                per_trial = (time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)
-                print(f"Resampled {i}/{len(points)} points, cnt={cnt}, µs per trial="
-                      f"{per_trial:.1f}, "
-                      f"Time remaining={(per_trial * (len(points) - i) * cnt_per_point / 1e6):.0f}s")
-            scattering_vecs = np.random.multivariate_normal(point, covariance, cnt)
-            ks = np.linalg.norm(scattering_vecs, axis=1)
-            two_thetas_batch = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
-            # Some vectors may be out of range after resampling from Gaussian
-            in_angle_range = np.logical_and(two_thetas_batch > self._min_angle_deg,
-                                            two_thetas_batch < self._max_angle_deg)
-            scattering_vecs = scattering_vecs[in_angle_range]
-            two_thetas_batch = two_thetas_batch[in_angle_range]
-
-            intensity_batch = self.compute_intensities(
-                scattering_vecs,
-                all_atom_pos,
-                all_atoms,
-                form_factors
-            )
-
-            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
-            intensities[bins] += intensity_batch
-            counts += np.bincount(bins, minlength=counts.shape[0])
-
-        return intensities, counts
-
-    @staticmethod
-    def compute_intensities_ideal_crystal(
-            scattering_vecs: np.ndarray,
-            unit_cell_pos: np.ndarray,
-            atom_pos_in_uc: np.ndarray,
-            atoms_in_uc: np.ndarray,
-            form_factors: Mapping[int, FormFactorProtocol],
-    ):
-        """
-        Computes the intensities for each scattering vector.
-        """
-        # Compute intensities
-        # scattering_vecs.shape = (# trials filtered, 3)
-        # unit_cell_pos.shape = (# unit cells, 3)
-        # dot_products_lattice.shape = (# trials filtered, # unit cells)
-        dot_products_lattice = np.einsum("ik,jk", scattering_vecs, unit_cell_pos)
-
-        # exp_terms.shape = (# trials filtered, # unit cells)
-        exp_terms_lattice = np.exp(1j * dot_products_lattice)
-
-        # structure_factors_lattice.shape = (# trials filtered,)
-        structure_factors_lattice = np.sum(exp_terms_lattice, axis=1)
-
-        # Compute basis portion of structure factors
-        # scattering_vecs.shape = (# trials filtered, 3)
-        # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
-        # dot_products_lattice.shape = (# trials filtered, # atoms in a unit cell)
-        dot_products_basis = np.einsum("ik,jk", scattering_vecs, atom_pos_in_uc)
-
-        # form_factors_basis.shape = (# trials filtered, # atoms in a unit cell)
-        form_factors_basis = np.stack(
-            [form_factors[atom].evaluate_form_factors(scattering_vecs) for atom in
-             atoms_in_uc],
-            axis=1)
-
-        # exp_terms.shape = (# trials filtered, # atoms in a unit cell)
-        exps = np.exp(1j * dot_products_basis)
-        exp_terms_basis = np.multiply(form_factors_basis, exps)
-
-        # structure_factors_basis.shape = (# trials filtered,)
-        structure_factors_basis = np.sum(exp_terms_basis, axis=1)
-
-        structure_factors = np.multiply(structure_factors_lattice,
-                                        structure_factors_basis)
-        intensities = np.abs(structure_factors) ** 2
-        return intensities
-
-    def calculate_diffraction_pattern_ideal_crystal(
+    def calculate_diffraction_pattern_brute_force(
             self,
             form_factors: Mapping[int, FormFactorProtocol],
-            target_accepted_trials: int = 5000,
+            total_trials: int = 5000,
             trials_per_batch: int = 1000,
-            unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
             angle_bins: int = 100,
             weighted: bool = False,
             num_top: int = 40000):
         """
-        Calculates the neutron diffraction spectrum using a Monte Carlo method,
-        assuming the crystal consists of the same unit cell throughout (ideal crystal).
+        Calculates the diffraction spectrum using a brute-force Monte Carlo method
+        (no neighborhood sampling) for corresponding crystal type.
 
         For each Monte Carlo trial, randomly choose the incident and scattered k-
         vectors. If the scattering angle is within the range specified, compute the
@@ -661,17 +380,14 @@ class DiffractionMonteCarlo:
         Parameters
         ----------
         form_factors : Mapping[int, FormFactorProtocol]
-            Dictionary mapping atomic number to associated NeutronFormFactor or
-            XRayFormFactor.
-        target_accepted_trials : int
-            Target number of accepted trials.
-        trials_per_batch : int
-            Number of trials calculated at once using NumPy methods
-        unit_cell_reps : tuple[int, int, int]
-            How many times to repeat the unit cell in x, y, z directions, forming the
-            crystal powder for diffraction.
+            Dictionary containing form factors (neutron or x-ray). Can access self.
+            all_xray_form_factors or all_nd_form_factors.
         angle_bins : int
             Number of bins for scattering angles
+        total_trials : int
+            Target number of Monte Carlo trials.
+        trials_per_batch : int
+            Number of trials calculated at once using NumPy methods
         weighted : bool
             Whether to draw scattering vectors from a sphere or via inverse transform
             sampling using pdf.
@@ -694,15 +410,10 @@ class DiffractionMonteCarlo:
         intensities = np.zeros(angle_bins)
         counts = np.zeros(angle_bins)
 
-        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
-
-        atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
-
         stats = DiffractionMonteCarloRunStats()
         stream = TopIntensityStream(num_top)
 
-        while stats.accepted_data_points < target_accepted_trials:
-
+        while stats.accepted_data_points < total_trials:
             if time.time() - stats.prev_print_time_ > 5:
                 stats.prev_print_time_ = time.time()
                 print(stats)
@@ -714,11 +425,8 @@ class DiffractionMonteCarlo:
                 scattering_vecs, two_thetas_batch = (
                     self._get_scattering_vecs_and_angles(trials_per_batch))
 
-            intensity_batch = DiffractionMonteCarlo.compute_intensities_ideal_crystal(
+            intensity_batch = self.compute_intensities(
                 scattering_vecs,
-                unit_cell_pos,
-                atom_pos_in_uc,
-                atoms_in_uc,
                 form_factors
             )
 
@@ -743,66 +451,13 @@ class DiffractionMonteCarlo:
 
         return two_thetas, intensities, np.array(stream.get_top_n()), counts
 
-    def calculate_neighborhood_diffraction_pattern_ideal_crystal(
-            self,
-            form_factors: Mapping[int, FormFactorProtocol],
-            angle_bins: int = 100,
-            brute_force_uc_reps: tuple[int, int, int] = (8, 8, 8),
-            neighbor_uc_reps: tuple[int, int, int] = (20, 20, 20),
-            brute_force_trials: int = 1_000_000,
-            num_top: int = 40000,
-            resample_cnt: int = 100,
-            weighted: bool = False,
-            sigma: float = 0.05,
-            plot_diagnostics: bool = False
-    ):
-        # TODO: condense these parameters into a dictionary? BruteParameters &
-        # TODO: NeighborParameters
-        two_thetas, intensities, top, counts = (
-            self.calculate_diffraction_pattern_ideal_crystal(
-                form_factors,
-                target_accepted_trials=brute_force_trials,
-                trials_per_batch=1000,
-                unit_cell_reps=brute_force_uc_reps,
-                angle_bins=angle_bins,
-                weighted=weighted,
-                num_top=num_top))
-
-        if plot_diagnostics:
-            self._plot_diagnostics(
-                two_thetas,
-                counts,
-                intensities,
-                top
-            )
-
-        intensities_neigh, counts_neigh = self.neighborhood_intensity_ideal_crystal(
-            top[:, 0:3],
-            two_thetas,
-            form_factors,
-            unit_cell_reps=neighbor_uc_reps,
-            sigma=sigma,
-            cnt_per_point=resample_cnt
-        )
-
-        if plot_diagnostics:
-            self._plot_diagnostics(
-                two_thetas,
-                counts_neigh,
-                intensities_neigh,
-                None
-            )
-
-        return two_thetas, intensities_neigh
-
-    def neighborhood_intensity_ideal_crystal(
+    def calculate_diffraction_pattern_neighborhood(
             self,
             points: np.ndarray,
             two_thetas: np.ndarray,
             form_factors: Mapping[int, FormFactorProtocol],
-            unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
-            sigma: float=0.05,
-            cnt_per_point: int=100
+            sigma: float = 0.05,
+            cnt_per_point: int = 100
     ):
         """
         Calculates the diffraction spectrum by randomly sampling near the supplied
@@ -819,9 +474,6 @@ class DiffractionMonteCarlo:
         form_factors : Mapping[int, FormFactorProtocol]
             Dictionary mapping atomic number to associated NeutronFormFactor or
             XRayFormFactor.
-        unit_cell_reps : tuple[int, int, int]
-            How many times to repeat the unit cell in x, y, z directions, forming the
-            crystal powder for diffraction.
         sigma : float
             Standard deviation of the 3D Gaussian for sampling around supplied points.
         cnt_per_point : int
@@ -836,35 +488,26 @@ class DiffractionMonteCarlo:
         """
         intensities = np.zeros_like(two_thetas, dtype=float)
         counts = np.zeros_like(two_thetas, dtype=int)
-        covariance = [[sigma**2, 0, 0],
-                      [0, sigma**2, 0],
-                      [0, 0, sigma**2]]
-        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
-        atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
+        covariance = sigma ** 2 * np.eye(3)
         start_time = time.time()
+
         for i, point in enumerate(points):
-            cnt = cnt_per_point
             if i % 1000 == 0:
                 per_trial = (time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)
-                print(f"Resampled {i}/{len(points)} points, cnt={cnt}, µs per trial="
-                f"{per_trial:.1f}, "
-                f"Time remaining={(per_trial * (len(points) - i) * cnt_per_point / 1e6):.0f}s")
-            scattering_vecs = np.random.multivariate_normal(point, covariance, cnt)
+                print(
+                    f"Resampled {i}/{len(points)} points, µs per trial={per_trial:.1f}, "
+                    f"Time remaining={(per_trial * (len(points) - i) * cnt_per_point / 1e6):.0f}s")
+            scattering_vecs = np.random.multivariate_normal(point, covariance,
+                                                            cnt_per_point)
             ks = np.linalg.norm(scattering_vecs, axis=1)
             two_thetas_batch = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
             # Some vectors may be out of range after resampling from Gaussian
-            in_angle_range = np.logical_and(two_thetas_batch > self._min_angle_deg,
-                                            two_thetas_batch < self._max_angle_deg)
+            in_angle_range = np.logical_and(two_thetas_batch >= self._min_angle_deg,
+                                            two_thetas_batch <= self._max_angle_deg)
             scattering_vecs = scattering_vecs[in_angle_range]
             two_thetas_batch = two_thetas_batch[in_angle_range]
 
-            intensity_batch = self.compute_intensities_ideal_crystal(
-                scattering_vecs,
-                unit_cell_pos,
-                atom_pos_in_uc,
-                atoms_in_uc,
-                form_factors
-            )
+            intensity_batch = self.compute_intensities(scattering_vecs, form_factors)
 
             bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
@@ -872,199 +515,10 @@ class DiffractionMonteCarlo:
 
         return intensities, counts
 
-    @staticmethod
-    def compute_intensities_random_occupation(
-            scattering_vecs: np.ndarray,
-            unit_cell_pos: np.ndarray,
-            atom_pos_in_uc: np.ndarray,
-            atomic_numbers_vars: list[np.ndarray],
-            probs: list[float],
-            form_factors: Mapping[int, FormFactorProtocol],
-            rng: np.random.Generator
-    ):
-        """
-        Computes the intensities for each scattering vector.
-        """
-        # Compute basis portion of structure factors
-        # scattering_vecs.shape = (# trials filtered, 3)
-        # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
-        # dot_products_basis.shape = (# trials filtered, # atoms in a unit cell)
-        dot_products_basis = np.einsum("ik,jk", scattering_vecs, atom_pos_in_uc)
-
-        # form_factors_vars.shape = (# trials, varieties, # atoms in unit cell)
-        # atomic_numbers_vars.shape = (varieties, # atoms in unit cell)
-        form_factors_evaluated = {}
-        for atomic_number, form_factor in form_factors.items():
-            form_factors_evaluated[atomic_number] = (
-                form_factor.evaluate_form_factors(scattering_vecs))
-        form_factors_vars = np.array([[form_factors_evaluated[atom] for atom in
-                                       uc] for uc in atomic_numbers_vars])
-        form_factors_vars = np.transpose(form_factors_vars, axes=(2, 0, 1))
-
-        # exp_terms.shape = (# trials filtered, varieties, # atoms in a unit cell)
-        exps = np.exp(1j * dot_products_basis)
-        exp_terms_basis = np.einsum("ik,ijk->ijk", exps,
-                                    form_factors_vars)
-
-        # structure_factors_basis.shape = (# trials filtered, varieties)
-        structure_factors_basis = np.sum(exp_terms_basis, axis=2)
-
-        # Compute lattice portion of structure factors
-        # scattering_vecs.shape = (# trials filtered, 3)
-        # unit_cell_pos.shape = (# unit cells, 3)
-        # dot_products_lattice.shape = (# trials filtered, # unit cells)
-        dot_products_lattice = np.einsum("ik,jk", scattering_vecs, unit_cell_pos)
-
-        # exp_terms_lattice.shape = (# trials filtered, # unit cells)
-        exp_terms_lattice = np.exp(1j * dot_products_lattice)
-
-        # Each term of the lattice structure factor is multiplied with the basis
-        # structure factor of one of the unit cells
-
-        # structure_factors_basis.shape = (# trials filtered, varieties)
-        # structure_factors_basis_random.shape = (# trials filtered, # unit cells)
-        n_unit_cells = unit_cell_pos.shape[0]
-        n_uc_varieties = len(atomic_numbers_vars)
-        random_indices = rng.choice(np.arange(n_uc_varieties), size=n_unit_cells,
-                                    p=probs)
-        structure_factors_basis_random = structure_factors_basis[:, random_indices]
-
-        # structure_factors_lattice.shape = (# trials filtered,)
-        structure_factors = np.sum(
-            np.multiply(exp_terms_lattice, structure_factors_basis_random), axis=1)
-
-        intensities = np.abs(structure_factors) ** 2
-        return intensities
-
-    def calculate_diffraction_pattern_random_occupation(
+    def spectrum_iterative(
             self,
-            atom_from: int,
-            atom_to: int,
-            probability: float,
-            form_factors: Mapping[int, FormFactorProtocol],
-            target_accepted_trials: int = 5000,
-            trials_per_batch: int = 1000,
-            unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
-            angle_bins: int = 100,
-            weighted: bool = True,
-            num_top: int = 40000):
-        """
-        Calculates the neutron diffraction spectrum using a Monte Carlo method for a
-        random occupation crystal.
-
-        The crystal is constructed by selecting from the unit cell varieties
-        according to their probability distribution to give the desired concentration.
-
-        Parameters
-        ----------
-        atom_from : int
-            Atomic number of the element to be substituted out.
-        atom_to : int
-            Atomic number of the element to be substituted in.
-        probability : float
-            Probability for an atom to be substituted.
-        form_factors : Mapping[int, FormFactorProtocol]
-            Dictionary mapping atomic number to associated NeutronFormFactor or
-            XRayFormFactor.
-        target_accepted_trials : int
-            Target number of accepted trials.
-        trials_per_batch : int
-            Number of trials calculated at once using NumPy methods
-        unit_cell_reps : tuple[int, int, int]
-            How many times to repeat the unit cell in x, y, z directions, forming the
-            crystal powder for diffraction.
-        angle_bins : int
-            Number of bins for scattering angles
-        weighted : bool
-            Whether to draw scattering vectors from a sphere or via inverse transform
-            sampling using pdf.
-        num_top : int
-            The top num_top scattering trials in intensity will be returned in stream.
-
-        Returns
-        -------
-        two_thetas : (angle_bins,) ndarray
-            The left edges of the bins, evenly spaced within angle range specified
-        intensities : (angle_bins,) ndarray
-            Intensity calculated for each bin (not normalized)
-        stream : ndarray
-            Top num_top intensity data points
-        counts : ndarray
-            Number of trials in each angle bin
-        """
-        two_thetas = np.linspace(self._min_angle_deg, self._max_angle_deg,
-                                 angle_bins + 1)[:-1]
-        intensities = np.zeros(angle_bins)
-        counts = np.zeros(angle_bins)
-
-        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
-
-        _, atom_pos_in_uc = self._atoms_and_pos_in_uc()
-
-        uc_vars = UnitCellVarieties(self.unit_cell,
-                                    ReplacementProbability(atom_from, atom_to,
-                                                           probability))
-        atomic_numbers_vars, probs \
-            = uc_vars.atomic_number_lists()
-
-        stats = DiffractionMonteCarloRunStats()
-        stream = TopIntensityStream(num_top)
-
-        rng = np.random.default_rng() # A NumPy Random Generator
-
-        while stats.accepted_data_points < target_accepted_trials:
-
-            if time.time() - stats.prev_print_time_ > 5:
-                stats.prev_print_time_ = time.time()
-                print(stats)
-
-            if weighted:
-                scattering_vecs, two_thetas_batch = (
-                    self._get_scattering_vecs_and_angles_weighted(trials_per_batch))
-            else:
-                scattering_vecs, two_thetas_batch = (
-                    self._get_scattering_vecs_and_angles(trials_per_batch))
-
-            intensity_batch = DiffractionMonteCarlo.compute_intensities_random_occupation(
-                scattering_vecs,
-                unit_cell_pos,
-                atom_pos_in_uc,
-                atomic_numbers_vars,
-                probs,
-                form_factors,
-                rng
-            )
-
-            # Add to stream
-            for i, inten in enumerate(intensity_batch):
-                stream.add(scattering_vecs[i][0], scattering_vecs[i][1],
-                           scattering_vecs[i][2], inten)
-
-            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
-            intensities[bins] += intensity_batch
-            counts += np.bincount(bins, minlength=counts.shape[0])
-
-            stats.total_trials += two_thetas_batch.shape[0]
-            stats.accepted_data_points += two_thetas_batch.shape[0]
-
-        if weighted:
-            # Re-normalize intensity distribution
-            renormalization = np.ones_like(intensities)
-            renormalization /= self._pdf(two_thetas)
-            renormalization *= WeightingFunction.natural_distribution(two_thetas)
-            intensities *= renormalization
-
-        return two_thetas, intensities, np.array(stream.get_top_n()), counts
-
-    def calculate_neighborhood_diffraction_pattern_random_occupation(
-            self,
-            atom_from: int,
-            atom_to: int,
-            probability: float,
             form_factors: Mapping[int, FormFactorProtocol],
             angle_bins: int = 100,
-            brute_force_uc_reps: tuple[int, int, int] = (8, 8, 8),
-            neighbor_uc_reps: tuple[int, int, int] = (20, 20, 20),
             brute_force_trials: int = 1_000_000,
             num_top: int = 40000,
             resample_cnt: int = 100,
@@ -1073,12 +527,10 @@ class DiffractionMonteCarlo:
             plot_diagnostics: bool = False
     ):
         two_thetas, intensities, top, counts = (
-            self.calculate_diffraction_pattern_random_occupation(
-                atom_from, atom_to, probability,
+            self.calculate_diffraction_pattern_brute_force(
                 form_factors,
-                target_accepted_trials=brute_force_trials,
+                total_trials=brute_force_trials,
                 trials_per_batch=1000,
-                unit_cell_reps=brute_force_uc_reps,
                 angle_bins=angle_bins,
                 num_top=num_top,
                 weighted=weighted))
@@ -1091,12 +543,10 @@ class DiffractionMonteCarlo:
                 top
             )
 
-        intensities_neigh, counts_neigh = self.neighborhood_intensity_random_occupation(
-            atom_from, atom_to, probability,
+        intensities_neigh, counts_neigh = self.calculate_diffraction_pattern_neighborhood(
             top[:, 0:3],
             two_thetas,
             form_factors,
-            unit_cell_reps=neighbor_uc_reps,
             sigma=sigma,
             cnt_per_point=resample_cnt
         )
@@ -1111,99 +561,6 @@ class DiffractionMonteCarlo:
 
         return two_thetas, intensities_neigh
 
-    def neighborhood_intensity_random_occupation(
-            self,
-            atom_from: int,
-            atom_to: int,
-            probability: float,
-            points: np.ndarray,
-            two_thetas: np.ndarray,
-            form_factors: Mapping[int, FormFactorProtocol],
-            unit_cell_reps: tuple[int, int, int] = (8, 8, 8),
-            sigma: float=0.05,
-            cnt_per_point: int=100
-    ):
-        """
-        Calculates the diffraction spectrum by randomly sampling near the supplied
-        points (scattering vectors), which are assumed to those with the largest
-        contributions to the diffraction spectrum.
-
-        Parameters
-        ----------
-        atom_from : int
-            Atomic number of the element to be substituted out.
-        atom_to : int
-            Atomic number of the element to be substituted in.
-        probability : float
-            Probability for an atom to be substituted.
-        points : np.ndarray
-            List of scattering vectors. Assumed to be those with the largest
-            contributions to the diffraction spectrum.
-        two_thetas : np.ndarray
-            Left edges of angle bins.
-        form_factors : Mapping[int, FormFactorProtocol]
-            Dictionary mapping atomic number to associated NeutronFormFactor or
-            XRayFormFactor.
-        unit_cell_reps : tuple[int, int, int]
-            How many times to repeat the unit cell in x, y, z directions, forming the
-            crystal powder for diffraction.
-        sigma : float
-            Standard deviation of the 3D Gaussian for sampling around supplied points.
-        cnt_per_point : int
-            How many vectors to sample around each supplied point.
-
-        Returns
-        -------
-        intensities : (angle_bins,) ndarray
-            intensity calculated for each bin (not normalized)
-        counts : (angle_bins,) ndarray
-            Number of resampled vectors in each bin. Mostly for diagnostics.
-        """
-        intensities = np.zeros_like(two_thetas, dtype=float)
-        counts = np.zeros_like(two_thetas, dtype=int)
-        covariance = [[sigma**2, 0, 0],
-                      [0, sigma**2, 0],
-                      [0, 0, sigma**2]]
-        unit_cell_pos = self._unit_cell_positions(unit_cell_reps)
-        _, atom_pos_in_uc = self._atoms_and_pos_in_uc()
-        uc_vars = UnitCellVarieties(self.unit_cell,
-                                    ReplacementProbability(atom_from, atom_to,
-                                                           probability))
-        atomic_numbers_vars, probs \
-            = uc_vars.atomic_number_lists()
-        rng = np.random.default_rng()
-        start_time = time.time()
-        for i, point in enumerate(points):
-            cnt = cnt_per_point
-            if i % 1000 == 0:
-                per_trial = (time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)
-                print(f"Resampled {i}/{len(points)} points, cnt={cnt}, µs per trial="
-                      f"{per_trial:.1f}, "
-                      f"Time remaining={(per_trial * (len(points) - i) * cnt_per_point / 1e6):.0f}s")
-            scattering_vecs = np.random.multivariate_normal(point, covariance, cnt)
-            ks = np.linalg.norm(scattering_vecs, axis=1)
-            two_thetas_batch = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
-            # Some vectors may be out of range after resampling from Gaussian
-            in_angle_range = np.logical_and(two_thetas_batch > self._min_angle_deg,
-                                            two_thetas_batch < self._max_angle_deg)
-            scattering_vecs = scattering_vecs[in_angle_range]
-            two_thetas_batch = two_thetas_batch[in_angle_range]
-
-            intensity_batch = DiffractionMonteCarlo.compute_intensities_random_occupation(
-                scattering_vecs,
-                unit_cell_pos,
-                atom_pos_in_uc,
-                atomic_numbers_vars,
-                probs,
-                form_factors,
-                rng
-            )
-
-            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
-            intensities[bins] += intensity_batch
-            counts += np.bincount(bins, minlength=counts.shape[0])
-
-        return intensities, counts
 
 class TopIntensityStream:
     def __init__(self, N):
