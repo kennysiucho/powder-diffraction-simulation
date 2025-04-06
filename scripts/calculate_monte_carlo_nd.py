@@ -44,7 +44,7 @@ if CALCULATE_SPECTRUM:
     start_time = time.time()
 
     two_thetas, intensities, _, _ = (
-        diff.calculate_diffraction_pattern_brute_force(
+        diff.spectrum_uniform(
             diff.all_nd_form_factors,
             total_trials=4_000_000,
             trials_per_batch=1000,

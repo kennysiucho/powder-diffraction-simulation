@@ -52,7 +52,7 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
     )
 
     two_thetas, intensities, _, _ = (
-        mc_ideal_nacl.calculate_diffraction_pattern_brute_force(
+        mc_ideal_nacl.spectrum_uniform(
             nacl_nd_form_factors,
             total_trials=10,
             trials_per_batch=10,
@@ -97,7 +97,7 @@ def test_ideal_crystal_matches_arbitrary(
     )
 
     _, intensities_arb, _, _ = (
-        mc_arb.calculate_diffraction_pattern_brute_force(
+        mc_arb.spectrum_uniform(
             ingaas_nd_form_factors,
             total_trials=1000,
             trials_per_batch=1000,
@@ -108,7 +108,7 @@ def test_ideal_crystal_matches_arbitrary(
     )
 
     _, intensities_ideal, _, _ = (
-        mc_ideal_gaas.calculate_diffraction_pattern_brute_force(
+        mc_ideal_gaas.spectrum_uniform(
             ingaas_nd_form_factors,
             total_trials=1000,
             trials_per_batch=1000,
@@ -134,12 +134,12 @@ def test_neighborhood_intensity_ideal_crystal_matches_arbitrary_crystal(
     two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
 
     intensities_ideal, counts_ideal = (
-        mc_ideal_gaas.calculate_diffraction_pattern_neighborhood(
+        mc_ideal_gaas.spectrum_neighborhood(
         vecs, two_thetas, ingaas_nd_form_factors,
         sigma=0.05, cnt_per_point=5
     ))
     intensities_arb, counts_arb = (
-        mc_arbitrary_gaas.calculate_diffraction_pattern_neighborhood(
+        mc_arbitrary_gaas.spectrum_neighborhood(
         vecs, two_thetas, ingaas_nd_form_factors,
         sigma=0.05, cnt_per_point=5
     ))

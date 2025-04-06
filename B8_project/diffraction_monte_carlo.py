@@ -360,7 +360,7 @@ class DiffractionMonteCarlo(ABC):
         """Compute intensities based on scattering vectors."""
         pass
 
-    def calculate_diffraction_pattern_brute_force(
+    def spectrum_uniform(
             self,
             form_factors: Mapping[int, FormFactorProtocol],
             total_trials: int = 5000,
@@ -451,7 +451,7 @@ class DiffractionMonteCarlo(ABC):
 
         return two_thetas, intensities, np.array(stream.get_top_n()), counts
 
-    def calculate_diffraction_pattern_neighborhood(
+    def spectrum_neighborhood(
             self,
             points: np.ndarray,
             two_thetas: np.ndarray,
@@ -527,7 +527,7 @@ class DiffractionMonteCarlo(ABC):
             plot_diagnostics: bool = False
     ):
         two_thetas, intensities, top, counts = (
-            self.calculate_diffraction_pattern_brute_force(
+            self.spectrum_uniform(
                 form_factors,
                 total_trials=brute_force_trials,
                 trials_per_batch=1000,
@@ -543,7 +543,7 @@ class DiffractionMonteCarlo(ABC):
                 top
             )
 
-        intensities_neigh, counts_neigh = self.calculate_diffraction_pattern_neighborhood(
+        intensities_neigh, counts_neigh = self.spectrum_neighborhood(
             top[:, 0:3],
             two_thetas,
             form_factors,

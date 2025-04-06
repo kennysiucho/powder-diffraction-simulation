@@ -42,7 +42,7 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
 
     mc_ideal_gaas.set_unit_cell_reps((8, 8, 8))
     _, intensities_ideal, _, _ = (
-        mc_ideal_gaas.calculate_diffraction_pattern_brute_force(
+        mc_ideal_gaas.spectrum_uniform(
             ingaas_nd_form_factors,
             total_trials=1000,
             trials_per_batch=1000,
@@ -54,7 +54,7 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
     mc_random_gaas.set_random_occupation_parameters(31, 41, 0.0)
     mc_random_gaas.set_unit_cell_reps((8, 8, 8))
     _, intensities_random, _, _ = (
-        mc_ideal_gaas.calculate_diffraction_pattern_brute_force(
+        mc_ideal_gaas.spectrum_uniform(
             ingaas_nd_form_factors,
             total_trials=1000,
             trials_per_batch=1000,
@@ -111,7 +111,7 @@ def test_random_occupation_matches_arbitrary(
     )
 
     _, intensities_arb, _, _ = (
-        mc_arbitrary_ingaas.calculate_diffraction_pattern_brute_force(
+        mc_arbitrary_ingaas.spectrum_uniform(
             ingaas_nd_form_factors,
             total_trials=1000,
             trials_per_batch=1000,
@@ -122,7 +122,7 @@ def test_random_occupation_matches_arbitrary(
     )
 
     _, intensities_random, _, _ = (
-        mc_random_gaas.calculate_diffraction_pattern_brute_force(
+        mc_random_gaas.spectrum_uniform(
             ingaas_nd_form_factors,
             total_trials=1000,
             trials_per_batch=1000,
@@ -157,12 +157,12 @@ def test_neighborhood_intensity_random_occupation_matches_arbitrary_crystal(
 
     two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
     intensities_rand, counts_rand = (
-        mc_random_gaas.calculate_diffraction_pattern_neighborhood(
+        mc_random_gaas.spectrum_neighborhood(
             vecs, two_thetas, ingaas_nd_form_factors,
             sigma=0.05, cnt_per_point=5
     ))
     intensities_arb, counts_arb = (
-        mc_arbitrary_ingaas.calculate_diffraction_pattern_neighborhood(
+        mc_arbitrary_ingaas.spectrum_neighborhood(
             vecs, two_thetas, ingaas_nd_form_factors,
             sigma=0.05, cnt_per_point=5
         ))

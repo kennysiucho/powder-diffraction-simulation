@@ -34,7 +34,7 @@ def test_diffraction_spectrum_known_vecs(
     )
 
     two_thetas, intensities, _, _ = (
-        mc_arbitrary_gaas.calculate_diffraction_pattern_brute_force(
+        mc_arbitrary_gaas.spectrum_uniform(
             ingaas_nd_form_factors,
             total_trials=4,
             trials_per_batch=4,
@@ -84,7 +84,7 @@ def test_monte_carlo_calculate_diffraction_pattern(
 
     # Run one batch of 10 trials without any filtering based on angle or intensity
     two_thetas, intensities, _, _ \
-        = mc_arbitrary_nacl.calculate_diffraction_pattern_brute_force(
+        = mc_arbitrary_nacl.spectrum_uniform(
             nacl_nd_form_factors,
             total_trials=10,
             trials_per_batch=10,
@@ -113,7 +113,7 @@ def test_neighborhood_intensity_arbitrary_crystal(
                  side_effect=mock_multivariate_normal)
 
     two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
-    intensities, counts = mc_arbitrary_gaas.calculate_diffraction_pattern_neighborhood(
+    intensities, counts = mc_arbitrary_gaas.spectrum_neighborhood(
         scattering_vecs_gaas,
         two_thetas,
         ingaas_nd_form_factors,
