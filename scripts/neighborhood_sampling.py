@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from B8_project import file_reading
 import B8_project.crystal as unit_cell
-from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo
+from B8_project.diffraction_monte_carlo import RefinementIteration, UniformSettings, \
+    NeighborhoodSettings
+from B8_project.mc_ideal_crystal import MCIdealCrystal
 
 two_thetas_file = Path("two_thetas.txt")
 intensities_file = Path("intensities.txt")
@@ -23,52 +25,58 @@ else:
     CALCULATE_SPECTRUM = True
 
 if CALCULATE_SPECTRUM:
-    LATTICE_FILE = "data/CsPbBr3_lattice.csv"
-    BASIS_FILE = "data/CsPbBr3_basis.csv"
+    LATTICE_FILE = "data/PrO2_lattice.csv"
+    BASIS_FILE = "data/PrO2_basis.csv"
 
     lattice = file_reading.read_lattice(LATTICE_FILE)
     basis = file_reading.read_basis(BASIS_FILE)
 
     unit_cell = unit_cell.UnitCell.new_unit_cell(basis, lattice)
 
-    CONC = 0.
-    lat = 5.94863082 + CONC * (6.27514229 - 5.94863082)
-    unit_cell.lattice_constants = (lat, lat, lat)
-    print("Lattice constants:", unit_cell.lattice_constants)
+    # CONC = 0.
+    # lat = 5.94863082 + CONC * (6.27514229 - 5.94863082)
+    # unit_cell.lattice_constants = (lat, lat, lat)
+    # print("Lattice constants:", unit_cell.lattice_constants)
 
-    diff = DiffractionMonteCarlo(unit_cell,
-                                 1.54,
-                                 min_angle_deg=25,
-                                 max_angle_deg=42)
-
-    # TODO: improve UI for reading form factors
-    # all_nd_form_factors = file_reading.read_neutron_scattering_lengths(
-    #     "data/neutron_scattering_lengths.csv")
-    #     # nd_form_factors = {}
-    #     # for atom in diff.unit_cell.atoms:
-    #     #     nd_form_factors[atom.atomic_number] = all_nd_form_factors[atom.atomic_number]
-    # nd_form_factors[49] = all_nd_form_factors[49]
-
-    all_xray_form_factors = file_reading.read_xray_form_factors(
-        "data/x_ray_form_factors.csv")
-    xrd_form_factors = {}
-    for atom in diff._unit_cell.atoms:
-        xrd_form_factors[atom.atomic_number] = all_xray_form_factors[atom.atomic_number]
-    xrd_form_factors[53] = all_xray_form_factors[53]
+    diff = MCIdealCrystal(1.23,
+                          unit_cell,
+                          (4, 4, 4),
+                          min_angle_deg=42,
+                          max_angle_deg=50)
 
     start_time = time.time()
 
-    atom_from, atom_to, prob = 35, 53, CONC
+    # atom_from, atom_to, prob = 35, 53, CONC
 
-    two_thetas, intensities = diff.calculate_neighborhood_diffraction_pattern_random_occupation(
-        atom_from, atom_to, prob,
-        xrd_form_factors,
-        angle_bins=200,
-        brute_force_uc_reps=(4, 4, 4),
-        neighbor_uc_reps=(8, 8, 8),
-        brute_force_trials=1_000_000,
-        num_top=10000,
-        resample_cnt=40,
+    iterations = []
+    iterations.append(RefinementIteration(
+        setup=lambda: diff.set_unit_cell_reps((10, 10, 10)),
+        settings=UniformSettings(
+            total_trials=10_000_000,
+            angle_bins=200,
+            num_top=40_000
+        )
+    ))
+    iterations.append(RefinementIteration(
+        setup=lambda: diff.set_unit_cell_reps((16, 16, 16)),
+        settings=NeighborhoodSettings(
+            sigma=0.03,
+            cnt_per_point=10,
+            num_top=80_000
+        )
+    ))
+    iterations.append(RefinementIteration(
+        setup=lambda: diff.set_unit_cell_reps((24, 24, 24)),
+        settings=NeighborhoodSettings(
+            sigma=0.006,
+            cnt_per_point=5,
+            num_top=400_000
+        )
+    ))
+
+    two_thetas, intensities = diff.spectrum_iterative_refinement(
+        diff.all_nd_form_factors,
+        iterations,
         plot_diagnostics=True
     )
 
@@ -91,7 +99,7 @@ plt.ylim(bottom=0)
 plt.xlabel("Scattering angle (2θ) (deg)")
 plt.ylabel("Intensity")
 # plt.title("In_0.25Ga_0.75As Neutron Diffraction Spectrum")
-plt.title("CsPbBr3 XRD Diffraction Spectrum")
+plt.title("PrO2 Neutron Diffraction Spectrum")
 plt.legend()
 plt.grid(linestyle=":")
 plt.show()
