@@ -448,7 +448,7 @@ class DiffractionMonteCarlo(ABC):
             The left edges of the bins, evenly spaced within angle range specified
         intensities : (angle_bins,) ndarray
             Intensity calculated for each bin (not normalized)
-        stream : ndarray
+        top : ndarray
             Top num_top intensity data points
         counts : ndarray
             Number of trials in each angle bin
@@ -504,7 +504,8 @@ class DiffractionMonteCarlo(ABC):
             two_thetas: np.ndarray,
             form_factors: Mapping[int, FormFactorProtocol],
             sigma: float = 0.05,
-            cnt_per_point: int = 100
+            cnt_per_point: int = 100,
+            num_top: int = 40000
     ):
         """
         Calculates the diffraction spectrum by randomly sampling near the supplied
@@ -525,22 +526,27 @@ class DiffractionMonteCarlo(ABC):
             Standard deviation of the 3D Gaussian for sampling around supplied points.
         cnt_per_point : int
             How many vectors to sample around each supplied point.
+        num_top : int
+            The top num_top scattering trials in intensity will be returned in stream.
 
         Returns
         -------
         intensities : (angle_bins,) ndarray
             intensity calculated for each bin (not normalized)
+        top : ndarray
+            Top num_top intensity data points
         counts : (angle_bins,) ndarray
             Number of resampled vectors in each bin. Mostly for diagnostics.
         """
         intensities = np.zeros_like(two_thetas, dtype=float)
         counts = np.zeros_like(two_thetas, dtype=int)
         covariance = sigma ** 2 * np.eye(3)
+        stream = TopIntensityStream(num_top)
         start_time = time.time()
 
         for i, point in enumerate(points):
-            if i % 1000 == 0:
-                per_trial = (time.time() - start_time) * 1e6 / (np.sum(counts) + 0.01)
+            if i != 0 and i % max(1, round(len(points) / 1000) * 100) == 0:
+                per_trial = (time.time() - start_time) * 1e6 / (np.sum(counts))
                 print(
                     f"Resampled {i}/{len(points)} points, µs per trial={per_trial:.1f}, "
                     f"Time remaining={(per_trial * (len(points) - i) * cnt_per_point / 1e6):.0f}s")
@@ -560,28 +566,42 @@ class DiffractionMonteCarlo(ABC):
             intensities[bins] += intensity_batch
             counts += np.bincount(bins, minlength=counts.shape[0])
 
-        return intensities, counts
+            for j, inten in enumerate(intensity_batch):
+                stream.add(scattering_vecs[j][0], scattering_vecs[j][1],
+                           scattering_vecs[j][2], inten)
 
-    def spectrum_iterative(
+        return intensities, np.array(stream.get_top_n()), counts
+
+    def spectrum_iterative_refinement(
             self,
             form_factors: Mapping[int, FormFactorProtocol],
-            angle_bins: int = 100,
-            brute_force_trials: int = 1_000_000,
-            num_top: int = 40000,
-            resample_cnt: int = 100,
-            weighted: bool = True,
-            sigma: float = 0.05,
+            iterations: list[RefinementIteration],
             plot_diagnostics: bool = False
     ):
+        # Validate iterations
+        if len(iterations) == 0:
+            raise ValueError("Iterations cannot be empty.")
+        for i, iteration in enumerate(iterations):
+            if i == 0 and not isinstance(iteration.settings, UniformSettings):
+                raise ValueError("First iteration must be Uniform Sampling.")
+            if i != 0 and not isinstance(iteration.settings, NeighborhoodSettings):
+                raise ValueError("Iterations after the first must be Neighborhood Sampling.")
+
+        for it in iterations:
+            print(it)
+
+        iterations[0].setup()
+        uniform: UniformSettings = iterations[0].settings
+        print(f"\nUniform sampling (1/{len(iterations)})")
+        print(iterations[0])
         two_thetas, intensities, top, counts = (
             self.spectrum_uniform(
                 form_factors,
-                total_trials=brute_force_trials,
-                trials_per_batch=1000,
-                angle_bins=angle_bins,
-                num_top=num_top,
-                weighted=weighted))
-
+                total_trials=uniform.total_trials,
+                trials_per_batch=uniform.trials_per_batch,
+                angle_bins=uniform.angle_bins,
+                num_top=uniform.num_top,
+                weighted=uniform.weighted))
         if plot_diagnostics:
             self._plot_diagnostics(
                 two_thetas,
@@ -590,23 +610,28 @@ class DiffractionMonteCarlo(ABC):
                 top
             )
 
-        intensities_neigh, counts_neigh = self.spectrum_neighborhood(
-            top[:, 0:3],
-            two_thetas,
-            form_factors,
-            sigma=sigma,
-            cnt_per_point=resample_cnt
-        )
-
-        if plot_diagnostics:
-            self._plot_diagnostics(
+        for i, it in enumerate(iterations[1:]):
+            it.setup()
+            neigh: NeighborhoodSettings = it.settings
+            print(f"\nNeighborhood sampling ({i + 2}/{len(iterations)})")
+            print(it)
+            intensities, top, counts = self.spectrum_neighborhood(
+                top[:, 0:3],
                 two_thetas,
-                counts_neigh,
-                intensities_neigh,
-                None
+                form_factors,
+                sigma=neigh.sigma,
+                cnt_per_point=neigh.cnt_per_point,
+                num_top=neigh.num_top
             )
+            if plot_diagnostics:
+                self._plot_diagnostics(
+                    two_thetas,
+                    counts,
+                    intensities,
+                    top
+                )
 
-        return two_thetas, intensities_neigh
+        return two_thetas, intensities
 
 
 class TopIntensityStream:

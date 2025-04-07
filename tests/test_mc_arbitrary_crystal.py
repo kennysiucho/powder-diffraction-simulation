@@ -144,7 +144,7 @@ def test_neighborhood_spectrum_arbitrary_crystal(
     mocker.patch('numpy.random.multivariate_normal',
                  side_effect=mock_multivariate_normal)
 
-    two_thetas, intensities = mc_arbitrary_gaas.spectrum_iterative(
+    two_thetas, intensities = mc_arbitrary_gaas.spectrum_iterative_refinement(
         ingaas_nd_form_factors,
         angle_bins=9,
         brute_force_trials=10,

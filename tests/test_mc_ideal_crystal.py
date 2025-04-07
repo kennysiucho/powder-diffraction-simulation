@@ -163,7 +163,7 @@ def test_neighborhood_spectrum_ideal_crystal_matches_arbitrary_crystal(
                  side_effect=mock_multivariate_normal)
 
     two_thetas_ideal, intensities_ideal = (
-        mc_ideal_gaas.spectrum_iterative(
+        mc_ideal_gaas.spectrum_iterative_refinement(
             ingaas_nd_form_factors,
             angle_bins=9,
             brute_force_uc_reps=(2, 1, 1),
@@ -176,7 +176,7 @@ def test_neighborhood_spectrum_ideal_crystal_matches_arbitrary_crystal(
             plot_diagnostics=False
         ))
     two_thetas_arb, intensities_arb = (
-        mc_arbitrary_gaas.spectrum_iterative(
+        mc_arbitrary_gaas.spectrum_iterative_refinement(
             ingaas_nd_form_factors,
             angle_bins=9,
             brute_force_trials=10,
