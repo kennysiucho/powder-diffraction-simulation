@@ -14,8 +14,9 @@ Classes
     based on the type of crystal
 """
 import heapq
+import inspect
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Mapping, Callable
 from abc import ABC, abstractmethod
 import numpy as np
@@ -60,6 +61,55 @@ class WeightingFunction:
             return result
         return gaussians
 
+
+@dataclass
+class IterationSettings:
+    """
+    Parent class of UniformSettings and NeighborhoodSettings.
+    """
+    def __str__(self):
+        settings_dict = asdict(self)
+        settings_lines = [f"  {key}: {value}" for key, value in settings_dict.items()]
+        return f"{self.__class__.__name__}:\n" + "\n".join(settings_lines)
+
+
+@dataclass
+class UniformSettings(IterationSettings):
+    """
+    Dataclass containing the required settings for the brute-force Monte Carlo method
+    of calculating a spectrum.
+    """
+    total_trials: int = 5000
+    trials_per_batch: int = 1000
+    angle_bins: int = 100
+    weighted: bool = True
+    num_top: int = 40000
+
+
+@dataclass
+class NeighborhoodSettings(IterationSettings):
+    """
+    Dataclass containing the required settings for the neighborhood sampling Monte
+    Carlo method of calculating a spectrum.
+    """
+    sigma: float = 0.05
+    cnt_per_point: int = 100
+    num_top: int = 40000
+
+
+@dataclass
+class RefinementIteration:
+    """
+    Defines one iteration of spectrum refinement.
+    """
+    setup: Callable[[], None]
+    settings: IterationSettings
+
+    def __str__(self):
+        setup_source = inspect.getsource(self.setup)
+        settings_str = str(self.settings)
+        return (f"Setup:\n{setup_source}"
+                f"{settings_str}")
 
 @dataclass
 class DiffractionMonteCarloRunStats:
