@@ -121,8 +121,6 @@ class DiffractionMonteCarloRunStats:
 
     Attributes
     ----------
-    accepted_data_points : int
-        Number of accepted trials so far
     total_trials : int
         Total number of trials attempted, regardless of their angles and intensities
     start_time_ : float
@@ -135,7 +133,6 @@ class DiffractionMonteCarloRunStats:
         not.
     """
 
-    accepted_data_points: int = 0
     total_trials: int = 0
     start_time_: float = time.time()
     prev_print_time_: float = 0.0
@@ -463,7 +460,7 @@ class DiffractionMonteCarlo(ABC):
         stats = DiffractionMonteCarloRunStats()
         stream = TopIntensityStream(num_top)
 
-        while stats.accepted_data_points < total_trials:
+        while stats.total_trials < total_trials:
             if time.time() - stats.prev_print_time_ > 5:
                 stats.prev_print_time_ = time.time()
                 print(stats)
@@ -485,7 +482,6 @@ class DiffractionMonteCarlo(ABC):
             counts += np.bincount(bins, minlength=counts.shape[0])
 
             stats.total_trials += two_thetas_batch.shape[0]
-            stats.accepted_data_points += two_thetas_batch.shape[0]
 
             # Add to stream
             for i, inten in enumerate(intensity_batch):
