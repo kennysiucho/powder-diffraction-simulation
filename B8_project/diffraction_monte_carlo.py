@@ -351,7 +351,7 @@ class DiffractionMonteCarlo(ABC):
         ax1.set_ylim(bottom=0)
         ax1.set_xlabel("Scattering angle (2θ) (deg)")
         ax1.set_ylabel("Intensity")
-        ax1.set_title("Brute-force diffraction pattern")
+        ax1.set_title("Diffraction pattern")
         ax1.grid(linestyle=":")
 
         # Intensity of the top trials - tests for enough decay
@@ -379,6 +379,7 @@ class DiffractionMonteCarlo(ABC):
                             norm=LogNorm())
             cb = plt.colorbar(hb, ax=ax3_2, pad=0.15)
             cb.set_label('Count')
+            ax3_2.set_ylim(bottom=0)
             ax3_2.set_ylabel('Intensity')
             # Histogram of two_thetas for the top trials
             ax3.plot(two_thetas, top_distribution, label='Top trials',
