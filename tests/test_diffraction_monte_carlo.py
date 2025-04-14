@@ -5,7 +5,7 @@ This module contains unit tests for the diffraction_monte_carlo.py module.
 import numpy.testing as nptest
 import matplotlib.pyplot as plt
 import scipy
-from B8_project.diffraction_monte_carlo import WeightingFunction
+from B8_project.diffraction_monte_carlo import WeightingFunction, TopIntensityStream
 from B8_project import utils
 from tests.conftest import *
 
@@ -236,7 +236,7 @@ def test_neighborhood_spectrum_random_occupation_matches_arbitrary_crystal(
             brute_force_uc_reps=(2, 2, 2),
             neighbor_uc_reps=(2, 2, 2),
             brute_force_trials=10,
-            num_top=5,
+            threshold=0.,
             resample_cnt=5,
             weighted=False,
             sigma=0.05,
@@ -248,7 +248,7 @@ def test_neighborhood_spectrum_random_occupation_matches_arbitrary_crystal(
             ingaas_nd_form_factors,
             angle_bins=9,
             brute_force_trials=10,
-            num_top=5,
+            threshold=0.,
             resample_cnt=5,
             weighted=False,
             sigma=0.05,
@@ -256,3 +256,16 @@ def test_neighborhood_spectrum_random_occupation_matches_arbitrary_crystal(
         ))
     nptest.assert_allclose(two_thetas_rand, two_thetas_arb, rtol=1e-6, atol=1e-8)
     nptest.assert_allclose(intensities_rand, intensities_arb, rtol=1e-6, atol=1e-8)
+
+def test_top_intensity_stream():
+    stream = TopIntensityStream(0.5)
+    stream.add(0, 0, 0, 1)
+    nptest.assert_allclose(stream.get_filtered(), np.array([(0, 0, 0, 1)]))
+    stream.add(0, 0, 0, 3)
+    nptest.assert_allclose(stream.get_filtered(), np.array([(0, 0, 0, 3)]))
+    stream.add(0, 0, 0, 2)
+    nptest.assert_allclose(stream.get_filtered(),
+                           np.array([(0, 0, 0, 3), (0, 0, 0, 2)]))
+    stream.add(1, 2, 3, 5)
+    nptest.assert_allclose(stream.get_filtered(),
+                           np.array([(1, 2, 3, 5), (0, 0, 0, 3)]))

@@ -58,7 +58,7 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
             trials_per_batch=10,
             angle_bins=9,
             weighted=False,
-            num_top=1
+            threshold=0.
         ))
     intensities /= np.max(intensities)
 
@@ -103,7 +103,7 @@ def test_ideal_crystal_matches_arbitrary(
             trials_per_batch=1000,
             angle_bins=10,
             weighted=False,
-            num_top=1
+            threshold=0.
         )
     )
 
@@ -114,7 +114,7 @@ def test_ideal_crystal_matches_arbitrary(
             trials_per_batch=1000,
             angle_bins=10,
             weighted=False,
-            num_top=1
+            threshold=0.
         ))
 
     nptest.assert_allclose(intensities_arb, intensities_ideal)
@@ -133,12 +133,12 @@ def test_neighborhood_intensity_ideal_crystal_matches_arbitrary_crystal(
             * mc_ideal_gaas.k())
     two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
 
-    intensities_ideal, counts_ideal = (
+    intensities_ideal, _, counts_ideal = (
         mc_ideal_gaas.spectrum_neighborhood(
         vecs, two_thetas, ingaas_nd_form_factors,
         sigma=0.05, cnt_per_point=5
     ))
-    intensities_arb, counts_arb = (
+    intensities_arb, _, counts_arb = (
         mc_arbitrary_gaas.spectrum_neighborhood(
         vecs, two_thetas, ingaas_nd_form_factors,
         sigma=0.05, cnt_per_point=5
@@ -169,7 +169,7 @@ def test_neighborhood_spectrum_ideal_crystal_matches_arbitrary_crystal(
             brute_force_uc_reps=(2, 1, 1),
             neighbor_uc_reps=(2, 1, 1),
             brute_force_trials=10,
-            num_top=5,
+            threshold=0.,
             resample_cnt=5,
             weighted=False,
             sigma=0.05,
@@ -180,7 +180,7 @@ def test_neighborhood_spectrum_ideal_crystal_matches_arbitrary_crystal(
             ingaas_nd_form_factors,
             angle_bins=9,
             brute_force_trials=10,
-            num_top=5,
+            threshold=0.,
             resample_cnt=5,
             weighted=False,
             sigma=0.05,
