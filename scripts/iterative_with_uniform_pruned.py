@@ -54,7 +54,7 @@ if CALCULATE_SPECTRUM:
         settings=UniformSettings(
             total_trials=8_000_000,
             angle_bins=200,
-            num_top=80_000
+            threshold=0.005
         )
     ))
     iterations.append(RefinementIteration(
@@ -62,7 +62,7 @@ if CALCULATE_SPECTRUM:
         settings=NeighborhoodSettings(
             sigma=0.03,
             cnt_per_point=10,
-            num_top=80_000
+            threshold=0.005
         )
     ))
     iterations.append(RefinementIteration(
@@ -71,7 +71,7 @@ if CALCULATE_SPECTRUM:
             dist=0.02,
             total_trials=1_000_000,
             trials_per_batch=5_000,
-            num_top=1_000_000
+            threshold=0.005
         )
     ))
 
