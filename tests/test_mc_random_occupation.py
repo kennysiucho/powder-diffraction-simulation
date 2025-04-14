@@ -48,7 +48,7 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
             trials_per_batch=1000,
             angle_bins=10,
             weighted=False,
-            num_top=1
+            threshold=0.
         ))
 
     mc_random_gaas.set_random_occupation_parameters(31, 41, 0.0)
@@ -60,7 +60,7 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
             trials_per_batch=1000,
             angle_bins=10,
             weighted=False,
-            num_top=1
+            threshold=0.
         ))
 
     nptest.assert_allclose(intensities_ideal, intensities_random)
@@ -117,7 +117,7 @@ def test_random_occupation_matches_arbitrary(
             trials_per_batch=1000,
             angle_bins=10,
             weighted=False,
-            num_top=1
+            threshold=0.
         )
     )
 
@@ -128,7 +128,7 @@ def test_random_occupation_matches_arbitrary(
             trials_per_batch=1000,
             angle_bins=10,
             weighted=False,
-            num_top=1
+            threshold=0.
         )
     )
 
@@ -156,12 +156,12 @@ def test_neighborhood_intensity_random_occupation_matches_arbitrary_crystal(
                  side_effect=mock_multivariate_normal)
 
     two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
-    intensities_rand, counts_rand = (
+    intensities_rand, _, counts_rand = (
         mc_random_gaas.spectrum_neighborhood(
             vecs, two_thetas, ingaas_nd_form_factors,
             sigma=0.05, cnt_per_point=5
     ))
-    intensities_arb, counts_arb = (
+    intensities_arb, _, counts_arb = (
         mc_arbitrary_ingaas.spectrum_neighborhood(
             vecs, two_thetas, ingaas_nd_form_factors,
             sigma=0.05, cnt_per_point=5

@@ -50,27 +50,27 @@ if CALCULATE_SPECTRUM:
 
     iterations = []
     iterations.append(RefinementIteration(
-        setup=lambda: diff.set_unit_cell_reps((10, 10, 10)),
+        setup=lambda: diff.set_unit_cell_reps((8, 8, 8)),
         settings=UniformSettings(
-            total_trials=10_000_000,
+            total_trials=6_000_000,
             angle_bins=200,
-            num_top=40_000
+            threshold=0.005
         )
     ))
     iterations.append(RefinementIteration(
-        setup=lambda: diff.set_unit_cell_reps((16, 16, 16)),
+        setup=lambda: diff.set_unit_cell_reps((14, 14, 14)),
         settings=NeighborhoodSettings(
             sigma=0.03,
             cnt_per_point=10,
-            num_top=80_000
+            threshold=0.005
         )
     ))
     iterations.append(RefinementIteration(
-        setup=lambda: diff.set_unit_cell_reps((24, 24, 24)),
+        setup=lambda: diff.set_unit_cell_reps((20, 20, 20)),
         settings=NeighborhoodSettings(
             sigma=0.006,
             cnt_per_point=5,
-            num_top=400_000
+            threshold=0.005
         )
     ))
 

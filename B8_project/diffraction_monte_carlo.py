@@ -16,7 +16,7 @@ Classes
 import heapq
 import inspect
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from typing import Mapping, Callable
 from abc import ABC, abstractmethod
 import numpy as np
@@ -83,7 +83,7 @@ class UniformSettings(IterationSettings):
     trials_per_batch: int = 1000
     angle_bins: int = 100
     weighted: bool = True
-    num_top: int = 40000
+    threshold: float = 0.005
 
 
 @dataclass
@@ -94,7 +94,7 @@ class NeighborhoodSettings(IterationSettings):
     """
     sigma: float = 0.05
     cnt_per_point: int = 100
-    num_top: int = 40000
+    threshold: float = 0.005
 
 
 @dataclass
@@ -107,7 +107,7 @@ class UniformPrunedSettings(IterationSettings):
     total_trials: int = 1_000_000
     trials_per_batch: int = 5_000
     weighted: bool = True
-    num_top: int = 40000
+    threshold: float = 0.005
 
 
 @dataclass
@@ -431,7 +431,7 @@ class DiffractionMonteCarlo(ABC):
             trials_per_batch: int = 1000,
             angle_bins: int = 100,
             weighted: bool = False,
-            num_top: int = 40000):
+            threshold: float = 0.005):
         """
         Calculates the diffraction spectrum using a brute-force Monte Carlo method
         (no neighborhood sampling) for corresponding crystal type.
@@ -455,8 +455,9 @@ class DiffractionMonteCarlo(ABC):
         weighted : bool
             Whether to draw scattering vectors from a sphere or via inverse transform
             sampling using pdf.
-        num_top : int
-            The top num_top scattering trials in intensity will be returned in stream.
+        threshold : float
+            The scattering trials with intensity greater than threshold times the
+            maximum intensity encountered will be returned in stream.
 
         Returns
         -------
@@ -465,7 +466,7 @@ class DiffractionMonteCarlo(ABC):
         intensities : (angle_bins,) ndarray
             Intensity calculated for each bin (not normalized)
         top : ndarray
-            Top num_top intensity data points
+            Top intensity data points larger than threshold times the maximum intensity.
         counts : ndarray
             Number of trials in each angle bin
         """
@@ -475,7 +476,7 @@ class DiffractionMonteCarlo(ABC):
         counts = np.zeros(angle_bins)
 
         stats = DiffractionMonteCarloRunStats()
-        stream = TopIntensityStream(num_top)
+        stream = TopIntensityStream(threshold)
 
         while stats.accepted_data_points < total_trials:
             if time.time() - stats.prev_print_time_ > 5:
@@ -513,7 +514,7 @@ class DiffractionMonteCarlo(ABC):
             renormalization *= WeightingFunction.natural_distribution(two_thetas)
             intensities *= renormalization
 
-        return two_thetas, intensities, np.array(stream.get_top_n()), counts
+        return two_thetas, intensities, np.array(stream.get_filtered()), counts
 
     def spectrum_neighborhood(
             self,
@@ -522,7 +523,7 @@ class DiffractionMonteCarlo(ABC):
             form_factors: Mapping[int, FormFactorProtocol],
             sigma: float = 0.05,
             cnt_per_point: int = 100,
-            num_top: int = 40000
+            threshold: float = 0.005
     ):
         """
         Calculates the diffraction spectrum by randomly sampling near the supplied
@@ -543,23 +544,26 @@ class DiffractionMonteCarlo(ABC):
             Standard deviation of the 3D Gaussian for sampling around supplied points.
         cnt_per_point : int
             How many vectors to sample around each supplied point.
-        num_top : int
-            The top num_top scattering trials in intensity will be returned in stream.
+        threshold : float
+            The scattering trials with intensity greater than threshold times the
+            maximum intensity encountered will be returned in stream.
 
         Returns
         -------
         intensities : (angle_bins,) ndarray
             intensity calculated for each bin (not normalized)
         top : ndarray
-            Top num_top intensity data points
+            Top intensity data points larger than threshold times the maximum intensity.
         counts : (angle_bins,) ndarray
             Number of resampled vectors in each bin. Mostly for diagnostics.
         """
         intensities = np.zeros_like(two_thetas, dtype=float)
         counts = np.zeros_like(two_thetas, dtype=int)
         covariance = sigma ** 2 * np.eye(3)
-        stream = TopIntensityStream(num_top)
+        stream = TopIntensityStream(threshold)
         start_time = time.time()
+
+        print(f"INFO: Number of points: {len(points)}")
 
         for i, point in enumerate(points):
             if i != 0 and i % max(1, round(len(points) / 1000) * 100) == 0:
@@ -587,7 +591,7 @@ class DiffractionMonteCarlo(ABC):
                 stream.add(scattering_vecs[j][0], scattering_vecs[j][1],
                            scattering_vecs[j][2], inten)
 
-        return intensities, np.array(stream.get_top_n()), counts
+        return intensities, np.array(stream.get_filtered()), counts
 
     def spectrum_uniform_pruned(
             self,
@@ -598,7 +602,7 @@ class DiffractionMonteCarlo(ABC):
             total_trials: int = 40000,
             trials_per_batch: int = 1000,
             weighted: bool = True,
-            num_top: int = 40000
+            threshold: float = 0.005
     ):
         """
         Calculates the diffraction spectrum by uniformly sampling the Q-sphere, but
@@ -625,24 +629,26 @@ class DiffractionMonteCarlo(ABC):
         weighted : bool
             Whether to draw scattering vectors from a sphere or via inverse transform
             sampling using pdf.
-        num_top : int
-            The top num_top scattering trials in intensity will be returned in stream.
+        threshold : float
+            The scattering trials with intensity greater than threshold times the
+            maximum intensity encountered will be returned in stream.
 
         Returns
         -------
         intensities : (angle_bins,) ndarray
             intensity calculated for each bin (not normalized)
         top : ndarray
-            Top num_top intensity data points
+            Top intensity data points larger than threshold times the maximum intensity.
         counts : (angle_bins,) ndarray
             Number of resampled vectors in each bin. Mostly for diagnostics.
         """
         intensities = np.zeros_like(two_thetas, dtype=float)
         counts = np.zeros_like(two_thetas, dtype=int)
         stats = DiffractionMonteCarloRunStats()
-        stream = TopIntensityStream(num_top)
+        stream = TopIntensityStream(threshold)
 
         kdtree = scipy.spatial.KDTree(points)
+        print(f"INFO: Number of points: {len(points)}")
 
         while stats.accepted_data_points < total_trials:
             if time.time() - stats.prev_print_time_ > 5:
@@ -682,7 +688,7 @@ class DiffractionMonteCarlo(ABC):
                 renormalization *= WeightingFunction.natural_distribution(two_thetas)
                 intensities *= renormalization
 
-        return intensities, np.array(stream.get_top_n()), counts
+        return intensities, np.array(stream.get_filtered()), counts
 
     def spectrum_iterative_refinement(
             self,
@@ -711,7 +717,7 @@ class DiffractionMonteCarlo(ABC):
                 total_trials=uniform.total_trials,
                 trials_per_batch=uniform.trials_per_batch,
                 angle_bins=uniform.angle_bins,
-                num_top=uniform.num_top,
+                threshold=uniform.threshold,
                 weighted=uniform.weighted))
         if plot_diagnostics:
             self._plot_diagnostics(two_thetas, counts, intensities, top)
@@ -727,7 +733,7 @@ class DiffractionMonteCarlo(ABC):
                     form_factors,
                     sigma=neigh.sigma,
                     cnt_per_point=neigh.cnt_per_point,
-                    num_top=neigh.num_top
+                    threshold=neigh.threshold
                 )
             elif isinstance(it.settings, UniformPrunedSettings):
                 pruned: UniformPrunedSettings = it.settings
@@ -740,7 +746,7 @@ class DiffractionMonteCarlo(ABC):
                     total_trials=pruned.total_trials,
                     trials_per_batch=pruned.trials_per_batch,
                     weighted=pruned.weighted,
-                    num_top=pruned.num_top
+                    threshold=pruned.threshold
                 )
 
             if plot_diagnostics:
@@ -751,17 +757,19 @@ class DiffractionMonteCarlo(ABC):
         return two_thetas, intensities
 
 
+@dataclass
 class TopIntensityStream:
-    def __init__(self, N):
-        self.N = N
-        self.heap = []  # Min-heap to store top N elements
+    frac: float
+    values: list = field(default_factory=list)
+    max_so_far: float = float('-inf')
 
     def add(self, x, y, z, f):
-        data_point = (x, y, z, f)
-        if len(self.heap) < self.N:
-            heapq.heappush(self.heap, (f, data_point))
-        elif f > self.heap[0][0]:
-            heapq.heappushpop(self.heap, (f, data_point))
+        if f > self.max_so_far:
+            self.max_so_far = f
+            threshold = self.frac * self.max_so_far
+            self.values = [v for v in self.values if v[3] >= threshold]
+        if f >= self.frac * self.max_so_far:
+            self.values.append((x, y, z, f))
 
-    def get_top_n(self):
-        return [point for _, point in sorted(self.heap, reverse=True)]
+    def get_filtered(self):
+        return sorted(self.values, key=lambda v: v[3], reverse=True)

@@ -40,7 +40,7 @@ def test_diffraction_spectrum_known_vecs(
             trials_per_batch=4,
             angle_bins=9,
             weighted=False,
-            num_top=1
+            threshold=0.
         ))
     intensities /= np.max(intensities)
 
@@ -113,7 +113,7 @@ def test_neighborhood_intensity_arbitrary_crystal(
                  side_effect=mock_multivariate_normal)
 
     two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
-    intensities, counts = mc_arbitrary_gaas.spectrum_neighborhood(
+    intensities, _, counts = mc_arbitrary_gaas.spectrum_neighborhood(
         scattering_vecs_gaas,
         two_thetas,
         ingaas_nd_form_factors,
@@ -148,7 +148,7 @@ def test_neighborhood_spectrum_arbitrary_crystal(
         ingaas_nd_form_factors,
         angle_bins=9,
         brute_force_trials=10,
-        num_top=5,
+        threshold=0.,
         resample_cnt=5,
         weighted=False,
         sigma=0.05,
