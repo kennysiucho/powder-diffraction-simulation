@@ -1,7 +1,7 @@
 from B8_project import file_reading, crystal, diffraction
 
-basis = file_reading.read_basis("data/CsPbBr3_basis.csv")
-lattice = file_reading.read_lattice("data/CsPbBr3_lattice.csv")
+basis = file_reading.read_basis("data/CsPbBr3_cubic_basis.csv")
+lattice = file_reading.read_lattice("data/CsPbBr3_cubic_lattice.csv")
 
 # Get form factors from CSV files.
 neutron_form_factors = file_reading.read_neutron_scattering_lengths(
