@@ -275,7 +275,7 @@ def plot_diffraction_pattern(
     peak_width: float = 0.1,
     plot: bool = True,
     line_width: float = 1.0,
-    file_path: str = "results/",
+    file_path: str | None = "results/",
 ) -> tuple[list[float], list[float]]:
     """
     Plot diffraction pattern
@@ -419,7 +419,10 @@ def plot_diffraction_pattern(
         fig.tight_layout()
 
         # Save the figure.
-        fig.savefig(f"{file_path}{filename}.pdf", format="pdf")
+        if file_path is None:
+            plt.show()
+        else:
+            fig.savefig(f"{file_path}{filename}.pdf", format="pdf")
 
         # Print the path to the .pdf file.
         print(f"Plot created at {file_path}{filename}.pdf")
