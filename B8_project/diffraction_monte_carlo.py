@@ -150,7 +150,7 @@ class DiffractionMonteCarloRunStats:
 
     accepted_data_points: int = 0
     total_trials: int = 0
-    start_time_: float = time.time()
+    start_time_: float = field(default_factory=time.time)
     prev_print_time_: float = 0.0
     microseconds_per_trial: float = 0.0
 
@@ -644,11 +644,12 @@ class DiffractionMonteCarlo(ABC):
         """
         intensities = np.zeros_like(two_thetas, dtype=float)
         counts = np.zeros_like(two_thetas, dtype=int)
-        stats = DiffractionMonteCarloRunStats()
         stream = TopIntensityStream(threshold)
 
-        kdtree = scipy.spatial.KDTree(points)
         print(f"INFO: Number of points: {len(points)}")
+        kdtree = scipy.spatial.KDTree(points)
+
+        stats = DiffractionMonteCarloRunStats()
 
         while stats.accepted_data_points < total_trials:
             if time.time() - stats.prev_print_time_ > 5:
