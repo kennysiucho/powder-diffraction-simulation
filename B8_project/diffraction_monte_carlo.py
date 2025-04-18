@@ -754,8 +754,6 @@ class DiffractionMonteCarlo(ABC):
             if plot_diagnostics:
                 self._plot_diagnostics(two_thetas, counts, intensities, top )
 
-            np.savetxt('top.txt', top)
-
         return two_thetas, intensities
 
 
