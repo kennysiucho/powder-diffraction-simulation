@@ -373,6 +373,7 @@ class DiffractionMonteCarlo(ABC):
         # Intensity of the top trials - tests for enough decay
         if top_trials is not None:
             ax2.plot(top_trials[:, 3])
+        ax2.set_xlim(left=0)
         ax2.set_ylim(bottom=0)
         ax2.set_xlabel("Top trial #")
         ax2.set_ylabel("Intensity")
