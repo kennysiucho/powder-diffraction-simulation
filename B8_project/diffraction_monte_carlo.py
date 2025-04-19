@@ -390,7 +390,8 @@ class DiffractionMonteCarlo(ABC):
             ax3.patch.set_visible(False)
             ks = np.linalg.norm(top_trials[:, 0:3], axis=1)
             two_thetas_top = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
-            bins = np.searchsorted(two_thetas, two_thetas_top) - 1
+            bin_edges = two_thetas - (two_thetas[1] - two_thetas[0]) * 0.5
+            bins = np.searchsorted(bin_edges, two_thetas_top) - 1
             top_distribution = np.bincount(bins, minlength=len(two_thetas)) / len(
                 two_thetas_top)
             # Hexbin plot
@@ -465,7 +466,7 @@ class DiffractionMonteCarlo(ABC):
         Returns
         -------
         two_thetas : (angle_bins,) ndarray
-            The left edges of the bins, evenly spaced within angle range specified
+            The center of the bins, evenly spaced within angle range specified
         intensities : (angle_bins,) ndarray
             Intensity calculated for each bin (not normalized)
         top : ndarray
@@ -473,8 +474,9 @@ class DiffractionMonteCarlo(ABC):
         counts : ndarray
             Number of trials in each angle bin
         """
-        two_thetas = np.linspace(self._min_angle_deg, self._max_angle_deg,
-                                 angle_bins + 1)[:-1]
+        bin_edges = np.linspace(self._min_angle_deg, self._max_angle_deg,
+                                angle_bins + 1)
+        two_thetas = 0.5 * (bin_edges[:-1] + bin_edges[1:])
         intensities = np.zeros(angle_bins)
         counts = np.zeros(angle_bins)
 
@@ -498,7 +500,7 @@ class DiffractionMonteCarlo(ABC):
                 form_factors
             )
 
-            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
+            bins = np.searchsorted(bin_edges, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
             counts += np.bincount(bins, minlength=counts.shape[0])
 
@@ -538,8 +540,6 @@ class DiffractionMonteCarlo(ABC):
         points : np.ndarray
             List of scattering vectors. Assumed to be those with the largest
             contributions to the diffraction spectrum.
-        two_thetas : np.ndarray
-            Left edges of angle bins.
         form_factors : Mapping[int, FormFactorProtocol]
             Dictionary mapping atomic number to associated NeutronFormFactor or
             XRayFormFactor.
@@ -560,6 +560,7 @@ class DiffractionMonteCarlo(ABC):
         counts : (angle_bins,) ndarray
             Number of resampled vectors in each bin. Mostly for diagnostics.
         """
+        bin_edges = two_thetas - (two_thetas[1] - two_thetas[0]) * 0.5
         intensities = np.zeros_like(two_thetas, dtype=float)
         counts = np.zeros_like(two_thetas, dtype=int)
         covariance = sigma ** 2 * np.eye(3)
@@ -586,7 +587,7 @@ class DiffractionMonteCarlo(ABC):
 
             intensity_batch = self.compute_intensities(scattering_vecs, form_factors)
 
-            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
+            bins = np.searchsorted(bin_edges, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
             counts += np.bincount(bins, minlength=counts.shape[0])
 
@@ -618,7 +619,7 @@ class DiffractionMonteCarlo(ABC):
             List of scattering vectors. Assumed to be those with the largest
             contributions to the diffraction spectrum.
         two_thetas : np.ndarray
-            Left edges of angle bins.
+            Centers of angle bins.
         form_factors : Mapping[int, FormFactorProtocol]
             Dictionary mapping atomic number to associated NeutronFormFactor or
             XRayFormFactor.
@@ -645,6 +646,7 @@ class DiffractionMonteCarlo(ABC):
         counts : (angle_bins,) ndarray
             Number of resampled vectors in each bin. Mostly for diagnostics.
         """
+        bin_edges = two_thetas - (two_thetas[1] - two_thetas[0]) * 0.5
         intensities = np.zeros_like(two_thetas, dtype=float)
         counts = np.zeros_like(two_thetas, dtype=int)
         stream = TopIntensityStream(threshold)
@@ -677,7 +679,7 @@ class DiffractionMonteCarlo(ABC):
 
             intensity_batch = self.compute_intensities(filtered_vecs, form_factors)
 
-            bins = np.searchsorted(two_thetas, two_thetas_batch) - 1
+            bins = np.searchsorted(bin_edges, two_thetas_batch) - 1
             intensities[bins] += intensity_batch
             counts += np.bincount(bins, minlength=counts.shape[0])
 
@@ -755,8 +757,6 @@ class DiffractionMonteCarlo(ABC):
 
             if plot_diagnostics:
                 self._plot_diagnostics(two_thetas, counts, intensities, top )
-
-            np.savetxt('top.txt', top)
 
         return two_thetas, intensities
 
