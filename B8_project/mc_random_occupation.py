@@ -22,7 +22,6 @@ class MCRandomOccupation(DiffractionMonteCarlo):
     _atom_from: int
     _atom_to: int
     _probability: float
-    _unit_cell_pos: np.ndarray
     _atom_pos_in_uc: np.ndarray
     _atomic_numbers_vars: list[np.ndarray]
     _probs: list[float]

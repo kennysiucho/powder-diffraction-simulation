@@ -187,6 +187,8 @@ class DiffractionMonteCarlo(ABC):
         The wavelength of the incident neutrons (in nm)
     _unit_cell : UnitCell
         The unit cell of the crystal
+    _unit_cell_pos : np.array
+        Positions of the unit cells that form the crystal.
     _min_angle_deg, _max_angle_deg : float
         Defines angle range of interest. Needed to compute inverse CDF for weighting
         function.
