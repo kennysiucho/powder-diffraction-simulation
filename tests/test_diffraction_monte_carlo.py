@@ -25,12 +25,12 @@ def test_unit_cell_positions(mc_ideal_nacl):
     Tests output of _unit_cell_positions. Order does not matter.
     """
     a = mc_ideal_nacl._unit_cell.lattice_constants
-    unit_cell_pos = mc_ideal_nacl._unit_cell_positions((1, 2, 3)) # pylint: disable=protected-access
+    mc_ideal_nacl.setup_cuboid_crystal((1, 2, 3))
     expected = np.array([
         [0, 0, 0], [0, 0, 1], [0, 0, 2], [0, 1, 0], [0, 1, 1], [0, 1, 2]
     ]) * a
 
-    assert utils.have_same_elements(expected, unit_cell_pos) is True
+    assert utils.have_same_elements(expected, mc_ideal_nacl._unit_cell_pos)
 
 def test_atoms_and_pos_in_uc(mc_ideal_nacl):
     """
@@ -50,7 +50,7 @@ def test_atoms_and_pos_in_uc(mc_ideal_nacl):
                              )).tolist()
     expected_res = list(zip(expected_atoms, expected_pos))
 
-    assert utils.have_same_elements(res, expected_res, close=True) is True
+    assert utils.have_same_elements(res, expected_res, close=True)
 
 def theoretical_inverse_cdf_natural_distribution(y: [float, np.ndarray],
                                                  min_x: float,

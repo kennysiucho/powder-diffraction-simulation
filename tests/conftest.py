@@ -111,13 +111,13 @@ def fixture_mc_ideal_nacl():
     nacl_basis = read_basis("tests/data/NaCl_basis.csv")
     unit_cell = UnitCell.new_unit_cell(nacl_basis, nacl_lattice)
     nd = MCIdealCrystal(
-        unit_cell_reps=(8, 8, 8),
         wavelength=0.123,
         pdf=None,
         min_angle_deg=0.,
         max_angle_deg=180.,
         unit_cell=unit_cell
     )
+    nd.setup_cuboid_crystal((8, 8, 8))
     yield nd
 
 @pytest.fixture(name="gaas_atom_list")
@@ -161,13 +161,13 @@ def fixture_mc_ideal_gaas():
     gaas_basis = read_basis("tests/data/GaAs_basis.csv")
     unit_cell = UnitCell.new_unit_cell(gaas_basis, gaas_lattice)
     nd = MCIdealCrystal(
-        unit_cell_reps=(2, 1, 1),
         wavelength=0.123,
         pdf=None,
         min_angle_deg=0.,
         max_angle_deg=180.,
         unit_cell=unit_cell
     )
+    nd.setup_cuboid_crystal((2, 1, 1))
     yield nd
 
 @pytest.fixture(name="mc_random_gaas")
@@ -183,11 +183,11 @@ def fixture_mc_random_gaas():
         atom_from=31,
         atom_to=49,
         probability=0.1,
-        unit_cell_reps=(2, 2, 2),
         wavelength=0.123,
         pdf=None,
         min_angle_deg=0.,
         max_angle_deg=180.,
         unit_cell=unit_cell
     )
+    nd.setup_cuboid_crystal((2, 2, 2))
     yield nd
