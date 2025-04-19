@@ -50,7 +50,7 @@ if CALCULATE_SPECTRUM:
 
     iterations = []
     iterations.append(RefinementIteration(
-        setup=lambda: diff.set_unit_cell_reps((8, 8, 8)),
+        setup=lambda: diff.setup_cuboid_crystal((8, 8, 8)),
         settings=UniformSettings(
             total_trials=6_000_000,
             angle_bins=200,
@@ -58,7 +58,7 @@ if CALCULATE_SPECTRUM:
         )
     ))
     iterations.append(RefinementIteration(
-        setup=lambda: diff.set_unit_cell_reps((14, 14, 14)),
+        setup=lambda: diff.setup_cuboid_crystal((14, 14, 14)),
         settings=NeighborhoodSettings(
             sigma=0.03,
             cnt_per_point=10,
@@ -66,7 +66,7 @@ if CALCULATE_SPECTRUM:
         )
     ))
     iterations.append(RefinementIteration(
-        setup=lambda: diff.set_unit_cell_reps((20, 20, 20)),
+        setup=lambda: diff.setup_cuboid_crystal((20, 20, 20)),
         settings=NeighborhoodSettings(
             sigma=0.006,
             cnt_per_point=5,

@@ -25,8 +25,8 @@ else:
     CALCULATE_SPECTRUM = True
 
 if CALCULATE_SPECTRUM:
-    LATTICE_FILE = "data/PrO2_lattice.csv"
-    BASIS_FILE = "data/PrO2_basis.csv"
+    LATTICE_FILE = "data/CsPbBr3_cubic_lattice.csv"
+    BASIS_FILE = "data/CsPbBr3_cubic_basis.csv"
 
     lattice = file_reading.read_lattice(LATTICE_FILE)
     basis = file_reading.read_basis(BASIS_FILE)
@@ -38,11 +38,10 @@ if CALCULATE_SPECTRUM:
     # unit_cell.lattice_constants = (lat, lat, lat)
     # print("Lattice constants:", unit_cell.lattice_constants)
 
-    diff = MCIdealCrystal(1.23,
+    diff = MCIdealCrystal(1.54,
                           unit_cell,
-                          (4, 4, 4),
-                          min_angle_deg=42,
-                          max_angle_deg=50)
+                          min_angle_deg=5,
+                          max_angle_deg=179)
 
     start_time = time.time()
 
@@ -50,33 +49,34 @@ if CALCULATE_SPECTRUM:
 
     iterations = []
     iterations.append(RefinementIteration(
-        setup=lambda: diff.set_unit_cell_reps((8, 8, 8)),
+        setup=lambda: diff.setup_spherical_crystal(20),
         settings=UniformSettings(
-            total_trials=8_000_000,
-            angle_bins=200,
-            threshold=0.005
+            total_trials=10_000_000,
+            angle_bins=1000,
+            threshold=0.003
         )
     ))
     iterations.append(RefinementIteration(
-        setup=lambda: diff.set_unit_cell_reps((12, 12, 12)),
+        setup=lambda: diff.setup_spherical_crystal(40),
         settings=NeighborhoodSettings(
-            sigma=0.03,
+            sigma=0.02,
             cnt_per_point=10,
-            threshold=0.005
+            threshold=0.003
         )
     ))
     iterations.append(RefinementIteration(
-        setup=lambda: diff.set_unit_cell_reps((16, 16, 16)),
+        setup=lambda: diff.setup_spherical_crystal(70),
         settings=UniformPrunedSettings(
             dist=0.02,
-            total_trials=1_000_000,
+            total_trials=2_000_000,
             trials_per_batch=5_000,
             threshold=0.005
         )
     ))
 
+    form_factors = diff.all_xray_form_factors
     two_thetas, intensities = diff.spectrum_iterative_refinement(
-        diff.all_nd_form_factors,
+        form_factors,
         iterations,
         plot_diagnostics=True
     )
@@ -100,7 +100,8 @@ plt.ylim(bottom=0)
 plt.xlabel("Scattering angle (2θ) (deg)")
 plt.ylabel("Intensity")
 # plt.title("In_0.25Ga_0.75As Neutron Diffraction Spectrum")
-plt.title("PrO2 Neutron Diffraction Spectrum")
+plt.title(f"{diff._unit_cell.material} "
+          f"{'XRD' if form_factors is diff.all_xray_form_factors else 'ND'} Spectrum")
 plt.legend()
 plt.grid(linestyle=":")
 plt.show()

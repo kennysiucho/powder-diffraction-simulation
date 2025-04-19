@@ -22,7 +22,6 @@ class MCRandomOccupation(DiffractionMonteCarlo):
     _atom_from: int
     _atom_to: int
     _probability: float
-    _unit_cell_reps: tuple[int, int, int]
     _unit_cell_pos: np.ndarray
     _atom_pos_in_uc: np.ndarray
     _atomic_numbers_vars: list[np.ndarray]
@@ -32,7 +31,6 @@ class MCRandomOccupation(DiffractionMonteCarlo):
     def __init__(self,
                  wavelength: float,
                  unit_cell: UnitCell,
-                 unit_cell_reps: tuple[int, int, int],
                  atom_from: int,
                  atom_to: int,
                  probability: float,
@@ -41,18 +39,11 @@ class MCRandomOccupation(DiffractionMonteCarlo):
                  max_angle_deg: float = 180.):
         super().__init__(wavelength, pdf, min_angle_deg, max_angle_deg, unit_cell)
         self.set_unit_cell(unit_cell)
-        self.set_unit_cell_reps(unit_cell_reps)
         self.set_random_occupation_parameters(atom_from, atom_to, probability)
 
     def set_unit_cell(self, unit_cell: UnitCell):
         self._unit_cell = unit_cell
         atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
-        self._atom_pos_in_uc = atom_pos_in_uc
-
-    def set_unit_cell_reps(self, unit_cell_reps: tuple[int, int, int]):
-        self._unit_cell_reps = unit_cell_reps
-        self._unit_cell_pos = self._unit_cell_positions(self._unit_cell_reps)
-        _, atom_pos_in_uc = self._atoms_and_pos_in_uc()
         self._atom_pos_in_uc = atom_pos_in_uc
 
     def set_random_occupation_parameters(self,
@@ -84,6 +75,11 @@ class MCRandomOccupation(DiffractionMonteCarlo):
             Dictionary mapping atomic number to associated NeutronFormFactor or
             XRayFormFactor.
         """
+        if self._unit_cell_pos is None:
+            raise ValueError("_unit_cell_pos is None: You must call setup_cuboid_crystal"
+                             " or setup_spherical_crystal to define the shape of the "
+                             "crystal particle.")
+
         # Compute basis portion of structure factors
         # scattering_vecs.shape = (# trials filtered, 3)
         # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)

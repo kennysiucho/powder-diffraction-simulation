@@ -199,6 +199,7 @@ class DiffractionMonteCarlo(ABC):
     all_nd_form_factors: Mapping[int, FormFactorProtocol]
     wavelength: float
     _unit_cell: UnitCell
+    _unit_cell_pos: np.ndarray | None = None
     _min_angle_deg: float
     _max_angle_deg: float
     _pdf: Callable[[np.ndarray], np.ndarray] = None
@@ -244,6 +245,30 @@ class DiffractionMonteCarlo(ABC):
         self._max_angle_deg = max_angle_deg
         self._compute_inverse_cdf()
 
+    def setup_cuboid_crystal(self, unit_cell_reps: tuple[int, int, int]):
+        unit_cell_pos = np.vstack(
+            np.mgrid[0:unit_cell_reps[0], 0:unit_cell_reps[1],
+            0:unit_cell_reps[2]]).reshape(3, -1).T
+        unit_cell_pos = unit_cell_pos.astype(np.float64)
+        np.multiply(unit_cell_pos, self._unit_cell.lattice_constants, out=unit_cell_pos)
+        self._unit_cell_pos = unit_cell_pos
+
+    def setup_spherical_crystal(self, r_angstrom: float):
+        a, b, c = self._unit_cell.lattice_constants
+        max_i = int(np.ceil(2 * r_angstrom / a))
+        max_j = int(np.ceil(2 * r_angstrom / b))
+        max_k = int(np.ceil(2 * r_angstrom / c))
+        center = np.array([r_angstrom, r_angstrom, r_angstrom])
+        unit_cell_pos = []
+        for i in range(max_i):
+            for j in range(max_j):
+                for k in range(max_k):
+                    x, y, z = i * a, j * b, k * c
+                    pos = np.array([x, y, z])
+                    if np.linalg.norm(pos - center) < r_angstrom:
+                        unit_cell_pos.append([x, y, z])
+        self._unit_cell_pos = np.array(unit_cell_pos)
+
     def _compute_inverse_cdf(self):
         x_vals = np.linspace(self._min_angle_deg, self._max_angle_deg, 1000)
         pdf_vals = self._pdf(x_vals)
@@ -260,29 +285,6 @@ class DiffractionMonteCarlo(ABC):
                              "is negative or too close to zero at certain points.") \
                 from exc
         self._inverse_cdf = inverse_cdf_func
-
-    def _unit_cell_positions(self, unit_cell_reps: tuple[int, int, int]):
-        """
-        Returns a list of positions of the unit cells in the crystal particle.
-
-        Parameters
-        ----------
-        unit_cell_reps : tuple[int, int, int]
-            An input of (a, b, c) specifies the unit cell is repeated a, b, c
-            times in the x, y, and z directions respectively.
-
-        Returns
-        -------
-        unit_cell_pos : np.ndarray
-            (a * b * c, 3) array, with each row representing the coordinate of the
-            [0, 0, 0] position of each unit cell.
-        """
-        unit_cell_pos = np.vstack(
-            np.mgrid[0:unit_cell_reps[0], 0:unit_cell_reps[1],
-            0:unit_cell_reps[2]]).reshape(3, -1).T
-        unit_cell_pos = unit_cell_pos.astype(np.float64)
-        np.multiply(unit_cell_pos, self._unit_cell.lattice_constants, out=unit_cell_pos)
-        return unit_cell_pos
 
     def _atoms_and_pos_in_uc(self):
         """
