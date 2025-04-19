@@ -13,7 +13,6 @@ Classes
     A class to calculate diffraction patterns, with different optimizations
     based on the type of crystal
 """
-import heapq
 import inspect
 import time
 from dataclasses import dataclass, asdict, field
@@ -298,7 +297,7 @@ class DiffractionMonteCarlo(ABC):
         for atom in self._unit_cell.atoms:
             atoms_in_uc.append(atom.atomic_number)
             atom_pos_in_uc.append(np.multiply(atom.position,
-                                              self._unit_cell.lattice_constants))
+                                        self._unit_cell.lattice_constants))
         atoms_in_uc = np.array(atoms_in_uc)
         atom_pos_in_uc = np.array(atom_pos_in_uc)
         return atoms_in_uc, atom_pos_in_uc
