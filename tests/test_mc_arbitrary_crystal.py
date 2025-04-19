@@ -44,7 +44,7 @@ def test_diffraction_spectrum_known_vecs(
         ))
     intensities /= np.max(intensities)
 
-    expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
+    expected_two_thetas = np.array([10., 30., 50., 70., 90., 110., 130., 150., 170.])
     expected_structure_factors = np.array([5.664, 5.664,
                                            1.16874088 - 6.47419018j, 0.])
     expected_intensities = np.zeros(expected_two_thetas.shape)
@@ -68,7 +68,8 @@ def test_monte_carlo_calculate_diffraction_pattern(
         side_effect=[random_unit_vectors_1, random_unit_vectors_2],
     )
 
-    unit_cell_pos = mc_ideal_nacl._unit_cell_positions((8, 8, 8)) # pylint: disable=protected-access
+    mc_ideal_nacl.setup_cuboid_crystal((8, 8, 8))
+    unit_cell_pos = mc_ideal_nacl._unit_cell_pos
     atoms = []
     for uc_pos in unit_cell_pos:
         for atom in mc_ideal_nacl._unit_cell.atoms:
@@ -94,7 +95,7 @@ def test_monte_carlo_calculate_diffraction_pattern(
 
     intensities /= np.max(intensities)
 
-    expected_two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
+    expected_two_thetas = np.array([10., 30., 50., 70., 90., 110., 130., 150., 170.])
     expected_normed_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
                                      3.824213e-05, 7.736132e-06, 0.000000e+00,
                                      0.000000e+00, 1.000000e+00, 1.699957e-05])
@@ -112,7 +113,7 @@ def test_neighborhood_intensity_arbitrary_crystal(
     mocker.patch('numpy.random.multivariate_normal',
                  side_effect=mock_multivariate_normal)
 
-    two_thetas = np.array([0., 20., 40., 60., 80., 100., 120., 140., 160.])
+    two_thetas = np.array([10., 30., 50., 70., 90., 110., 130., 150., 170.])
     intensities, _, counts = mc_arbitrary_gaas.spectrum_neighborhood(
         scattering_vecs_gaas,
         two_thetas,
@@ -154,7 +155,7 @@ def test_neighborhood_spectrum_arbitrary_crystal(
         sigma=0.05,
         plot_diagnostics=False
     )
-    expected_two_thetas = np.array([0, 20, 40, 60, 80, 100, 120, 140, 160])
+    expected_two_thetas = np.array([10., 30., 50., 70., 90., 110., 130., 150., 170.])
     expected_intensities = np.array([
         0., 0., 0., 2561.08533298, 1745.81467154,
         0., 0., 3125.60321027, 0.

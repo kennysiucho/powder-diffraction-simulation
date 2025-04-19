@@ -21,31 +21,23 @@ class MCIdealCrystal(DiffractionMonteCarlo):
     ----------
 
     """
-    _unit_cell_reps: tuple[int, int, int]
-    _unit_cell_pos: np.ndarray
     _atom_pos_in_uc: np.ndarray
     _atoms_in_uc: np.ndarray
 
     def __init__(self,
                  wavelength: float,
                  unit_cell: UnitCell,
-                 unit_cell_reps: tuple[int, int, int],
                  pdf: Callable[[np.ndarray], np.ndarray] = None,
                  min_angle_deg: float = 0.,
                  max_angle_deg: float = 180.):
         super().__init__(wavelength, pdf, min_angle_deg, max_angle_deg, unit_cell)
         self.set_unit_cell(unit_cell)
-        self.set_unit_cell_reps(unit_cell_reps)
 
     def set_unit_cell(self, unit_cell: UnitCell):
         self._unit_cell = unit_cell
         atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
         self._atom_pos_in_uc = atom_pos_in_uc
         self._atoms_in_uc = atoms_in_uc
-
-    def set_unit_cell_reps(self, unit_cell_reps: tuple[int, int, int]):
-        self._unit_cell_reps = unit_cell_reps
-        self._unit_cell_pos = self._unit_cell_positions(self._unit_cell_reps)
 
     def compute_intensities(self,
                             scattering_vecs: np.ndarray,
@@ -61,6 +53,11 @@ class MCIdealCrystal(DiffractionMonteCarlo):
             Dictionary mapping atomic number to associated NeutronFormFactor or
             XRayFormFactor.
         """
+        if self._unit_cell_pos is None:
+            raise ValueError("_unit_cell_pos is None: You must call setup_cuboid_crystal"
+                             " or setup_spherical_crystal to define the shape of the "
+                             "crystal particle.")
+
         # scattering_vecs.shape = (# trials filtered, 3)
         # unit_cell_pos.shape = (# unit cells, 3)
         # dot_products_lattice.shape = (# trials filtered, # unit cells)

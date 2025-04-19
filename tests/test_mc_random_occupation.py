@@ -40,7 +40,7 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
                      random_uvs1, random_uvs2],
     )
 
-    mc_ideal_gaas.set_unit_cell_reps((8, 8, 8))
+    mc_ideal_gaas.setup_cuboid_crystal((8, 8, 8))
     _, intensities_ideal, _, _ = (
         mc_ideal_gaas.spectrum_uniform(
             ingaas_nd_form_factors,
@@ -52,7 +52,7 @@ def test_ideal_crystal_matches_random_occupation_with_zero_concentration(
         ))
 
     mc_random_gaas.set_random_occupation_parameters(31, 41, 0.0)
-    mc_random_gaas.set_unit_cell_reps((8, 8, 8))
+    mc_random_gaas.setup_cuboid_crystal((8, 8, 8))
     _, intensities_random, _, _ = (
         mc_ideal_gaas.spectrum_uniform(
             ingaas_nd_form_factors,
@@ -75,10 +75,7 @@ def test_compute_intensities_random_occupation_matches_arbitrary_crystal(
     mock_rng = mocker.Mock()
     mock_rng.choice.return_value = np.array(
         [[0, 1, 0, 0, 0, 0, 0, 0] for _ in range(len(vecs))])
-    mocker.patch(
-        "B8_project.mc_random_occupation.MCRandomOccupation._rng",
-        new=mock_rng
-    )
+    mc_random_gaas._rng = mock_rng
     intensities_rand = mc_random_gaas.compute_intensities(
         vecs, ingaas_nd_form_factors
     )
@@ -105,10 +102,7 @@ def test_random_occupation_matches_arbitrary(
     mock_rng = mocker.Mock()
     mock_rng.choice.return_value = np.array(
         [[0, 1, 0, 0, 0, 0, 0, 0] for _ in range(len(random_uvs1))])
-    mocker.patch(
-        "B8_project.mc_random_occupation.MCRandomOccupation._rng",
-        new=mock_rng
-    )
+    mc_random_gaas._rng = mock_rng
 
     _, intensities_arb, _, _ = (
         mc_arbitrary_ingaas.spectrum_uniform(
@@ -147,10 +141,7 @@ def test_neighborhood_intensity_random_occupation_matches_arbitrary_crystal(
     mock_rng = mocker.Mock()
     mock_rng.choice.return_value = np.array(
         [[0, 1, 0, 0, 0, 0, 0, 0] for _ in range(5)])
-    mocker.patch(
-        "B8_project.mc_random_occupation.MCRandomOccupation._rng",
-        new=mock_rng
-    )
+    mc_random_gaas._rng = mock_rng
     mocker.patch("numpy.random.default_rng", return_value=mock_rng)
     mocker.patch('numpy.random.multivariate_normal',
                  side_effect=mock_multivariate_normal)
