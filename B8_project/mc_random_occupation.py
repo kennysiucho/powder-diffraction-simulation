@@ -26,7 +26,7 @@ class MCRandomOccupation(DiffractionMonteCarlo):
     _atom_pos_in_uc: np.ndarray
     _atomic_numbers_vars: list[np.ndarray]
     _probs: list[float]
-    _rng = np.random.default_rng()
+    _rng: np.random.Generator
 
     def __init__(self,
                  wavelength: float,
@@ -38,6 +38,7 @@ class MCRandomOccupation(DiffractionMonteCarlo):
                  min_angle_deg: float = 0.,
                  max_angle_deg: float = 180.):
         super().__init__(wavelength, pdf, min_angle_deg, max_angle_deg, unit_cell)
+        self._rng = np.random.default_rng()
         self.set_unit_cell(unit_cell)
         self.set_random_occupation_parameters(atom_from, atom_to, probability)
 
