@@ -8,13 +8,11 @@ from B8_project.diffraction_monte_carlo import RefinementIteration, UniformSetti
     NeighborhoodSettings, UniformPrunedSettings
 from B8_project.mc_ideal_crystal import MCIdealCrystal
 
-two_thetas_file = Path("two_thetas.txt")
-intensities_file = Path("intensities.txt")
-if two_thetas_file.is_file() or intensities_file.is_file():
+spectrum_file = Path("spectrum.csv")
+if spectrum_file.is_file():
     while True:
         res = input(
-                "Previous scattering intensity data found in 'two_thetas.txt' or "
-                "'intensities.txt'. Plot existing data? [y/n]")
+                "Previous spectrum data found in 'spectrum.csv'. Plot existing data? [y/n]")
         if res.lower() == "y":
             CALCULATE_SPECTRUM = False
             break
@@ -25,8 +23,8 @@ else:
     CALCULATE_SPECTRUM = True
 
 if CALCULATE_SPECTRUM:
-    LATTICE_FILE = "data/CsPbBr3_cubic_lattice.csv"
-    BASIS_FILE = "data/CsPbBr3_cubic_basis.csv"
+    LATTICE_FILE = "data/GaAs_lattice.csv"
+    BASIS_FILE = "data/GaAs_basis.csv"
 
     lattice = file_reading.read_lattice(LATTICE_FILE)
     basis = file_reading.read_basis(BASIS_FILE)
@@ -40,8 +38,8 @@ if CALCULATE_SPECTRUM:
 
     diff = MCIdealCrystal(1.54,
                           unit_cell,
-                          min_angle_deg=5,
-                          max_angle_deg=179)
+                          min_angle_deg=10,
+                          max_angle_deg=170)
 
     start_time = time.time()
 
@@ -52,8 +50,9 @@ if CALCULATE_SPECTRUM:
         setup=lambda: diff.setup_spherical_crystal(20),
         settings=UniformSettings(
             total_trials=10_000_000,
-            angle_bins=1000,
-            threshold=0.003
+            angle_bins=2000,
+            threshold=0.003,
+            weighted=True
         )
     ))
     iterations.append(RefinementIteration(
@@ -65,12 +64,13 @@ if CALCULATE_SPECTRUM:
         )
     ))
     iterations.append(RefinementIteration(
-        setup=lambda: diff.setup_spherical_crystal(70),
+        setup=lambda: diff.setup_spherical_crystal(60),
         settings=UniformPrunedSettings(
-            dist=0.02,
-            total_trials=2_000_000,
+            dist=0.03,
+            total_trials=1_000_000,
             trials_per_batch=5_000,
-            threshold=0.005
+            threshold=0.005,
+            weighted=True
         )
     ))
 
@@ -84,24 +84,28 @@ if CALCULATE_SPECTRUM:
     # print("Total neighbors sampled =", np.sum(counts_neigh))
     print("Total run time =", time.time() - start_time, "s")
 
-    np.savetxt('two_thetas.txt', two_thetas)
-    np.savetxt('intensities.txt', intensities)
+    data = np.column_stack((two_thetas, intensities))
+    with open("spectrum.csv", "w") as f:
+        # Metadata
+        material = diff._unit_cell.material
+        diff_type = 'XRD' if form_factors is diff.all_xray_form_factors else 'ND'
+        f.write(f"# {material}\n")
+        f.write(f"# {diff_type}\n")
+        np.savetxt(f, data, delimiter=",", header="two theta,intensity", comments="")
 else:
-    two_thetas = np.loadtxt("two_thetas.txt")
-    intensities = np.loadtxt("intensities.txt")
-
-# two_thetas = two_thetas[::2]
-# intensities = (intensities[::2] + intensities[1::2]) / 2
+    with open("spectrum.csv", "r") as f:
+        lines = f.readlines()
+        metadata = [line.strip()[2:] for line in lines if line.startswith("#")]
+    material = metadata[0]
+    diff_type = metadata[1]
+    two_thetas, intensities = np.genfromtxt("spectrum.csv", delimiter=",", skip_header=1).T
 
 plt.scatter(two_thetas, intensities, s=3)
 plt.plot(two_thetas, intensities, color='k', label="Intensity")
-# plt.plot(two_thetas, pdf(two_thetas) / np.max(pdf(two_thetas)), "--", label="PDF")
 plt.ylim(bottom=0)
 plt.xlabel("Scattering angle (2θ) (deg)")
 plt.ylabel("Intensity")
-# plt.title("In_0.25Ga_0.75As Neutron Diffraction Spectrum")
-plt.title(f"{diff._unit_cell.material} "
-          f"{'XRD' if form_factors is diff.all_xray_form_factors else 'ND'} Spectrum")
+plt.title(f"{material} {diff_type} Spectrum")
 plt.legend()
 plt.grid(linestyle=":")
 plt.show()
