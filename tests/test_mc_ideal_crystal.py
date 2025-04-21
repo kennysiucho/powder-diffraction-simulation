@@ -63,9 +63,10 @@ def test_monte_carlo_calculate_diffraction_pattern_ideal_crystal(
     intensities /= np.max(intensities)
 
     expected_two_thetas = np.array([10., 30., 50., 70., 90., 110., 130., 150., 170.])
-    expected_normed_intensities = np.array([3.118890e-04, 0.000000e+00, 1.179717e-03,
-                                     3.824213e-05, 7.736132e-06, 0.000000e+00,
-                                     0.000000e+00, 1.000000e+00, 1.699957e-05])
+    expected_normed_intensities = np.array(
+        [1.590562e-01, 0.000000e+00, 1.179717e-03, 1.875167e-02,
+         2.292383e-01, 0.000000e+00, 0.000000e+00, 1.000000e+00,
+         1.699957e-05])
     nptest.assert_allclose(two_thetas, expected_two_thetas, rtol=1e-6)
     nptest.assert_allclose(intensities, expected_normed_intensities, rtol=1e-6)
 

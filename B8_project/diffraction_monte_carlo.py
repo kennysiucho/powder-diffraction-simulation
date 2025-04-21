@@ -93,6 +93,7 @@ class NeighborhoodSettings(IterationSettings):
     """
     sigma: float = 0.05
     cnt_per_point: int = 100
+    trials_per_batch: int = 5000
     threshold: float = 0.005
 
 
@@ -502,7 +503,7 @@ class DiffractionMonteCarlo(ABC):
             )
 
             bins = np.searchsorted(bin_edges, two_thetas_batch) - 1
-            intensities[bins] += intensity_batch
+            np.add.at(intensities, bins, intensity_batch)
             counts += np.bincount(bins, minlength=counts.shape[0])
 
             stats.total_trials += two_thetas_batch.shape[0]
@@ -529,6 +530,7 @@ class DiffractionMonteCarlo(ABC):
             form_factors: Mapping[int, FormFactorProtocol],
             sigma: float = 0.05,
             cnt_per_point: int = 100,
+            trials_per_batch: int = 5000,
             threshold: float = 0.005
     ):
         """
@@ -541,6 +543,8 @@ class DiffractionMonteCarlo(ABC):
         points : np.ndarray
             List of scattering vectors. Assumed to be those with the largest
             contributions to the diffraction spectrum.
+        two_thetas : np.ndarray
+            x-axis of diffraction spectrum - for binning.
         form_factors : Mapping[int, FormFactorProtocol]
             Dictionary mapping atomic number to associated NeutronFormFactor or
             XRayFormFactor.
@@ -548,6 +552,8 @@ class DiffractionMonteCarlo(ABC):
             Standard deviation of the 3D Gaussian for sampling around supplied points.
         cnt_per_point : int
             How many vectors to sample around each supplied point.
+        trials_per_batch : int
+            Number of trials calculated at once using NumPy methods
         threshold : float
             The scattering trials with intensity greater than threshold times the
             maximum intensity encountered will be returned in stream.
@@ -570,31 +576,38 @@ class DiffractionMonteCarlo(ABC):
 
         print(f"INFO: Number of points: {len(points)}")
 
+        scattering_vecs = np.empty((0, 3))
         for i, point in enumerate(points):
             if i != 0 and i % max(1, round(len(points) / 1000) * 100) == 0:
                 per_trial = (time.time() - start_time) * 1e6 / (np.sum(counts))
                 print(
                     f"Resampled {i}/{len(points)} points, µs per trial={per_trial:.1f}, "
                     f"Time remaining={(per_trial * (len(points) - i) * cnt_per_point / 1e6):.0f}s")
-            scattering_vecs = np.random.multivariate_normal(point, covariance,
-                                                            cnt_per_point)
-            ks = np.linalg.norm(scattering_vecs, axis=1)
-            two_thetas_batch = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
-            # Some vectors may be out of range after resampling from Gaussian
-            in_angle_range = np.logical_and(two_thetas_batch >= self._min_angle_deg,
-                                            two_thetas_batch <= self._max_angle_deg)
-            scattering_vecs = scattering_vecs[in_angle_range]
-            two_thetas_batch = two_thetas_batch[in_angle_range]
 
-            intensity_batch = self.compute_intensities(scattering_vecs, form_factors)
+            vecs = np.random.multivariate_normal(point, covariance, cnt_per_point)
+            scattering_vecs = np.vstack((scattering_vecs, vecs))
 
-            bins = np.searchsorted(bin_edges, two_thetas_batch) - 1
-            intensities[bins] += intensity_batch
-            counts += np.bincount(bins, minlength=counts.shape[0])
+            if len(scattering_vecs) >= trials_per_batch or i == len(points) - 1:
+                ks = np.linalg.norm(scattering_vecs, axis=1)
+                two_thetas_batch = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
+                # Some vectors may be out of range after resampling from Gaussian
+                in_angle_range = np.logical_and(two_thetas_batch >= self._min_angle_deg,
+                                                two_thetas_batch <= self._max_angle_deg)
+                scattering_vecs = scattering_vecs[in_angle_range]
+                two_thetas_batch = two_thetas_batch[in_angle_range]
 
-            for j, inten in enumerate(intensity_batch):
-                stream.add(scattering_vecs[j][0], scattering_vecs[j][1],
-                           scattering_vecs[j][2], inten)
+                intensity_batch = self.compute_intensities(scattering_vecs, form_factors)
+
+                bins = np.searchsorted(bin_edges, two_thetas_batch) - 1
+                np.add.at(intensities, bins, intensity_batch)
+                counts += np.bincount(bins, minlength=counts.shape[0])
+
+                for j, inten in enumerate(intensity_batch):
+                    stream.add(scattering_vecs[j][0], scattering_vecs[j][1],
+                               scattering_vecs[j][2], inten)
+
+                # Reset scattering vecs
+                scattering_vecs = np.empty((0, 3))
 
         return intensities, np.array(stream.get_filtered()), counts
 
@@ -681,7 +694,7 @@ class DiffractionMonteCarlo(ABC):
             intensity_batch = self.compute_intensities(filtered_vecs, form_factors)
 
             bins = np.searchsorted(bin_edges, two_thetas_batch) - 1
-            intensities[bins] += intensity_batch
+            np.add.at(intensities, bins, intensity_batch)
             counts += np.bincount(bins, minlength=counts.shape[0])
 
             for j, inten in enumerate(intensity_batch):
@@ -740,6 +753,7 @@ class DiffractionMonteCarlo(ABC):
                     form_factors,
                     sigma=neigh.sigma,
                     cnt_per_point=neigh.cnt_per_point,
+                    trials_per_batch=neigh.trials_per_batch,
                     threshold=neigh.threshold
                 )
             elif isinstance(it.settings, UniformPrunedSettings):

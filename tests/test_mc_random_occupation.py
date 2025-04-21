@@ -140,7 +140,7 @@ def test_neighborhood_intensity_random_occupation_matches_arbitrary_crystal(
             * mc_random_gaas.k())
     mock_rng = mocker.Mock()
     mock_rng.choice.return_value = np.array(
-        [[0, 1, 0, 0, 0, 0, 0, 0] for _ in range(5)])
+        [[0, 1, 0, 0, 0, 0, 0, 0] for _ in range(500)])
     mc_random_gaas._rng = mock_rng
     mocker.patch("numpy.random.default_rng", return_value=mock_rng)
     mocker.patch('numpy.random.multivariate_normal',
