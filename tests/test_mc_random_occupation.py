@@ -69,7 +69,7 @@ def test_compute_intensities_random_occupation_matches_arbitrary_crystal(
         mc_random_gaas, mc_arbitrary_ingaas, ingaas_nd_form_factors, mocker
 ):
     """
-    Tests calculation of intensities given scattering vectors for ideal crystal.
+    Tests calculation of intensities given scattering vectors.
     """
     vecs = random_scattering_vecs(mc_random_gaas.k())
     mock_rng = mocker.Mock()
