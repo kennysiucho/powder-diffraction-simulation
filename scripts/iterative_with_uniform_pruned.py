@@ -6,6 +6,7 @@ from B8_project import file_reading
 import B8_project.crystal as unit_cell
 from B8_project.diffraction_monte_carlo import RefinementIteration, UniformSettings, \
     NeighborhoodSettings, UniformPrunedSettings
+from B8_project.mc_displacement import MCDisplacement
 from B8_project.mc_ideal_crystal import MCIdealCrystal
 
 spectrum_file = Path("spectrum.csv")
@@ -23,8 +24,8 @@ else:
     CALCULATE_SPECTRUM = True
 
 if CALCULATE_SPECTRUM:
-    LATTICE_FILE = "data/GaAs_lattice.csv"
-    BASIS_FILE = "data/GaAs_basis.csv"
+    LATTICE_FILE = "data/CsPbBr3_cubic_lattice.csv"
+    BASIS_FILE = "data/CsPbBr3_cubic_basis.csv"
 
     lattice = file_reading.read_lattice(LATTICE_FILE)
     basis = file_reading.read_basis(BASIS_FILE)
@@ -36,10 +37,14 @@ if CALCULATE_SPECTRUM:
     # unit_cell.lattice_constants = (lat, lat, lat)
     # print("Lattice constants:", unit_cell.lattice_constants)
 
-    diff = MCIdealCrystal(1.54,
+    diff = MCDisplacement(1.54,
                           unit_cell,
+                          35, 53, 0.0,
+                          displace_func=(lambda pos, uc:
+                             MCDisplacement.displace_gaussian(
+                                 pos, uc, sigma=1.5, atoms_to_displace=[35, 53, 55, 82])),
                           min_angle_deg=10,
-                          max_angle_deg=170)
+                          max_angle_deg=80)
 
     start_time = time.time()
 
@@ -50,7 +55,7 @@ if CALCULATE_SPECTRUM:
         setup=lambda: diff.setup_spherical_crystal(20),
         settings=UniformSettings(
             total_trials=10_000_000,
-            angle_bins=2000,
+            angle_bins=1000,
             threshold=0.003,
             weighted=True
         )
@@ -67,7 +72,7 @@ if CALCULATE_SPECTRUM:
         setup=lambda: diff.setup_spherical_crystal(60),
         settings=UniformPrunedSettings(
             dist=0.03,
-            total_trials=1_000_000,
+            total_trials=2_000_000,
             trials_per_batch=5_000,
             threshold=0.005,
             weighted=True
