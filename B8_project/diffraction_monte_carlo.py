@@ -270,6 +270,7 @@ class DiffractionMonteCarlo(ABC):
                     if np.linalg.norm(pos - center) < r_angstrom:
                         unit_cell_pos.append([x, y, z])
         self._unit_cell_pos = np.array(unit_cell_pos)
+        print(f"INFO: Number of unit cells in spherical crystal: {len(self._unit_cell_pos)}")
 
     def _compute_inverse_cdf(self):
         x_vals = np.linspace(self._min_angle_deg, self._max_angle_deg, 1000)
