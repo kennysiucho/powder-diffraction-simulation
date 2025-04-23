@@ -47,6 +47,15 @@ class WeightingFunction:
         return np.pi / 360. * np.sin(np.radians(two_theta))
 
     @staticmethod
+    def uniform_in_q_space(two_theta: [float, np.ndarray]) -> [float, np.ndarray]:
+        """
+        The distribution of scattering angles when scattering vectors (Q) are sampled
+        uniformly from k-space.
+        """
+        return np.sin(np.radians(two_theta / 2)) ** 2 * np.cos(
+            np.radians(two_theta / 2))
+
+    @staticmethod
     def get_gaussians_at_peaks(locations: list[float], constant: float=0.1,
                                sigma: float=3):
         """
@@ -224,7 +233,7 @@ class DiffractionMonteCarlo(ABC):
         if pdf is not None:
             self.set_pdf(pdf)
         else:
-            self.set_pdf(WeightingFunction.natural_distribution)
+            self.set_pdf(WeightingFunction.uniform_in_q_space)
 
     def k(self):
         """
@@ -519,7 +528,7 @@ class DiffractionMonteCarlo(ABC):
             # Re-normalize intensity distribution
             renormalization = np.ones_like(intensities)
             renormalization /= self._pdf(two_thetas)
-            renormalization *= WeightingFunction.natural_distribution(two_thetas)
+            renormalization *= WeightingFunction.uniform_in_q_space(two_thetas)
             intensities *= renormalization
 
         return two_thetas, intensities, np.array(stream.get_filtered()), counts
