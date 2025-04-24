@@ -3,12 +3,15 @@ import time
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.spatial import KDTree
+import torch
 from B8_project import file_reading
 import B8_project.crystal as unit_cell
 from B8_project.diffraction_monte_carlo import RefinementIteration, UniformSettings, \
     NeighborhoodSettings, UniformPrunedSettings
 from B8_project.mc_displacement import MCDisplacement
 from B8_project.mc_ideal_crystal import MCIdealCrystal
+from B8_project.mc_random_occupation import MCRandomOccupation
 
 spectrum_file = Path("spectrum.csv")
 if spectrum_file.is_file():
@@ -33,52 +36,102 @@ if CALCULATE_SPECTRUM:
 
     unit_cell = unit_cell.UnitCell.new_unit_cell(basis, lattice)
 
-    # CONC = 0.
-    # lat = 5.94863082 + CONC * (6.27514229 - 5.94863082)
-    # unit_cell.lattice_constants = (lat, lat, lat)
-    # print("Lattice constants:", unit_cell.lattice_constants)
+
+    def displace_pb_toward_br(pos, atoms, search_radius, disp=0.05):
+        modified_pos = np.copy(pos)
+        kdtree = KDTree(pos)
+        for i, atom in enumerate(atoms):
+            if atom == 82:  # Lead
+                neighbors = kdtree.query_ball_point(pos[i], search_radius)
+                if len(neighbors) > 7:
+                    print(
+                        f"WARNING: number of Br neighbors (including itself) is {len(neighbors)}, "
+                        "greater than 7. Skipping.")
+                    continue
+                avg_br_direction = np.array([0., 0., 0.])
+                for j in neighbors:
+                    if atoms[j] == 35:  # Br
+                        unit_vec = pos[j] - pos[i]
+                        unit_vec /= np.linalg.norm(unit_vec)
+                        avg_br_direction += unit_vec
+                if np.all(np.abs(avg_br_direction) < 1e-8):  # Zero array
+                    continue
+                avg_br_direction /= np.linalg.norm(avg_br_direction)
+                modified_pos[i] += avg_br_direction * disp
+        return modified_pos
+
+
+    def displace_nothing(pos, atoms):
+        return pos
+
+    atom_from, atom_to, CONC = 35, 53, 0.5
+    lat = 5.94863082 + CONC * (6.27514229 - 5.94863082)
+    unit_cell.lattice_constants = (lat, lat, lat)
+    print("Lattice constants:", unit_cell.lattice_constants)
+
+    min_angle, max_angle, step = 58, 63, 0.02
 
     def setup():
         mc = MCDisplacement(1.54,
                               unit_cell,
-                              35, 53, 0.0,
-                              displace_func=lambda pos, uc: (
-                                  MCDisplacement.gaussian_displaced(
-                                      pos, uc, sigma=0.2, atoms_to_displace=[35, 53, 55, 82])
+                              atom_from, atom_to, CONC,
+                              displace_func=lambda pos, atoms: (
+                                  displace_pb_toward_br(pos, atoms, 0.51 * lat,
+                                                        disp=0.15)
                               ),
-                              min_angle_deg=10,
-                              max_angle_deg=90)
+                              min_angle_deg=min_angle,
+                              max_angle_deg=max_angle)
+        # mc = MCRandomOccupation(1.54,
+        #                         unit_cell,
+        #                         atom_from, atom_to, CONC,
+        #                         min_angle_deg=10,
+        #                         max_angle_deg=160)
         return mc
 
     diff = setup()
 
     start_time = time.time()
 
-    # atom_from, atom_to, prob = 35, 53, CONC
-
     iterations = []
     iterations.append(RefinementIteration(
-        setup=lambda: diff.setup_spherical_crystal(30),
+        setup=lambda: diff.setup_spherical_crystal(120),
         settings=UniformSettings(
-            total_trials=5_000_000,
-            angle_bins=1000,
-            threshold=0.1,
+            total_trials=20_000_000,
+            trials_per_batch=3000,
+            angle_bins=round((max_angle - min_angle) / step),
+            threshold=0.002,
             weighted=True
         )
     ))
     # iterations.append(RefinementIteration(
-    #     setup=lambda: diff.setup_spherical_crystal(50),
+    #     setup=lambda: diff.setup_spherical_crystal(40),
     #     settings=NeighborhoodSettings(
-    #         sigma=0.05,
+    #         sigma=0.03,
     #         cnt_per_point=10,
     #         threshold=0.002
     #     )
     # ))
     # iterations.append(RefinementIteration(
-    #     setup=lambda: diff.setup_spherical_crystal(60),
+    #     setup=lambda: diff.setup_spherical_crystal(80),
+    #     settings=NeighborhoodSettings(
+    #         sigma=0.02,
+    #         cnt_per_point=5,
+    #         threshold=0.002
+    #     )
+    # ))
+    # iterations.append(RefinementIteration(
+    #     setup=lambda: diff.setup_spherical_crystal(160),
+    #     settings=NeighborhoodSettings(
+    #         sigma=0.02,
+    #         cnt_per_point=3,
+    #         threshold=0.002
+    #     )
+    # ))
+    # iterations.append(RefinementIteration(
+    #     setup=lambda: diff.setup_spherical_crystal(160),
     #     settings=UniformPrunedSettings(
-    #         dist=0.03,
-    #         num_cells=(200, 200, 200),
+    #         dist=0.01,
+    #         num_cells=(400, 400, 400),
     #         total_trials=200_000,
     #         trials_per_batch=5_000,
     #         threshold=0.005,
@@ -122,6 +175,7 @@ else:
     diff_type = metadata[1]
     two_thetas, intensities = np.genfromtxt("spectrum.csv", delimiter=",", skip_header=1).T
 
+plt.figure(figsize=(20, 6))
 plt.scatter(two_thetas, intensities, s=3)
 plt.plot(two_thetas, intensities, color='k', label="Intensity")
 plt.ylim(bottom=0)
