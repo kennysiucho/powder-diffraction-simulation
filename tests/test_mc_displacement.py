@@ -81,7 +81,7 @@ def test_displace_gaussian_normal_operation():
 
     displaced = MCDisplacement.gaussian_displaced(
         positions=positions,
-        atoms_in_uc=atoms_in_uc,
+        atoms=atoms_in_uc,
         sigma=sigma,
         atoms_to_displace=atoms_to_displace
     )

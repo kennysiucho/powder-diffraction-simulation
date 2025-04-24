@@ -25,25 +25,37 @@ class MCDisplacement(MCArbitraryCrystal, MCRandomOccupation):
                  atom_from: int,
                  atom_to: int,
                  probability: float,
-                 displace_func: Callable[[np.ndarray, float], np.ndarray] = None,
+                 displace_func: Callable[[np.ndarray, np.ndarray], np.ndarray] = None,
                  pdf: Callable[[np.ndarray], np.ndarray] = None,
                  min_angle_deg: float = 0.,
                  max_angle_deg: float = 180.):
+        """
+        Takes a function displace_func which takes in the positions and atomic numbers
+        of all atoms in the crystal.
+        """
         MCRandomOccupation.__init__(self, wavelength, unit_cell,
                                     atom_from, atom_to, probability,
                                     pdf, min_angle_deg, max_angle_deg)
-        self._displace_func = displace_func or (lambda pos, uc: self.gaussian_displaced(
-            pos, uc, sigma=0.05, atoms_to_displace=[atom_from, atom_to]
+        self._displace_func = displace_func or (lambda pos, nums: self.gaussian_displaced(
+            pos, nums, sigma=0.05, atoms_to_displace=[atom_from, atom_to]
         ))
+        self.unique_atomic_numbers = []
+        for atom in self._unit_cell.atoms:
+            if atom.atomic_number in self.unique_atomic_numbers:
+                continue
+            self.unique_atomic_numbers.append(atom.atomic_number)
+        if atom_to not in self.unique_atomic_numbers:
+            self.unique_atomic_numbers.append(atom_to)
+
 
     @staticmethod
     def gaussian_displaced(positions: np.ndarray,
-                          atoms_in_uc: np.ndarray,
-                          sigma: float,
-                          atoms_to_displace: list[int]) -> np.ndarray:
+                           atoms: np.ndarray,
+                           sigma: float,
+                           atoms_to_displace: list[int]) -> np.ndarray:
         displacement = np.zeros_like(positions)
-        for i in range(len(atoms_in_uc)):
-            if atoms_in_uc[i] in atoms_to_displace:
+        for i in range(len(atoms)):
+            if atoms[i] in atoms_to_displace:
                 displacement[i] = np.random.normal(scale=sigma, size=3)
         return positions + displacement
 
