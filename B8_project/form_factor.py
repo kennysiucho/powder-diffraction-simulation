@@ -185,8 +185,8 @@ class XRayFormFactor:
             Array containing the calculated form factors for each wave vector.
         """
         form_factors = np.zeros(k_vectors.shape[0])
+        mag = np.linalg.norm(k_vectors, axis=1)
         for i in range(4):
-            mag = np.linalg.norm(k_vectors, axis=1)
             form_factors += self.a[i] * np.exp(
                 -self.b[i] * (mag / (4 * np.pi)) ** 2
             )
