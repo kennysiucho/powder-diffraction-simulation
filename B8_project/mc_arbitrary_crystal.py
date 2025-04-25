@@ -19,7 +19,6 @@ class MCArbitraryCrystal(DiffractionMonteCarlo):
     arbitrary crystals using Monte Carlo Methods.
     """
 
-    _atoms: list[Atom]
     _all_atom_pos: np.ndarray
     _all_atoms: np.ndarray
 
@@ -33,9 +32,14 @@ class MCArbitraryCrystal(DiffractionMonteCarlo):
         self.set_atoms(atoms)
 
     def set_atoms(self, atoms: list[Atom]):
-        self._atoms = atoms
-        self._all_atom_pos = np.array([np.array(atom.position) for atom in self._atoms])
-        self._all_atoms = np.array([atom.atomic_number for atom in self._atoms])
+        self._all_atom_pos = np.array([np.array(atom.position) for atom in atoms])
+        self._all_atoms = np.array([atom.atomic_number for atom in atoms])
+
+    def set_atoms_pos(self, atoms_pos: np.ndarray):
+        self._all_atom_pos = atoms_pos
+
+    def set_atomic_nums(self, atomic_nums: np.ndarray):
+        self._all_atoms = atomic_nums
 
     def compute_intensities(self,
                             scattering_vecs: np.ndarray,

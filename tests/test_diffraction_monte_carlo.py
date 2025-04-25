@@ -135,6 +135,7 @@ def test_inverse_cdf_natural_distribution(mc_ideal_nacl):
     """
     min_angle = 25
     max_angle = 135
+    mc_ideal_nacl.set_pdf(WeightingFunction.natural_distribution)
     mc_ideal_nacl.set_angle_range(min_angle, max_angle)
 
     inputs = np.linspace(0, 1, 200)

@@ -14,6 +14,8 @@ Classes
     based on the type of crystal
 """
 import inspect
+from itertools import product
+import random
 import time
 from dataclasses import dataclass, asdict, field
 from typing import Mapping, Callable
@@ -45,6 +47,15 @@ class WeightingFunction:
         k', if k and k' are each sampled randomly and uniformly from a sphere.
         """
         return np.pi / 360. * np.sin(np.radians(two_theta))
+
+    @staticmethod
+    def uniform_in_q_space(two_theta: [float, np.ndarray]) -> [float, np.ndarray]:
+        """
+        The distribution of scattering angles when scattering vectors (Q) are sampled
+        uniformly from k-space.
+        """
+        return np.sin(np.radians(two_theta / 2)) ** 2 * np.cos(
+            np.radians(two_theta / 2))
 
     @staticmethod
     def get_gaussians_at_peaks(locations: list[float], constant: float=0.1,
@@ -104,9 +115,9 @@ class UniformPrunedSettings(IterationSettings):
     with pruning.
     """
     dist: float = 0.02
+    num_cells: tuple = (200, 200, 200)
     total_trials: int = 1_000_000
     trials_per_batch: int = 5_000
-    weighted: bool = True
     threshold: float = 0.005
 
 
@@ -224,7 +235,7 @@ class DiffractionMonteCarlo(ABC):
         if pdf is not None:
             self.set_pdf(pdf)
         else:
-            self.set_pdf(WeightingFunction.natural_distribution)
+            self.set_pdf(WeightingFunction.uniform_in_q_space)
 
     def k(self):
         """
@@ -270,6 +281,7 @@ class DiffractionMonteCarlo(ABC):
                     if np.linalg.norm(pos - center) < r_angstrom:
                         unit_cell_pos.append([x, y, z])
         self._unit_cell_pos = np.array(unit_cell_pos)
+        print(f"INFO: Number of unit cells in spherical crystal: {len(self._unit_cell_pos)}")
 
     def _compute_inverse_cdf(self):
         x_vals = np.linspace(self._min_angle_deg, self._max_angle_deg, 1000)
@@ -355,6 +367,20 @@ class DiffractionMonteCarlo(ABC):
         magnitudes = 2 * self.k() * np.sin(np.radians(two_thetas) / 2)
         unit_vecs = utils.random_uniform_unit_vectors(n, 3)
         scattering_vecs = magnitudes[:, np.newaxis] * unit_vecs
+        return scattering_vecs, two_thetas
+
+    def _get_scattering_vecs_and_angles_box(
+            self, n: int, bounding_boxes: list[tuple[np.ndarray, np.ndarray]]):
+        """
+        Generates scattering vectors which are uniform within defined box in k-space.
+        """
+        scattering_vecs = np.empty((n, 3))
+        for i in range(n):
+            min_coords, max_coords = bounding_boxes[random.randrange(len(bounding_boxes))]
+            scattering_vecs[i] = np.random.uniform(0, 1, size=3) * (
+                    max_coords - min_coords) + min_coords
+        ks = np.linalg.norm(scattering_vecs, axis=1)
+        two_thetas = np.degrees(np.arcsin(ks / 2 / self.k()) * 2)
         return scattering_vecs, two_thetas
 
     def _plot_diagnostics(
@@ -518,7 +544,7 @@ class DiffractionMonteCarlo(ABC):
             # Re-normalize intensity distribution
             renormalization = np.ones_like(intensities)
             renormalization /= self._pdf(two_thetas)
-            renormalization *= WeightingFunction.natural_distribution(two_thetas)
+            renormalization *= WeightingFunction.uniform_in_q_space(two_thetas)
             intensities *= renormalization
 
         return two_thetas, intensities, np.array(stream.get_filtered()), counts
@@ -611,15 +637,47 @@ class DiffractionMonteCarlo(ABC):
 
         return intensities, np.array(stream.get_filtered()), counts
 
+    def _get_bounding_boxes(self, points: np.ndarray, num_cells: tuple=(100, 100, 100)):
+        min_corner = np.min(points, axis=0)
+        max_corner = np.max(points, axis=0)
+        bounds_size = max_corner - min_corner
+        cell_size = bounds_size / num_cells
+
+        relative_coords = (points - min_corner) / cell_size
+        indices = np.floor(relative_coords).astype(int)
+        indices = np.clip(indices, 0, np.array(num_cells) - 1)  # Avoid out-of-bounds
+
+        count_grid = np.zeros(num_cells, dtype=int)
+        neighbor_offsets = list(product([-1, 0, 1], repeat=3))
+
+        for idx in indices:
+            for dx, dy, dz in neighbor_offsets:
+                ni = idx[0] + dx
+                nj = idx[1] + dy
+                nk = idx[2] + dz
+                if 0 <= ni < num_cells[0] and 0 <= nj < num_cells[1] and 0 <= nk < \
+                        num_cells[2]:
+                    count_grid[ni, nj, nk] += 1
+
+        bounding_boxes = []
+        for ix in range(num_cells[0]):
+            for iy in range(num_cells[1]):
+                for iz in range(num_cells[2]):
+                    if count_grid[ix, iy, iz] > 0:
+                        cell_min = min_corner + np.array([ix, iy, iz]) * cell_size
+                        cell_max = cell_min + cell_size
+                        bounding_boxes.append((cell_min, cell_max))
+        return bounding_boxes
+
     def spectrum_uniform_pruned(
             self,
             points: np.ndarray,
             two_thetas: np.ndarray,
             form_factors: Mapping[int, FormFactorProtocol],
             dist: float = 0.05,
+            num_cells: tuple = (200, 200, 200),
             total_trials: int = 40000,
             trials_per_batch: int = 1000,
-            weighted: bool = True,
             threshold: float = 0.005
     ):
         """
@@ -640,13 +698,13 @@ class DiffractionMonteCarlo(ABC):
         dist : float
             Random scattering vectors must be within distance dist to one of the points
             to be accepted.
+        num_cells : tuple[int, int, int]
+            Number of voxels to divide the Q-domain into - then generate scattering
+            vectors only in those voxels containing points.
         total_trials : int
             Target number of accepted trials.
         trials_per_batch : int
             Number of random scattering vectors generated prior to discarding.
-        weighted : bool
-            Whether to draw scattering vectors from a sphere or via inverse transform
-            sampling using pdf.
         threshold : float
             The scattering trials with intensity greater than threshold times the
             maximum intensity encountered will be returned in stream.
@@ -666,8 +724,12 @@ class DiffractionMonteCarlo(ABC):
         stream = TopIntensityStream(threshold)
 
         print(f"INFO: Number of points: {len(points)}")
-        kdtree = scipy.spatial.KDTree(points)
+        bounding_boxes = self._get_bounding_boxes(points, num_cells=num_cells)
+        print(f"INFO: Number of voxels with points: {len(bounding_boxes)}")
+        if np.any(bounding_boxes[0][1] - bounding_boxes[0][0] < dist):
+            print(f"WARNING: Dist should not be larger than side lengths of voxels.")
 
+        kdtree = scipy.spatial.KDTree(points)
         stats = DiffractionMonteCarloRunStats()
 
         while stats.accepted_data_points < total_trials:
@@ -675,12 +737,8 @@ class DiffractionMonteCarlo(ABC):
                 stats.prev_print_time_ = time.time()
                 print(stats)
 
-            if weighted:
-                scattering_vecs, two_thetas_batch = (
-                    self._get_scattering_vecs_and_angles_weighted(trials_per_batch))
-            else:
-                scattering_vecs, two_thetas_batch = (
-                    self._get_scattering_vecs_and_angles(trials_per_batch))
+            scattering_vecs, two_thetas_batch = (
+                self._get_scattering_vecs_and_angles_box(trials_per_batch, bounding_boxes))
 
             # Keep only the vecs close to points
             lengths = kdtree.query_ball_point(scattering_vecs, dist, return_length=True)
@@ -700,13 +758,6 @@ class DiffractionMonteCarlo(ABC):
             for j, inten in enumerate(intensity_batch):
                 stream.add(filtered_vecs[j][0], filtered_vecs[j][1],
                            filtered_vecs[j][2], inten)
-
-            if weighted:
-                # Re-normalize intensity distribution
-                renormalization = np.ones_like(intensities)
-                renormalization /= self._pdf(two_thetas)
-                renormalization *= WeightingFunction.natural_distribution(two_thetas)
-                intensities *= renormalization
 
         return intensities, np.array(stream.get_filtered()), counts
 
@@ -764,9 +815,9 @@ class DiffractionMonteCarlo(ABC):
                     two_thetas,
                     form_factors,
                     dist=pruned.dist,
+                    num_cells=pruned.num_cells,
                     total_trials=pruned.total_trials,
                     trials_per_batch=pruned.trials_per_batch,
-                    weighted=pruned.weighted,
                     threshold=pruned.threshold
                 )
 
