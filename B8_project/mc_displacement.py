@@ -74,26 +74,32 @@ class MCDisplacement(MCArbitraryCrystal, MCRandomOccupation):
             XRayFormFactor.
         """
         if self._unit_cell_pos is None:
-            raise ValueError("_unit_cell_pos is None: You must call setup_cuboid_crystal"
-                             " or setup_spherical_crystal to define the shape of the "
-                             "crystal particle.")
+            raise ValueError(
+                "_unit_cell_pos is None: You must call setup_cuboid_crystal"
+                " or setup_spherical_crystal to define the shape of the "
+                "crystal particle.")
         # Build crystal once per batch
         n_unit_cells = self._unit_cell_pos.shape[0]
         n_atoms_per_uc = len(self._unit_cell.atoms)
         n_uc_varieties = len(self._atomic_numbers_vars)
         n_atoms = n_unit_cells * n_atoms_per_uc
 
-        atom_pos = np.empty((n_atoms, 3), dtype=np.float64)
-        atomic_nums = np.empty(n_atoms, dtype=int)
         random_indices = self._rng.choice(np.arange(n_uc_varieties),
                                           size=n_unit_cells,
                                           p=self._probs)
-        for i in range(n_unit_cells):
-            uc_pos = self._unit_cell_pos[i]
-            uc_var = self._atomic_numbers_vars[random_indices[i]]
-            atom_pos[i * n_atoms_per_uc:(i + 1) * n_atoms_per_uc] = \
-                uc_pos + self._displace_func(self._atom_pos_in_uc, uc_var)
-            atomic_nums[i * n_atoms_per_uc:(i + 1) * n_atoms_per_uc] = uc_var
+        uc_positions = self._unit_cell_pos[:, np.newaxis, :]  # (n_unit_cells, 1, 3)
+        rel_atom_positions = self._atom_pos_in_uc[np.newaxis, :,
+                             :]  # (1, n_atoms_per_uc, 3)
+        atom_pos = (uc_positions + rel_atom_positions).reshape(n_atoms,
+                                                               3)  # (n_atoms, 3)
+
+        # Repeat atomic numbers by variant index
+        atomic_nums_per_uc = np.array(self._atomic_numbers_vars, dtype=object)[
+            random_indices]  # (n_unit_cells,)
+        atomic_nums = np.concatenate(atomic_nums_per_uc)  # Flattened into (n_atoms,)
+
+        # Displace and store
+        atom_pos = self._displace_func(atom_pos, atomic_nums)
         self.set_atoms_pos(atom_pos)
         self.set_atomic_nums(atomic_nums)
 
