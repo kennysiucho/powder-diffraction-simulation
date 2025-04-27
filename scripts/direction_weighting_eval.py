@@ -1,10 +1,16 @@
 import numpy as np
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import PowerNorm
 from B8_project import file_reading
 from B8_project.crystal import UnitCell
 from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo
+
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "sans-serif",
+    "font.sans-serif": ["cmss10"],
+    "font.size": 14,
+})
 
 LATTICE_FILE = "data/GaAs_lattice.csv"
 BASIS_FILE = "data/GaAs_basis.csv"
@@ -34,7 +40,7 @@ xrd_form_factors[49] = all_xray_form_factors[49]
 vecs, _ = diff._get_uniform_scattering_vecs_and_angles_single(10000, 35.8379)
 
 # Prepare crystal
-unit_cell_pos = diff._unit_cell_positions((4, 4, 4))
+unit_cell_pos = diff._unit_cell_positions((10, 10, 10))
 all_atoms = []
 all_atom_pos = []
 for uc_pos in unit_cell_pos:
@@ -63,14 +69,14 @@ def evaluate_intensities(form_factors):
 intensities = evaluate_intensities(xrd_form_factors)
 # intensities /= np.max(intensities)
 
-fig = plt.figure(figsize=(8, 6))
+fig = plt.figure(figsize=(6, 4))
 ax = fig.add_subplot(111, projection='3d')
 ax.view_init(elev=20, azim=15)
 sc = ax.scatter(vecs[:, 0], vecs[:, 1], vecs[:, 2],
                 c=intensities, cmap='YlOrRd', s=10,
                 norm=PowerNorm(gamma=0.25, vmin=intensities.min(), vmax=intensities.max()))
 ax.set_box_aspect([1,1,1])
-plt.colorbar(sc, ax=ax, label="Intensity", shrink=0.7, pad=0.04)
+plt.colorbar(sc, ax=ax, label=r"$I(\mathbf{Q})$", shrink=0.7, pad=0.04)
 
 plt.tight_layout()
 plt.show()
