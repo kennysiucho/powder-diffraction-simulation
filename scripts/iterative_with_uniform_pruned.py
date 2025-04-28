@@ -10,8 +10,10 @@ import B8_project.crystal as unit_cell
 from B8_project.diffraction_monte_carlo import RefinementIteration, UniformSettings, \
     NeighborhoodSettings, UniformPrunedSettings
 from B8_project.mc_displacement import MCDisplacement
+from B8_project.mc_distributed_concentration import MCDistributedConcentration
 from B8_project.mc_ideal_crystal import MCIdealCrystal
 from B8_project.mc_random_occupation import MCRandomOccupation
+from B8_project.mc_segregated_crystal import MCSegregatedCrystal
 
 spectrum_file = Path("spectrum.csv")
 if spectrum_file.is_file():
@@ -37,55 +39,100 @@ if CALCULATE_SPECTRUM:
     unit_cell = unit_cell.UnitCell.new_unit_cell(basis, lattice)
 
 
-    def displace_pb_toward_br(pos, atoms, search_radius, disp=0.05):
-        modified_pos = np.copy(pos)
-        kdtree = KDTree(pos)
-        for i, atom in enumerate(atoms):
-            if atom == 82:  # Lead
-                neighbors = kdtree.query_ball_point(pos[i], search_radius)
-                if len(neighbors) > 7:
-                    print(
-                        f"WARNING: number of Br neighbors (including itself) is {len(neighbors)}, "
-                        "greater than 7. Skipping.")
-                    continue
-                avg_br_direction = np.array([0., 0., 0.])
-                for j in neighbors:
-                    if atoms[j] == 35:  # Br
-                        unit_vec = pos[j] - pos[i]
-                        unit_vec /= np.linalg.norm(unit_vec)
-                        avg_br_direction += unit_vec
-                if np.all(np.abs(avg_br_direction) < 1e-8):  # Zero array
-                    continue
-                avg_br_direction /= np.linalg.norm(avg_br_direction)
-                modified_pos[i] += avg_br_direction * disp
-        return modified_pos
+    # def displace_pb_toward_br(pos, atoms, search_radius, disp=0.05):
+    #     modified_pos = np.copy(pos)
+    #     kdtree = KDTree(pos)
+    #     for i, atom in enumerate(atoms):
+    #         if atom == 82:  # Lead
+    #             neighbors = kdtree.query_ball_point(pos[i], search_radius)
+    #             if len(neighbors) > 7:
+    #                 print(
+    #                     f"WARNING: number of Br neighbors (including itself) is {len(neighbors)}, "
+    #                     "greater than 7. Skipping.")
+    #                 continue
+    #             avg_br_direction = np.array([0., 0., 0.])
+    #             for j in neighbors:
+    #                 if atoms[j] == 35:  # Br
+    #                     unit_vec = pos[j] - pos[i]
+    #                     unit_vec /= np.linalg.norm(unit_vec)
+    #                     avg_br_direction += unit_vec
+    #             if np.all(np.abs(avg_br_direction) < 1e-8):  # Zero array
+    #                 continue
+    #             avg_br_direction /= np.linalg.norm(avg_br_direction)
+    #             modified_pos[i] += avg_br_direction * disp
+    #     return modified_pos
+    #
+    #
+    # def displace_nothing(pos, atoms):
+    #     return pos
+
+    # mc = MCDisplacement(1.54,
+    #                       unit_cell,
+    #                       atom_from, atom_to, CONC,
+    #                       displace_func=lambda pos, atoms: (
+    #                           displace_pb_toward_br(pos, atoms, 0.51 * lat,
+    #                                                 disp=0.15)
+    #                       ),
+    #                       min_angle_deg=min_angle,
+    #                       max_angle_deg=max_angle)
+    # def conc_func(x, min_x, max_x):
+    #     mean_x = (min_x + max_x) / 2
+    #     range_x = max_x - min_x
+    #     k = 50 / range_x
+    #     return 1. / (1. + np.exp(-k * (x - mean_x)))
+    #
+    # mc = MCSegregatedCrystal(1.54,
+    #                          unit_cell,
+    #                          atom_from, atom_to, CONC,
+    #                          conc_func=conc_func,
+    #                          min_angle_deg=min_angle,
+    #                          max_angle_deg=max_angle)
+    # mc = MCRandomOccupation(1.54,
+    #                         unit_cell,
+    #                         atom_from, atom_to, CONC,
+    #                         min_angle_deg=min_angle,
+    #                         max_angle_deg=max_angle)
 
 
-    def displace_nothing(pos, atoms):
-        return pos
+    # def gaussian(conc, mean, sigma):
+    #     return np.exp(-0.5 * ((conc - mean) / sigma) ** 2)
 
-    atom_from, atom_to, CONC = 35, 53, 0.5
-    lat = 5.94863082 + CONC * (6.27514229 - 5.94863082)
-    unit_cell.lattice_constants = (lat, lat, lat)
-    print("Lattice constants:", unit_cell.lattice_constants)
 
-    min_angle, max_angle, step = 58, 63, 0.02
 
+
+    min_angle, max_angle, step = 10, 40, 0.02
     def setup():
-        mc = MCDisplacement(1.54,
-                              unit_cell,
-                              atom_from, atom_to, CONC,
-                              displace_func=lambda pos, atoms: (
-                                  displace_pb_toward_br(pos, atoms, 0.51 * lat,
-                                                        disp=0.15)
-                              ),
-                              min_angle_deg=min_angle,
-                              max_angle_deg=max_angle)
-        # mc = MCRandomOccupation(1.54,
-        #                         unit_cell,
-        #                         atom_from, atom_to, CONC,
-        #                         min_angle_deg=10,
-        #                         max_angle_deg=160)
+        atom_from, atom_to, CONC = 35, 53, 0.5
+        lat = 5.94863082 + CONC * (6.27514229 - 5.94863082)
+        unit_cell.lattice_constants = (lat, lat, lat)
+        print("Lattice constants:", unit_cell.lattice_constants)
+
+
+        def lorentzian(conc, mean, gamma):
+            return 1. / (1 + ((conc - mean) / gamma) ** 2)
+
+
+        def FA(conc):
+            return lorentzian(conc, 0.7, 0.1) * (1.2034 - conc) ** 3
+
+
+        def vegards(conc, a0, b0, c0, a1, b1, c1):
+            return (a0 + conc * (a1 - a0),
+                    b0 + conc * (b1 - b0),
+                    c0 + conc * (c1 - c0))
+
+
+        mc = MCDistributedConcentration(
+            1.54,
+            unit_cell,
+            atom_from, atom_to, CONC,
+            lambda conc: FA(conc),
+            lambda conc: vegards(conc,
+                                 5.94863082, 5.94863082, 5.94863082,
+                                 6.27514229, 6.27514229, 6.27514229),
+            min_angle_deg=min_angle,
+            max_angle_deg=max_angle
+        )
         return mc
 
     diff = setup()
@@ -93,46 +140,43 @@ if CALCULATE_SPECTRUM:
     start_time = time.time()
 
     iterations = []
+    # For halide segregation
     iterations.append(RefinementIteration(
-        setup=lambda: diff.setup_spherical_crystal(120),
+        # setup=lambda: [diff.setup_spherical_crystal(60), diff.generate_crystal()],
+        setup=lambda: diff.setup_spherical_crystal(60),
         settings=UniformSettings(
-            total_trials=20_000_000,
-            trials_per_batch=3000,
+            total_trials=50_000_000,
+            trials_per_batch=1000,
             angle_bins=round((max_angle - min_angle) / step),
             threshold=0.002,
             weighted=True
         )
     ))
+
     # iterations.append(RefinementIteration(
-    #     setup=lambda: diff.setup_spherical_crystal(40),
+    #     setup=lambda: diff.setup_spherical_crystal(30),
+    #     settings=UniformSettings(
+    #         total_trials=10_000_000,
+    #         trials_per_batch=3000,
+    #         angle_bins=round((max_angle - min_angle) / step),
+    #         threshold=0.002,
+    #         weighted=True
+    #     )
+    # ))
+    # iterations.append(RefinementIteration(
+    #     setup=lambda: diff.setup_spherical_crystal(50),
     #     settings=NeighborhoodSettings(
     #         sigma=0.03,
     #         cnt_per_point=10,
-    #         threshold=0.002
+    #         threshold=0.001
     #     )
     # ))
     # iterations.append(RefinementIteration(
-    #     setup=lambda: diff.setup_spherical_crystal(80),
-    #     settings=NeighborhoodSettings(
-    #         sigma=0.02,
-    #         cnt_per_point=5,
-    #         threshold=0.002
-    #     )
-    # ))
-    # iterations.append(RefinementIteration(
-    #     setup=lambda: diff.setup_spherical_crystal(160),
-    #     settings=NeighborhoodSettings(
-    #         sigma=0.02,
-    #         cnt_per_point=3,
-    #         threshold=0.002
-    #     )
-    # ))
-    # iterations.append(RefinementIteration(
-    #     setup=lambda: diff.setup_spherical_crystal(160),
+    #     setup=lambda: diff.setup_spherical_crystal(60),
     #     settings=UniformPrunedSettings(
-    #         dist=0.01,
+    #         dist=0.02,
     #         num_cells=(400, 400, 400),
-    #         total_trials=200_000,
+    #         total_trials=2_000_000,
     #         trials_per_batch=5_000,
     #         threshold=0.005,
     #     )
