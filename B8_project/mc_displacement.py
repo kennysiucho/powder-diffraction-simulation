@@ -6,7 +6,9 @@ This module contains the MCDisplacement class, a child class of MCArbitrary and
 MCRandomOccupation. Adds capability to displace atoms by user-defined function.
 """
 from typing import Mapping, Callable
+import time
 import numpy as np
+import torch
 from B8_project.crystal import UnitCell
 from B8_project.mc_arbitrary_crystal import MCArbitraryCrystal
 from B8_project.mc_random_occupation import MCRandomOccupation
@@ -63,21 +65,18 @@ class MCDisplacement(MCArbitraryCrystal, MCRandomOccupation):
                             scattering_vecs: np.ndarray,
                             form_factors: Mapping[int, FormFactorProtocol]):
         """
-        Computes the intensities for each scattering vector.
-
-        Parameters
-        ----------
-        scattering_vecs : np.ndarray
-            List of scattering vectors for which to evaluate the intensity.
-        form_factors : Mapping[int, FormFactorProtocol]
-            Dictionary mapping atomic number to associated NeutronFormFactor or
-            XRayFormFactor.
+        Computes the intensities for each scattering vector with profiling output.
         """
+        start_total = time.perf_counter()
+
         if self._unit_cell_pos is None:
             raise ValueError(
                 "_unit_cell_pos is None: You must call setup_cuboid_crystal"
                 " or setup_spherical_crystal to define the shape of the "
                 "crystal particle.")
+
+        t0 = time.perf_counter()
+
         # Build crystal once per batch
         n_unit_cells = self._unit_cell_pos.shape[0]
         n_atoms_per_uc = len(self._unit_cell.atoms)
@@ -99,34 +98,77 @@ class MCDisplacement(MCArbitraryCrystal, MCRandomOccupation):
         atomic_nums = np.concatenate(atomic_nums_per_uc)  # Flattened into (n_atoms,)
 
         # Displace and store
+        t0_1 = time.perf_counter()
         atom_pos = self._displace_func(atom_pos, atomic_nums)
+        t0_2= time.perf_counter()
         self.set_atoms_pos(atom_pos)
         self.set_atomic_nums(atomic_nums)
-
-        # all_atom_pos.shape = (n_atoms, 3)
         # all_scattering_lengths = (n_atoms,)
         # scattering_vec.shape = (batch_trials, 3)
         # structure_factors.shape = (batch_trials, )
         # k•r[i, j] = scattering_vec[i][k] • all_atom_pos[j][k]
 
-        # dot_products.shape = (# trials after filter, n_atoms)
-        dot_products = np.einsum("ik,jk", scattering_vecs, self._all_atom_pos)
+        t1 = time.perf_counter()
 
-        # Evaluate form factors for each element
-        form_factors_evaluated = {}
-        for atomic_number, form_factor in form_factors.items():
-            form_factors_evaluated[atomic_number] = (
-                form_factor.evaluate_form_factors(scattering_vecs))
-        all_form_factors = np.array([form_factors_evaluated[atom] for atom in
-                                     self._all_atoms]).T
+        device = torch.device("mps")
 
-        # exp_terms.shape = (# trials, n_atoms)
-        exps = np.exp(1j * dot_products)
-        exp_terms = np.multiply(all_form_factors, exps)
+        scattering_vecs_t = torch.from_numpy(scattering_vecs).to(torch.float32).to(
+            device)
+        all_atom_pos_t = torch.from_numpy(self._all_atom_pos).to(torch.float32).to(
+            device)
+        all_atoms = self._all_atoms
+        t2 = time.perf_counter()
 
-        # structure_factors.shape = (# trials, )
-        structure_factors = np.sum(exp_terms, axis=1)
+        # --- Compute dot product k•r ---
+        dot_products = torch.matmul(scattering_vecs_t, all_atom_pos_t.T)
+        t3 = time.perf_counter()
 
-        intensities = np.abs(structure_factors) ** 2
-        return intensities
+        # --- Evaluate form factors (real only) ---
+        ff_real_parts = {
+            atomic_number: form_factors[atomic_number].evaluate_form_factors_torch(
+                scattering_vecs_t)
+            for atomic_number in self.unique_atomic_numbers
+        }
+        t3_5 = time.perf_counter()  # ← New timing point
+
+        # Step 1: Evaluate and stack once
+        ordered_atomic_numbers = self.unique_atomic_numbers  # e.g. [6, 8, 12]
+        ff_tensor = torch.stack(
+            [ff_real_parts[Z] for Z in ordered_atomic_numbers], dim=1
+        )  # shape: (n_kvecs, n_unique_Z)
+
+        # Step 2: Build atom index mapping
+        Z_to_index = {Z: i for i, Z in enumerate(ordered_atomic_numbers)}
+        atom_indices = torch.tensor([Z_to_index[Z] for Z in all_atoms],
+                                    dtype=torch.long, device=device)
+
+        # Step 3: Use gather to select form factors per atom
+        ff_matrix = ff_tensor.gather(1,
+                                     atom_indices.unsqueeze(0).expand(ff_tensor.size(0),
+                                                                      -1))
+        t4 = time.perf_counter()
+
+        # --- Compute exp(i k•r) = cos(k•r) + i sin(k•r) ---
+        # Only real part of form factor used → multiply with cos(k•r)
+        cos_theta = torch.cos(dot_products)
+        exp_terms = ff_matrix * cos_theta
+
+        # Sum over atoms and square magnitude (imaginary part is 0)
+        structure_factors = torch.sum(exp_terms, dim=1)
+        intensities = structure_factors ** 2
+        t5 = time.perf_counter()
+
+        result = intensities.cpu().numpy()
+
+        # print(f"\n--- Timing breakdown ---")
+        # print(f"  Atom generation/setup:      {t0_1 - t0:.4f} sec")
+        # print(f"  Atom displacement:          {t0_2 - t0_1:.4f} sec")
+        # print(f"  Tensor conversion:          {t2 - t1:.4f} sec")
+        # print(f"  Dot product (GPU):          {t3 - t2:.4f} sec")
+        # print(f"  Form factor eval only:      {t3_5 - t3:.4f} sec")
+        # print(f"  Stack form factors:         {t4 - t3_5:.4f} sec")
+        # print(f"  Trig, mult, sum (GPU):      {t5 - t4:.4f} sec")
+        # print(f"  Total compute time:         {t5 - start_total:.4f} sec\n")
+
+        return result
 

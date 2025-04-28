@@ -16,6 +16,7 @@ Classes
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 import numpy as np
+import torch
 from B8_project.crystal import ReciprocalLatticeVector
 
 
@@ -191,4 +192,30 @@ class XRayFormFactor:
                 -self.b[i] * (mag / (4 * np.pi)) ** 2
             )
         form_factors += self.c
+        return form_factors
+
+    def evaluate_form_factors_torch(self, k_vectors: torch.Tensor) -> torch.Tensor:
+        """
+        GPU-accelerated version of evaluate_form_factors using PyTorch.
+
+        Parameters
+        ----------
+        k_vectors : (N, 3) torch.Tensor
+            List of wave vectors (units nm^-1), must be on the correct device.
+
+        Returns
+        -------
+        form_factors : (N,) torch.Tensor
+            Form factors computed on the GPU.
+        """
+        # (N,)
+        mag = torch.linalg.norm(k_vectors, dim=1)
+
+        # Compute each term in the sum using vectorized ops
+        form_factors = sum(
+            self.a[i] * torch.exp(-self.b[i] * (mag / (4 * torch.pi)) ** 2)
+            for i in range(4)
+        )
+        form_factors += self.c
+
         return form_factors

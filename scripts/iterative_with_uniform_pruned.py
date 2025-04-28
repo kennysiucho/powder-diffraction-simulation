@@ -60,7 +60,6 @@ if CALCULATE_SPECTRUM:
                 modified_pos[i] += avg_br_direction * disp
         return modified_pos
 
-
     def displace_nothing(pos, atoms):
         return pos
 
@@ -69,7 +68,7 @@ if CALCULATE_SPECTRUM:
     unit_cell.lattice_constants = (lat, lat, lat)
     print("Lattice constants:", unit_cell.lattice_constants)
 
-    min_angle, max_angle, step = 58, 63, 0.02
+    min_angle, max_angle, step = 58.5, 62.5, 0.02
 
     def setup():
         mc = MCDisplacement(1.54,
@@ -94,23 +93,23 @@ if CALCULATE_SPECTRUM:
 
     iterations = []
     iterations.append(RefinementIteration(
-        setup=lambda: diff.setup_spherical_crystal(120),
+        setup=lambda: diff.setup_spherical_crystal(60),
         settings=UniformSettings(
-            total_trials=20_000_000,
-            trials_per_batch=3000,
+            total_trials=80_000_000,
+            trials_per_batch=5000,
             angle_bins=round((max_angle - min_angle) / step),
             threshold=0.002,
             weighted=True
         )
     ))
-    # iterations.append(RefinementIteration(
-    #     setup=lambda: diff.setup_spherical_crystal(40),
-    #     settings=NeighborhoodSettings(
-    #         sigma=0.03,
-    #         cnt_per_point=10,
-    #         threshold=0.002
-    #     )
-    # ))
+    iterations.append(RefinementIteration(
+        setup=lambda: diff.setup_spherical_crystal(100),
+        settings=NeighborhoodSettings(
+            sigma=0.02,
+            cnt_per_point=20,
+            threshold=0.002
+        )
+    ))
     # iterations.append(RefinementIteration(
     #     setup=lambda: diff.setup_spherical_crystal(80),
     #     settings=NeighborhoodSettings(
