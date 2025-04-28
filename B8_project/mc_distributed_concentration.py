@@ -1,32 +1,27 @@
 """
-MC Random Occupation
+MC Distributed Concentration
 ===========
 
-This module contains the MCRandomOccupation class, a child class of
-DiffractionMonteCarlo, for calculating the diffraction spectra of random occupation
-crystals using Monte Carlo methods.
+This module contains the MC Distributed Concentration class, for simulating random
+occupation crystals each with a concentration drawn from a distribution.
 """
-
+import random
 from typing import Mapping, Callable
 import numpy as np
-from B8_project.crystal import UnitCell, UnitCellVarieties, ReplacementProbability
-from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo
+import scipy
+from B8_project.crystal import UnitCell
 from B8_project.form_factor import FormFactorProtocol
+from B8_project.mc_random_occupation import MCRandomOccupation
 
-class MCRandomOccupation(DiffractionMonteCarlo):
-    """
-    Child class of DiffractionMonteCarlo for calculating the diffraction spectra of
-    random occupation crystals using Monte Carlo Methods.
-    """
 
-    _atom_from: int
-    _atom_to: int
-    _probability: float
-    _atom_pos_in_uc: np.ndarray
-    _uc_vars: UnitCellVarieties
-    _atomic_numbers_vars: list[np.ndarray]
-    _probs: list[float]
-    _rng: np.random.Generator
+class MCDistributedConcentration(MCRandomOccupation):
+    """
+    Child class of MCRandomOccupation for simulating random occupation crystals each
+    with a concentration drawn from a distribution.
+    """
+    _conc_pdf: Callable[[np.ndarray], np.ndarray]
+    _lattice_parameter_func: Callable[[float], tuple[float, float, float]]
+    _conc_inverse_cdf: Callable[[np.ndarray], np.ndarray]
 
     def __init__(self,
                  wavelength: float,
@@ -34,53 +29,44 @@ class MCRandomOccupation(DiffractionMonteCarlo):
                  atom_from: int,
                  atom_to: int,
                  probability: float,
+                 conc_pdf: Callable[[np.ndarray], np.ndarray],
+                 lattice_parameter_func: Callable[[float], tuple[float, float, float]],
                  pdf: Callable[[np.ndarray], np.ndarray] = None,
                  min_angle_deg: float = 0.,
                  max_angle_deg: float = 180.):
-        super().__init__(wavelength, pdf, min_angle_deg, max_angle_deg, unit_cell)
-        self._rng = np.random.default_rng()
-        self.set_unit_cell(unit_cell)
-        self.set_random_occupation_parameters(atom_from, atom_to, probability)
+        super().__init__(wavelength, unit_cell, atom_from, atom_to, probability,
+                         pdf, min_angle_deg, max_angle_deg)
+        self._conc_pdf = conc_pdf
+        self._lattice_parameter_func = lattice_parameter_func
+        x_vals = np.linspace(0., 1., 1000)
+        pdf_vals = self._conc_pdf(x_vals)
+        cdf_vals = scipy.integrate.cumulative_simpson(pdf_vals, x=x_vals, initial=0.)
+        cdf_vals /= cdf_vals[-1]  # Normalize CDF
+        try:
+            inverse_cdf_func = scipy.interpolate.PchipInterpolator(cdf_vals, x_vals)
+        except ValueError as exc:
+            raise ValueError("Inverse CDF interpolation failed. Possibly because PDF "
+                             "is negative or too close to zero at certain points.") \
+                from exc
+        self._conc_inverse_cdf = inverse_cdf_func
 
-    def set_unit_cell(self, unit_cell: UnitCell):
-        self._unit_cell = unit_cell
-        atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
-        self._atom_pos_in_uc = atom_pos_in_uc
+    def random_conc(self):
+        return self._conc_inverse_cdf(random.random())
 
-    def set_random_occupation_parameters(self,
-                                         atom_from: int,
-                                         atom_to: int,
-                                         probability: float):
-        self._atom_from = atom_from
-        self._atom_to = atom_to
-        self._probability = probability
-        uc_vars = UnitCellVarieties(self._unit_cell,
-                                    ReplacementProbability(self._atom_from,
-                                                           self._atom_to,
-                                                           self._probability))
-        self._uc_vars = uc_vars
-        atomic_numbers_vars, probs = uc_vars.atomic_number_lists()
-        self._atomic_numbers_vars = atomic_numbers_vars
-        self._probs = probs
+    def set_lattice_parameter(self, concentration: float):
+        a, b, c = self._lattice_parameter_func(concentration)
+        self._unit_cell_pos /= np.array(self._unit_cell.lattice_constants)
+        self._unit_cell.lattice_constants = (a, b, c)
+        self._unit_cell_pos *= np.array(self._unit_cell.lattice_constants).T
 
     def compute_intensities(self,
                             scattering_vecs: np.ndarray,
                             form_factors: Mapping[int, FormFactorProtocol]):
-        """
-        Computes the intensities for each scattering vector.
-
-        Parameters
-        ----------
-        scattering_vecs : np.ndarray
-            List of scattering vectors for which to evaluate the intensity.
-        form_factors : Mapping[int, FormFactorProtocol]
-            Dictionary mapping atomic number to associated NeutronFormFactor or
-            XRayFormFactor.
-        """
         if self._unit_cell_pos is None:
-            raise ValueError("_unit_cell_pos is None: You must call setup_cuboid_crystal"
-                             " or setup_spherical_crystal to define the shape of the "
-                             "crystal particle.")
+            raise ValueError(
+                "_unit_cell_pos is None: You must call setup_cuboid_crystal"
+                " or setup_spherical_crystal to define the shape of the "
+                "crystal particle.")
 
         # Compute basis portion of structure factors
         # scattering_vecs.shape = (# trials filtered, 3)
@@ -123,9 +109,12 @@ class MCRandomOccupation(DiffractionMonteCarlo):
         n_unit_cells = self._unit_cell_pos.shape[0]
         n_uc_varieties = len(self._atomic_numbers_vars)
         n_vecs = len(scattering_vecs)
+        conc = self.random_conc()
+        self.set_lattice_parameter(conc)
+        probs = self._uc_vars.calculate_probabilities(conc)
         random_indices = self._rng.choice(np.arange(n_uc_varieties),
                                           size=(n_vecs, n_unit_cells),
-                                          p=self._probs)
+                                          p=probs)
         structure_factors_basis_random = (
             structure_factors_basis)[np.arange(n_vecs)[:, np.newaxis], random_indices]
 

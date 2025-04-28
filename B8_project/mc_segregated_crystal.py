@@ -1,32 +1,26 @@
 """
-MC Random Occupation
+MC Segregated Crystal
 ===========
 
-This module contains the MCRandomOccupation class, a child class of
-DiffractionMonteCarlo, for calculating the diffraction spectra of random occupation
-crystals using Monte Carlo methods.
+This module contains the MCSegregatedCrystal, for simulating random occupation crystals
+with local concentrations that varies depending on its position.
 """
 
 from typing import Mapping, Callable
 import numpy as np
-from B8_project.crystal import UnitCell, UnitCellVarieties, ReplacementProbability
-from B8_project.diffraction_monte_carlo import DiffractionMonteCarlo
+
+from B8_project.crystal import UnitCell
 from B8_project.form_factor import FormFactorProtocol
+from B8_project.mc_random_occupation import MCRandomOccupation
 
-class MCRandomOccupation(DiffractionMonteCarlo):
-    """
-    Child class of DiffractionMonteCarlo for calculating the diffraction spectra of
-    random occupation crystals using Monte Carlo Methods.
-    """
 
-    _atom_from: int
-    _atom_to: int
-    _probability: float
-    _atom_pos_in_uc: np.ndarray
-    _uc_vars: UnitCellVarieties
-    _atomic_numbers_vars: list[np.ndarray]
-    _probs: list[float]
-    _rng: np.random.Generator
+class MCSegregatedCrystal(MCRandomOccupation):
+    """
+    Child class of MCRandomOccupation for simulating random occupation crystals
+    with local concentrations that varies depending on its position.
+    """
+    _conc_func: Callable[[np.ndarray, float, float], np.ndarray]
+    _uc_var_indices: np.ndarray = None
 
     def __init__(self,
                  wavelength: float,
@@ -34,59 +28,47 @@ class MCRandomOccupation(DiffractionMonteCarlo):
                  atom_from: int,
                  atom_to: int,
                  probability: float,
+                 conc_func: Callable[[np.ndarray, float, float], np.ndarray],
                  pdf: Callable[[np.ndarray], np.ndarray] = None,
                  min_angle_deg: float = 0.,
                  max_angle_deg: float = 180.):
-        super().__init__(wavelength, pdf, min_angle_deg, max_angle_deg, unit_cell)
-        self._rng = np.random.default_rng()
-        self.set_unit_cell(unit_cell)
-        self.set_random_occupation_parameters(atom_from, atom_to, probability)
+        super().__init__(wavelength, unit_cell, atom_from, atom_to, probability,
+                         pdf, min_angle_deg, max_angle_deg)
+        self._conc_func = conc_func
 
-    def set_unit_cell(self, unit_cell: UnitCell):
-        self._unit_cell = unit_cell
-        atoms_in_uc, atom_pos_in_uc = self._atoms_and_pos_in_uc()
-        self._atom_pos_in_uc = atom_pos_in_uc
-
-    def set_random_occupation_parameters(self,
-                                         atom_from: int,
-                                         atom_to: int,
-                                         probability: float):
-        self._atom_from = atom_from
-        self._atom_to = atom_to
-        self._probability = probability
-        uc_vars = UnitCellVarieties(self._unit_cell,
-                                    ReplacementProbability(self._atom_from,
-                                                           self._atom_to,
-                                                           self._probability))
-        self._uc_vars = uc_vars
-        atomic_numbers_vars, probs = uc_vars.atomic_number_lists()
-        self._atomic_numbers_vars = atomic_numbers_vars
-        self._probs = probs
-
-    def compute_intensities(self,
-                            scattering_vecs: np.ndarray,
-                            form_factors: Mapping[int, FormFactorProtocol]):
-        """
-        Computes the intensities for each scattering vector.
-
-        Parameters
-        ----------
-        scattering_vecs : np.ndarray
-            List of scattering vectors for which to evaluate the intensity.
-        form_factors : Mapping[int, FormFactorProtocol]
-            Dictionary mapping atomic number to associated NeutronFormFactor or
-            XRayFormFactor.
-        """
+    def generate_crystal(self):
         if self._unit_cell_pos is None:
             raise ValueError("_unit_cell_pos is None: You must call setup_cuboid_crystal"
                              " or setup_spherical_crystal to define the shape of the "
                              "crystal particle.")
+        x_coords = self._unit_cell_pos[:, 0]
+        concentrations = self._conc_func(x_coords, np.min(x_coords), np.max(x_coords))
+        self._uc_var_indices = np.empty(len(self._unit_cell_pos), dtype=int)
+        n_uc_varieties = len(self._atomic_numbers_vars)
+        for i in range(len(self._unit_cell_pos)):
+            probs = self._uc_vars.calculate_probabilities(concentrations[i])
+            ind = self._rng.choice(np.arange(n_uc_varieties),
+                                          size=1,
+                                          p=probs)
+            self._uc_var_indices[i] = ind
+        print(self._uc_var_indices)
+
+    def compute_intensities(self,
+                            scattering_vecs: np.ndarray,
+                            form_factors: Mapping[int, FormFactorProtocol]):
+        if self._unit_cell_pos is None:
+            raise ValueError("_unit_cell_pos is None: You must call setup_cuboid_crystal"
+                             " or setup_spherical_crystal to define the shape of the "
+                             "crystal particle.")
+        if self._uc_var_indices is None:
+            raise ValueError("_uc_var_indices is None: You must call generate_crystal.")
 
         # Compute basis portion of structure factors
         # scattering_vecs.shape = (# trials filtered, 3)
         # atom_pos_in_uc.shape = (# atoms in a unit cell, 3)
         # dot_products_basis.shape = (# trials filtered, # atoms in a unit cell)
-        dot_products_basis = np.einsum("ik,jk", scattering_vecs, self._atom_pos_in_uc)
+        dot_products_basis = np.einsum("ik,jk", scattering_vecs,
+                                       self._atom_pos_in_uc)
 
         # form_factors_vars.shape = (# trials, varieties, # atoms in unit cell)
         # atomic_numbers_vars.shape = (varieties, # atoms in unit cell)
@@ -110,7 +92,8 @@ class MCRandomOccupation(DiffractionMonteCarlo):
         # scattering_vecs.shape = (# trials filtered, 3)
         # unit_cell_pos.shape = (# unit cells, 3)
         # dot_products_lattice.shape = (# trials filtered, # unit cells)
-        dot_products_lattice = np.einsum("ik,jk", scattering_vecs, self._unit_cell_pos)
+        dot_products_lattice = np.einsum("ik,jk", scattering_vecs,
+                                         self._unit_cell_pos)
 
         # exp_terms_lattice.shape = (# trials filtered, # unit cells)
         exp_terms_lattice = np.exp(1j * dot_products_lattice)
@@ -120,14 +103,10 @@ class MCRandomOccupation(DiffractionMonteCarlo):
 
         # structure_factors_basis.shape = (# trials filtered, varieties)
         # structure_factors_basis_random.shape = (# trials filtered, # unit cells)
-        n_unit_cells = self._unit_cell_pos.shape[0]
-        n_uc_varieties = len(self._atomic_numbers_vars)
         n_vecs = len(scattering_vecs)
-        random_indices = self._rng.choice(np.arange(n_uc_varieties),
-                                          size=(n_vecs, n_unit_cells),
-                                          p=self._probs)
         structure_factors_basis_random = (
-            structure_factors_basis)[np.arange(n_vecs)[:, np.newaxis], random_indices]
+            structure_factors_basis)[
+            np.arange(n_vecs)[:, np.newaxis], self._uc_var_indices]
 
         # structure_factors_lattice.shape = (# trials filtered,)
         structure_factors = np.sum(

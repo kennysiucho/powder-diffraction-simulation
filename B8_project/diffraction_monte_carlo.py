@@ -740,6 +740,11 @@ class DiffractionMonteCarlo(ABC):
             scattering_vecs, two_thetas_batch = (
                 self._get_scattering_vecs_and_angles_box(trials_per_batch, bounding_boxes))
 
+            angles_accepted = np.where(np.logical_and(two_thetas_batch >= self._min_angle_deg,
+                                                      two_thetas_batch <= self._max_angle_deg))
+            scattering_vecs = scattering_vecs[angles_accepted]
+            two_thetas_batch = two_thetas_batch[angles_accepted]
+
             # Keep only the vecs close to points
             lengths = kdtree.query_ball_point(scattering_vecs, dist, return_length=True)
             mask = (lengths > 0)
